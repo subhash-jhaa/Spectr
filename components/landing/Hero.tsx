@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import {
   ArrowRight, Code2, Star,
 } from 'lucide-react';
+import { signIn } from 'next-auth/react';
 import { Button, fadeUp, staggerContainer, SectionLabel } from './Primitives';
 
 
@@ -78,9 +79,8 @@ export function Hero() {
         </div>
 
         <div className="flex gap-8 text-sm font-semibold text-white pointer-events-auto">
-          {['Linkedin','X'].map((link) => (
-            <a key={link} href="#" className="hover:text-zinc-300 transition-colors">{link}</a>
-          ))}
+          <a href="https://linkedin.com/in/subhashjhadev" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">Linkedin</a>
+          <a href="https://x.com/subhash-jh" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-300 transition-colors">X</a>
         </div>
       </div>
     </motion.section>

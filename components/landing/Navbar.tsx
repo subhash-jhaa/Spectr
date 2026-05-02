@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Session } from "next-auth";
+import { signIn } from "next-auth/react";
 import { LogIn, ChevronRight, ArrowUpRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, MONO } from "./Primitives";
@@ -117,27 +118,36 @@ export function Navbar({ session }: NavbarProps) {
                 </SpringBtn>
               </Link>
             ) : (
-              <Link href="/auth">
-                <SpringBtn className={cn(
-                  "inline-flex items-center gap-2 rounded-lg px-4 h-9 text-sm font-medium transition-colors",
-                  scrolled ? "text-zinc-400 hover:text-white" : "text-zinc-600 hover:text-zinc-950"
-                )}>
-                  Login
-                </SpringBtn>
-              </Link>
-            )}
-            <Link href="/auth">
               <motion.button
+                onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
                 whileHover={{ scale: 1.03, boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
                 whileTap={{ scale: 0.97 }}
                 transition={SPRING}
-                className="relative inline-flex items-center gap-1.5 rounded-lg px-4 h-9 text-sm font-semibold bg-zinc-950 text-white overflow-hidden"
+                className="relative inline-flex items-center gap-2 rounded-lg px-4 h-9 text-sm font-semibold bg-zinc-950 text-white overflow-hidden shadow-sm"
               >
                 <span className="absolute inset-0 bg-zinc-800 opacity-0 hover:opacity-100 transition-opacity duration-300" />
-                <span className="relative">Get Started</span>
-                <ChevronRight className="relative h-3.5 w-3.5" />
+                <div className="relative z-10 flex items-center gap-2">
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="white"></path>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="white"></path>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="white"></path>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="white"></path>
+                  </svg>
+                  <span className="hidden sm:inline">Sign in</span>
+                </div>
               </motion.button>
-            </Link>
+            )}
+            <motion.button
+              onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+              whileHover={{ scale: 1.03, boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
+              whileTap={{ scale: 0.97 }}
+              transition={SPRING}
+              className="relative inline-flex items-center gap-1.5 rounded-lg px-4 h-9 text-sm font-semibold bg-zinc-950 text-white overflow-hidden shadow-sm"
+            >
+              <span className="absolute inset-0 bg-zinc-800 opacity-0 hover:opacity-100 transition-opacity duration-300" />
+              <span className="relative z-10">Get Started</span>
+              <ChevronRight className="relative z-10 h-3.5 w-3.5" />
+            </motion.button>
           </div>
 
           {/* Mobile trigger */}
@@ -205,20 +215,33 @@ export function Navbar({ session }: NavbarProps) {
               <div className="mx-5 h-px bg-white/[0.06]" />
 
               {/* CTA */}
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 0, y: 0 }}
                 transition={{ delay: 0.25, ease: EASE }}
                 className="flex flex-col gap-3 p-5 mt-auto"
               >
-                {[
-                  { label: "Login", icon: <LogIn className="h-4 w-4 opacity-50" />, cls: "border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white" },
-                  { label: "Get Started Free", icon: <ChevronRight className="h-4 w-4 opacity-60" />, cls: "bg-white text-zinc-950 hover:bg-zinc-100 shadow-[0_0_20px_rgba(255,255,255,0.1)]" },
-                ].map(({ label, icon, cls }) => (
-                  <Link key={label} href="/auth" onClick={() => setOpen(false)} className="w-full">
-                    <button className={cn("w-full inline-flex items-center justify-between rounded-xl px-5 py-3.5 text-sm font-medium transition-all", cls)}>
-                      {label} {icon}
-                    </button>
-                  </Link>
-                ))}
+                {!session?.user && (
+                  <button 
+                    onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+                    className="w-full inline-flex items-center justify-between rounded-xl px-5 py-3.5 text-sm font-medium border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white transition-all"
+                  >
+                    <span>Sign in with Google</span>
+                    <svg className="h-4 w-4" viewBox="0 0 24 24">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+                    </svg>
+                  </button>
+                )}
+                <button 
+                  onClick={() => {
+                    setOpen(false);
+                    signIn('google', { callbackUrl: '/dashboard' });
+                  }}
+                  className="w-full inline-flex items-center justify-between rounded-xl px-5 py-3.5 text-sm font-medium bg-white text-zinc-950 hover:bg-zinc-100 shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all"
+                >
+                  Get Started Free <ChevronRight className="h-4 w-4 opacity-60" />
+                </button>
               </motion.div>
             </motion.div>
           </>
