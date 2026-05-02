@@ -15,9 +15,9 @@ export function Badge({ children, className }: { children: React.ReactNode; clas
   );
 }
 
-export function SectionLabel({ children }: { children: React.ReactNode }) {
+export function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className="flex items-center justify-center gap-3 mb-4">
+    <div className={cn("flex items-center justify-center gap-3 mb-4", className)}>
       <div className="h-px w-8 bg-zinc-700" />
       <span className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">{children}</span>
       <div className="h-px w-8 bg-zinc-700" />

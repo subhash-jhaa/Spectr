@@ -21,8 +21,8 @@ const SPRING = { type: "spring", stiffness: 400, damping: 20 } as const;
 const EASE   = [0.16, 1, 0.3, 1] as const;
 
 // Animated 3-line hamburger ↔ X
-function Hamburger({ open }: { open: boolean }) {
-  const line = "block h-[1.5px] w-full bg-zinc-300 rounded-full";
+function Hamburger({ open, scrolled }: { open: boolean; scrolled: boolean }) {
+  const line = cn("block h-[1.5px] w-full rounded-full transition-colors", scrolled ? "bg-zinc-300" : "bg-zinc-950");
   return (
     <div className="relative w-5 h-4 flex flex-col justify-between">
       <motion.span animate={open ? { rotate: 45, y: 8 }  : { rotate: 0, y: 0 }}  transition={{ duration: 0.35, ease: EASE }} className={cn(line, "origin-center")} />
@@ -33,11 +33,21 @@ function Hamburger({ open }: { open: boolean }) {
 }
 
 // Desktop nav link with sliding underline
-function NavLink({ name, href, onClick }: { name: string; href: string; onClick?: () => void }) {
+function NavLink({ name, href, onClick, scrolled }: { name: string; href: string; onClick?: () => void; scrolled: boolean }) {
   return (
-    <a href={href} onClick={onClick} className="group relative px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors duration-200">
+    <a 
+      href={href} 
+      onClick={onClick} 
+      className={cn(
+        "group relative px-4 py-2 text-sm font-medium transition-colors duration-200",
+        scrolled ? "text-zinc-400 hover:text-white" : "text-zinc-600 hover:text-zinc-950"
+      )}
+    >
       {name}
-      <span className="absolute bottom-0.5 left-4 right-4 h-px bg-white scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left rounded-full" />
+      <span className={cn(
+        "absolute bottom-0.5 left-4 right-4 h-px scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left rounded-full",
+        scrolled ? "bg-white" : "bg-zinc-950"
+      )} />
     </a>
   );
 }
@@ -84,38 +94,46 @@ export function Navbar({ session }: NavbarProps) {
           {/* Brand */}
           <Link href="/" className="flex items-center">
             <motion.div whileHover={{ scale: 1.02 }} transition={SPRING}>
-              <Logo className="h-10 w-auto" />
+              <Logo className={cn("h-10 w-auto transition-colors duration-300", scrolled ? "text-white" : "text-zinc-950")} />
             </motion.div>
           </Link>
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center -mx-1">
-            {NAV_LINKS.map((l) => <NavLink key={l.href} {...l} />)}
+            {NAV_LINKS.map((l) => <NavLink key={l.href} {...l} scrolled={scrolled} />)}
           </nav>
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-2">
             {session?.user ? (
               <Link href="/dashboard">
-                <SpringBtn className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 h-9 text-sm font-medium text-zinc-300 hover:bg-white/10 hover:text-white hover:border-white/20 transition-all">
+                <SpringBtn className={cn(
+                  "inline-flex items-center gap-2 rounded-lg border px-4 h-9 text-sm font-medium transition-all",
+                  scrolled 
+                    ? "border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white" 
+                    : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
+                )}>
                   <LogIn className="h-3.5 w-3.5" /> Dashboard
                 </SpringBtn>
               </Link>
             ) : (
               <Link href="/auth">
-                <SpringBtn className="inline-flex items-center gap-2 rounded-lg px-4 h-9 text-sm font-medium text-zinc-400 hover:text-white transition-colors">
+                <SpringBtn className={cn(
+                  "inline-flex items-center gap-2 rounded-lg px-4 h-9 text-sm font-medium transition-colors",
+                  scrolled ? "text-zinc-400 hover:text-white" : "text-zinc-600 hover:text-zinc-950"
+                )}>
                   Login
                 </SpringBtn>
               </Link>
             )}
             <Link href="/auth">
               <motion.button
-                whileHover={{ scale: 1.03, boxShadow: "0 0 24px rgba(255,255,255,0.12)" }}
+                whileHover={{ scale: 1.03, boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}
                 whileTap={{ scale: 0.97 }}
                 transition={SPRING}
-                className="relative inline-flex items-center gap-1.5 rounded-lg px-4 h-9 text-sm font-semibold bg-white text-zinc-950 overflow-hidden"
+                className="relative inline-flex items-center gap-1.5 rounded-lg px-4 h-9 text-sm font-semibold bg-zinc-950 text-white overflow-hidden"
               >
-                <span className="absolute inset-0 bg-gradient-to-r from-zinc-100 to-white opacity-0 hover:opacity-100 transition-opacity duration-300" />
+                <span className="absolute inset-0 bg-zinc-800 opacity-0 hover:opacity-100 transition-opacity duration-300" />
                 <span className="relative">Get Started</span>
                 <ChevronRight className="relative h-3.5 w-3.5" />
               </motion.button>
@@ -124,10 +142,13 @@ export function Navbar({ session }: NavbarProps) {
 
           {/* Mobile trigger */}
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => setOpen(!open)}
-            className="md:hidden flex h-10 w-10 items-center justify-center rounded-lg text-zinc-400 hover:bg-white/5 hover:text-white transition-colors"
+            className={cn(
+              "md:hidden flex h-10 w-10 items-center justify-center rounded-lg transition-colors",
+              scrolled ? "text-zinc-400 hover:bg-white/5 hover:text-white" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"
+            )}
             aria-label="Toggle menu"
           >
-            <Hamburger open={open} />
+            <Hamburger open={open} scrolled={scrolled} />
           </motion.button>
         </div>
 
