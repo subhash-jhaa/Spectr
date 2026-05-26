@@ -30,6 +30,14 @@ export async function getOptionalSession() {
   try {
     return await getSession();
   } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message.includes('Dynamic server usage') ||
+       error.message.includes('dynamic') ||
+       ('digest' in error && (error as Record<string, unknown>).digest === 'DYNAMIC_SERVER_USAGE'))
+    ) {
+      throw error;
+    }
     console.error("Failed to retrieve optional session (database might be offline/sleeping):", error);
     return null;
   }

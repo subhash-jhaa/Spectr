@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       const cleanup = () => {
         if (interval) {
           clearInterval(interval);
+          interval = null;
         }
         
         // Remove only this specific controller from the project's set
@@ -53,9 +54,23 @@ export async function GET(request: NextRequest) {
           } catch (_e) {}
         });
 
+        if (request.signal.aborted) {
+          cleanup();
+          return;
+        }
+
         await sendStats(projectId, controller);
 
+        if (request.signal.aborted) {
+          cleanup();
+          return;
+        }
+
         interval = setInterval(async () => {
+          if (request.signal.aborted) {
+            cleanup();
+            return;
+          }
           const projectConnections = connections.get(projectId);
           // If this controller is no longer in the set, it means it was cleaned up
           if (!projectConnections || !projectConnections.has(controller)) {
