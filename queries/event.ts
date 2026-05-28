@@ -14,6 +14,8 @@ import {
   CountryStats,
   ReferrerStats,
   PageStats,
+  BrowserStats,
+  DeviceStats,
   VisitorStats
 } from '../interfaces/database';
 
@@ -337,41 +339,47 @@ export class EventQueries {
    */
   static async getDailyStats(projectId: string, days: number = 7): Promise<QueryResult<DailyStats[]>> {
     try {
-      const endDate = new Date();
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
       
-      const result = await this.findInTimeRange(projectId, startDate, endDate);
-      if (!result.success || !result.data) {
-        return {
-          success: false,
-          error: 'Failed to get daily stats'
-        };
-      }
+      const stats = await prisma.$queryRaw<any[]>`
+        SELECT 
+          TO_CHAR(DATE_TRUNC('day', "timestamp"), 'YYYY-MM-DD') AS "date",
+          COUNT(DISTINCT COALESCE("sessionId", "ip"))::integer AS "visitors",
+          COUNT(*)::integer AS "pageViews"
+        FROM "Event"
+        WHERE "projectId" = ${projectId} AND "timestamp" >= ${startDate}
+        GROUP BY DATE_TRUNC('day', "timestamp")
+        ORDER BY DATE_TRUNC('day', "timestamp") ASC
+      `;
 
       // Initialize daily stats with 0
-      const dailyStats: { [key: string]: Set<string> } = {};
+      const dailyStatsMap: { [key: string]: DailyStats } = {};
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         const dateKey = date.toISOString().split('T')[0];
-        dailyStats[dateKey] = new Set();
+        dailyStatsMap[dateKey] = {
+          date: dateKey,
+          visitors: 0,
+          pageViews: 0
+        };
       }
 
-      // Count unique visitors per day
-      result.data.forEach(event => {
-        const dateKey = event.timestamp.toISOString().split('T')[0];
-        if (dailyStats[dateKey]) {
-          const visitorKey = event.sessionId || event.ip;
-          dailyStats[dateKey].add(visitorKey);
+      // Merge query results
+      stats.forEach((row: any) => {
+        if (dailyStatsMap[row.date]) {
+          dailyStatsMap[row.date].visitors = row.visitors;
+          dailyStatsMap[row.date].pageViews = row.pageViews;
+        } else {
+          dailyStatsMap[row.date] = {
+            date: row.date,
+            visitors: row.visitors,
+            pageViews: row.pageViews
+          };
         }
       });
 
-      // Convert to array format
-      const chartData: DailyStats[] = Object.entries(dailyStats).map(([date, visitors]) => ({
-        date,
-        visitors: visitors.size,
-        pageViews: 0 // Could be calculated separately if needed
-      }));
+      const chartData = Object.values(dailyStatsMap).sort((a, b) => a.date.localeCompare(b.date));
 
       return {
         success: true,
@@ -394,37 +402,29 @@ export class EventQueries {
       const endDate = new Date();
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
       
-      const result = await this.findInTimeRange(projectId, startDate, endDate);
-      if (!result.success || !result.data) {
-        return {
-          success: false,
-          error: 'Failed to get country stats'
-        };
-      }
-
-      // Count unique visitors by country
-      const countryStats: { [key: string]: Set<string> } = {};
-      let totalVisitors = 0;
-      
-      result.data.forEach(event => {
-        const country = event.country || 'Unknown';
-        if (!countryStats[country]) {
-          countryStats[country] = new Set();
+      const groups = await prisma.event.groupBy({
+        by: ['country'],
+        where: {
+          projectId,
+          timestamp: {
+            gte: startDate,
+            lte: endDate
+          }
+        },
+        _count: {
+          _all: true
         }
-        const visitorKey = event.sessionId || event.ip;
-        countryStats[country].add(visitorKey);
-        totalVisitors++;
       });
 
-      // Convert to array format and calculate percentages
-      const chartData: CountryStats[] = Object.entries(countryStats)
-        .map(([country, visitors]) => ({
-          country,
-          visitors: visitors.size,
-          percentage: totalVisitors > 0 ? (visitors.size / totalVisitors) * 100 : 0
-        }))
-        .sort((a, b) => b.visitors - a.visitors)
-        .slice(0, 10);
+      const totalVisitors = groups.reduce((sum, g) => sum + g._count._all, 0);
+      
+      const chartData: CountryStats[] = groups.map(g => ({
+        country: g.country || 'Unknown',
+        visitors: g._count._all,
+        percentage: totalVisitors > 0 ? (g._count._all / totalVisitors) * 100 : 0
+      }))
+      .sort((a, b) => b.visitors - a.visitors)
+      .slice(0, 10);
 
       return {
         success: true,
@@ -447,22 +447,25 @@ export class EventQueries {
       const endDate = new Date();
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
       
-      const result = await this.findInTimeRange(projectId, startDate, endDate);
-      if (!result.success || !result.data) {
-        return {
-          success: false,
-          error: 'Failed to get referrer stats'
-        };
-      }
+      const groups = await prisma.event.groupBy({
+        by: ['referrer'],
+        where: {
+          projectId,
+          timestamp: {
+            gte: startDate,
+            lte: endDate
+          }
+        },
+        _count: {
+          _all: true
+        }
+      });
 
-      // Count unique visitors by referrer
-      const referrerStats: { [key: string]: Set<string> } = {};
+      const referrerMap: { [key: string]: number } = {};
       let totalVisitors = 0;
-      
-      result.data.forEach(event => {
-        let referrer = event.referrer || 'Direct';
-        
-        // Clean up referrer URLs
+
+      groups.forEach(g => {
+        let referrer = g.referrer || 'Direct';
         if (referrer && referrer !== 'Direct') {
           try {
             const url = new URL(referrer);
@@ -471,21 +474,15 @@ export class EventQueries {
             referrer = 'Direct';
           }
         }
-        
-        if (!referrerStats[referrer]) {
-          referrerStats[referrer] = new Set();
-        }
-        const visitorKey = event.sessionId || event.ip;
-        referrerStats[referrer].add(visitorKey);
-        totalVisitors++;
+        referrerMap[referrer] = (referrerMap[referrer] || 0) + g._count._all;
+        totalVisitors += g._count._all;
       });
 
-      // Convert to array format and calculate percentages
-      const chartData: ReferrerStats[] = Object.entries(referrerStats)
+      const chartData: ReferrerStats[] = Object.entries(referrerMap)
         .map(([referrer, visitors]) => ({
           referrer,
-          visitors: visitors.size,
-          percentage: totalVisitors > 0 ? (visitors.size / totalVisitors) * 100 : 0
+          visitors,
+          percentage: totalVisitors > 0 ? (visitors / totalVisitors) * 100 : 0
         }))
         .sort((a, b) => b.visitors - a.visitors)
         .slice(0, 10);
@@ -500,6 +497,149 @@ export class EventQueries {
         success: false,
         error: 'Failed to get referrer stats'
       };
+    }
+  }
+
+  /**
+   * Get page stats (grouped by pageUrl)
+   */
+  static async getPageStats(
+    projectId: string,
+    days: number = 30
+  ): Promise<QueryResult<PageStats[]>> {
+    try {
+      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+      const rows = await prisma.$queryRaw<
+        { pageUrl: string; pageViews: bigint; visitors: bigint }[]
+      >`
+        SELECT
+          "pageUrl",
+          COUNT(*) AS "pageViews",
+          COUNT(DISTINCT COALESCE("sessionId", id::text)) AS visitors
+        FROM "Event"
+        WHERE "projectId" = ${projectId}
+          AND "timestamp" >= ${startDate}
+        GROUP BY "pageUrl"
+        ORDER BY visitors DESC
+        LIMIT 20
+      `;
+
+      const data: PageStats[] = rows.map((r) => ({
+        pageUrl: r.pageUrl,
+        pageViews: Number(r.pageViews),
+        visitors: Number(r.visitors),
+      }));
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error getting page stats:', error);
+      return { success: false, error: 'Failed to get page stats' };
+    }
+  }
+
+  /**
+   * Helper to query user agent counts in distinct groups
+   */
+  private static async getUserAgentCounts(projectId: string, startDate: Date) {
+    return await prisma.$queryRaw<{ userAgent: string; count: bigint }[]>`
+      SELECT
+        "userAgent",
+        COUNT(*) as count
+      FROM "Event"
+      WHERE "projectId" = ${projectId}
+        AND "timestamp" >= ${startDate}
+        AND "userAgent" IS NOT NULL
+        AND "userAgent" != ''
+      GROUP BY "userAgent"
+    `;
+  }
+
+  /**
+   * Get browser stats
+   */
+  static async getBrowserStats(
+    projectId: string,
+    days: number = 30
+  ): Promise<QueryResult<BrowserStats[]>> {
+    try {
+      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const rows = await this.getUserAgentCounts(projectId, startDate);
+
+      const getBrowser = (ua: string): string => {
+        const u = ua.toLowerCase();
+        if (u.includes('edg')) return 'Edge';
+        if (u.includes('chrome') && !u.includes('chromium')) return 'Chrome';
+        if (u.includes('safari') && !u.includes('chrome') && !u.includes('chromium')) return 'Safari';
+        if (u.includes('firefox')) return 'Firefox';
+        if (u.includes('opera') || u.includes('opr')) return 'Opera';
+        return 'Other';
+      };
+
+      // Merge counts by browser name
+      const browserCounts: Record<string, number> = {};
+      let total = 0;
+
+      for (const row of rows) {
+        const browser = getBrowser(row.userAgent);
+        const count = Number(row.count);
+        browserCounts[browser] = (browserCounts[browser] || 0) + count;
+        total += count;
+      }
+
+      const data: BrowserStats[] = Object.entries(browserCounts)
+        .map(([browser, visitors]) => ({
+          browser,
+          visitors,
+          share: total > 0 ? Math.round((visitors / total) * 100) : 0,
+        }))
+        .sort((a, b) => b.visitors - a.visitors);
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error getting browser stats:', error);
+      return { success: false, error: 'Failed to get browser stats' };
+    }
+  }
+
+  /**
+   * Get device stats
+   */
+  static async getDeviceStats(
+    projectId: string,
+    days: number = 7
+  ): Promise<QueryResult<DeviceStats[]>> {
+    try {
+      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const rows = await this.getUserAgentCounts(projectId, startDate);
+
+      const counts = { Mobile: 0, Desktop: 0, Tablet: 0 };
+      let total = 0;
+
+      for (const { userAgent, count } of rows) {
+        const n = Number(count);
+        const device = /mobile|android|iphone|phone/i.test(userAgent)
+          ? 'Mobile'
+          : /tablet|ipad/i.test(userAgent)
+          ? 'Tablet'
+          : 'Desktop';
+        counts[device] += n;
+        total += n;
+      }
+
+      const data: DeviceStats[] = Object.entries(counts).map(([device, visitors]) => ({
+        device,
+        visitors,
+        share: total > 0 ? Math.round((visitors / total) * 100) : 0,
+      }));
+
+      return {
+        success: true,
+        data,
+      };
+    } catch (error) {
+      console.error('Error getting device stats:', error);
+      return { success: false, error: 'Failed to get device stats' };
     }
   }
 

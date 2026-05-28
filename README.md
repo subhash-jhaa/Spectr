@@ -58,6 +58,10 @@ DATABASE_URL="your-postgresql-url"
 NEXTAUTH_SECRET="your-secret-key"
 NEXTAUTH_URL="http://localhost:3000" # Use https://spectr.subhashjha.me in production
 
+# Upstash Redis (Rate Limiting)
+UPSTASH_REDIS_REST_URL="your-upstash-redis-rest-url"
+UPSTASH_REDIS_REST_TOKEN="your-upstash-redis-rest-token"
+
 # App URL
 NEXT_PUBLIC_APP_URL="http://localhost:3000" # Use https://spectr.subhashjha.me in production
 GOOGLE_CLIENT_ID="your-google-id"
@@ -99,7 +103,10 @@ Spectr provides a clean, documented API for custom integrations:
 
 ## 🔒 Privacy Commitment
 
-Spectr does **not** collect personally identifiable information (PII). We utilize server-side IP detection to provide geo-location insights, but we never store full IP addresses or use persistent browser cookies.
+Spectr is designed with strict respect for user privacy:
+- **No Persistent Tracking**: We do not use browser cookies or persistent browser storage (like `localStorage`) to track visitors across sessions.
+- **Tab-Scoped Sessions**: We use ephemeral `sessionStorage` to isolate session-based telemetry to a single active browser tab. All session identifiers are immediately destroyed when the visitor closes their tab or browser window.
+- **No PII Storage**: We utilize server-side IP detection to resolve geo-location insights (country and city), but we never store full IP addresses or any personally identifiable information (PII).
 
 ---
 

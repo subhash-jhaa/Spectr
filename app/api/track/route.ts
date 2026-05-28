@@ -17,6 +17,32 @@ import {
   LocationData 
 } from '../../../interfaces/api';
 import { ProjectQueries, EventQueries } from '../../../queries';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+const hasRedisConfig = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+
+if (!hasRedisConfig && process.env.NODE_ENV === 'development') {
+  console.warn(
+    '[WARN] Upstash Redis credentials not configured. IP-based rate limiting is disabled.'
+  );
+}
+
+const redis = hasRedisConfig
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    })
+  : null;
+
+const ratelimit = redis
+  ? new Ratelimit({
+      redis,
+      limiter: Ratelimit.tokenBucket(10, '1 m', 20),
+      analytics: true,
+      prefix: '@upstash/ratelimit',
+    })
+  : null;
 
 // Handle OPTIONS preflight requests for CORS
 export async function OPTIONS() {
@@ -37,14 +63,28 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       return createErrorResponse('Invalid project ID', 400);
     }
 
+    // Get the client IP early for rate limiting and geolocation
+    const ip = getClientIP(request);
+
+    // Rate Limiting
+    if (ratelimit) {
+      const identifier = `${ip}:${projectId}`;
+      const { success, reset } = await ratelimit.limit(identifier);
+
+      if (!success) {
+        return createErrorResponse('Too many requests', 429, {
+          'Retry-After': String(Math.ceil((reset - Date.now()) / 1000)),
+        });
+      }
+    }
+
     // Verify project exists
     const projectResult = await ProjectQueries.findById(projectId);
     if (!projectResult.success || !projectResult.data) {
       return createErrorResponse('Project not found', 404);
     }
 
-    // Detect IP and location from headers
-    const ip = getClientIP(request);
+    // Detect location from headers
     let country = getCountry(request);
     let city = getCity(request);
 
@@ -117,7 +157,6 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
             pageUrl,
             referrer: referrer || '',
             userAgent: userAgent || '',
-            ip: ip,
             country: country,
             city: city,
           });
@@ -151,7 +190,6 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       pageUrl,
       referrer: referrer || '',
       userAgent: userAgent || '',
-      ip: ip,
       country: country,
       city: city,
     });

@@ -107,6 +107,18 @@ export interface PageStats {
   pageViews: number;
 }
 
+export interface BrowserStats {
+  browser: string;
+  visitors: number;
+  share: number;
+}
+
+export interface DeviceStats {
+  device: string;
+  visitors: number;
+  share: number;
+}
+
 // Real-time interfaces
 export interface RealtimeVisitor {
   id: string;

@@ -3,41 +3,31 @@
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 import { Session } from 'next-auth'
-import React, { useState, useEffect, useCallback, useRef, Fragment } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   ChartBarIcon,
   EyeIcon,
   CogIcon,
-  PlusIcon,
   ArrowRightOnRectangleIcon,
   UserGroupIcon,
   Bars3Icon,
   XMarkIcon,
+  UserIcon,
 } from '@heroicons/react/24/outline'
 import { LogoMark } from './landing/Logo'
 import { Dashboard } from '@/components/components/dashboard'
 
+// Custom Hooks
+import { useProjects, Project } from './hooks/useProjects'
+import { useRealtimeStats } from './hooks/useRealtimeStats'
+
+// Sub-components
+import { ProjectSelector } from './ProjectSelector'
+import { NewProjectModal } from './NewProjectModal'
+import { DeleteProjectModal } from './DeleteProjectModal'
+
 interface DashboardClientProps {
   session: Session
-}
-
-interface Project {
-  id: string
-  name: string
-  createdAt: string
-}
-
-interface RealtimeStats {
-  count: number
-  visitors: Array<{
-    id: string
-    pageUrl: string
-    referrer: string
-    country: string
-    city: string
-    userAgent: string
-    timestamp: string
-  }>
 }
 
 interface DailyStats {
@@ -55,255 +45,137 @@ interface ReferrerStats {
   visitors: number
 }
 
+interface PageStats {
+  pageUrl: string
+  visitors: number
+  pageViews: number
+}
+
+interface BrowserStats {
+  browser: string
+  visitors: number
+  share: number
+}
+
+interface DeviceStats {
+  device: string
+  visitors: number
+  share: number
+}
+
 const DashboardClient = ({ session }: DashboardClientProps) => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [realtimeStats, setRealtimeStats] = useState<RealtimeStats>({ count: 0, visitors: [] });
-  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
-  const [countryStats, setCountryStats] = useState<CountryStats[]>([]);
-  const [referrerStats, setReferrerStats] = useState<ReferrerStats[]>([]);
-  const [showNewProjectModal, setShowNewProjectModal] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
-  const [loading, setLoading] = useState(true);
+  if (process.env.NODE_ENV === 'development') {
+    console.debug('Dashboard session active for:', session.user?.email);
+  }
+  const [activeTab, setActiveTab] = useState('overview')
+  const [dailyStats, setDailyStats] = useState<DailyStats[]>([])
+  const [countryStats, setCountryStats] = useState<CountryStats[]>([])
+  const [referrerStats, setReferrerStats] = useState<ReferrerStats[]>([])
+  const [pageStats, setPageStats] = useState<PageStats[]>([])
+  const [browserStats, setBrowserStats] = useState<BrowserStats[]>([])
+  const [deviceStats, setDeviceStats] = useState<DeviceStats[]>([])
+  const [showNewProjectModal, setShowNewProjectModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isCopyingScript, setIsCopyingScript] = useState(false)
+  const [dataFetched, setDataFetched] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  // Real-time connection state
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [realtimeConnected, setRealtimeConnected] = useState(false);
-  const [reconnectionAttempts, setReconnectionAttempts] = useState(0);
-  const maxReconnectionAttempts = 5;
-  const [reconnectionTimeout, setReconnectionTimeout] = useState<NodeJS.Timeout | null>(null);
+  // Use Custom Hooks
+  const {
+    projects,
+    selectedProject,
+    setSelectedProject,
+    loading: projectsLoading,
+    isCreatingProject,
+    isDeletingProject,
+    createProject,
+    deleteProject
+  } = useProjects()
 
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteConfirmationName, setDeleteConfirmationName] = useState('');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isCreatingProject, setIsCreatingProject] = useState(false);
-  const [isDeletingProject, setIsDeletingProject] = useState(false);
-  const [isCopyingScript, setIsCopyingScript] = useState(false);
-
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const [dataFetched, setDataFetched] = useState(false);
-
-  const fetchProjects = useCallback(async () => {
-    try {
-      const response = await fetch('/api/project')
-      const data = await response.json()
-      setProjects(data)
-      if (data.length > 0 && !selectedProject) {
-        setSelectedProject(data[0])
-      }
-      setLoading(false)
-    } catch (error) {
-      console.error('Error fetching projects:', error)
-      setLoading(false)
-    }
-  }, [selectedProject]);
+  const {
+    realtimeStats,
+    isConnecting,
+    realtimeConnected,
+    reconnectionAttempts,
+    maxReconnectionAttempts,
+    retryConnection
+  } = useRealtimeStats(selectedProject?.id)
 
   const fetchStats = useCallback(async () => {
-    if (!selectedProject) return;
-    setDataFetched(false);
+    if (!selectedProject) return
+    setDataFetched(false)
     try {
       const fetchWithCheck = async (url: string) => {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 10_000);
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 10_000)
         try {
-          const res = await fetch(url, { signal: controller.signal });
+          const res = await fetch(url, { signal: controller.signal })
           if (!res.ok) {
-            const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
-            throw new Error(errorData.error || `HTTP ${res.status}`);
+            const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
+            throw new Error(errorData.error || `HTTP ${res.status}`)
           }
-          return res.json();
+          return res.json()
         } finally {
-          clearTimeout(timer);
+          clearTimeout(timer)
         }
-      };
+      }
 
-      const [dailyData, countriesData, referrersData] = await Promise.all([
+      const [dailyData, countriesData, referrersData, pagesData, browsersData, devicesData] = await Promise.all([
         fetchWithCheck(`/api/stats/project/${selectedProject.id}/7days`),
         fetchWithCheck(`/api/stats/project/${selectedProject.id}/countries`),
-        fetchWithCheck(`/api/stats/project/${selectedProject.id}/referrers`)
-      ]);
+        fetchWithCheck(`/api/stats/project/${selectedProject.id}/referrers`),
+        fetchWithCheck(`/api/stats/project/${selectedProject.id}/pages`),
+        fetchWithCheck(`/api/stats/project/${selectedProject.id}/browsers`),
+        fetchWithCheck(`/api/stats/project/${selectedProject.id}/devices`)
+      ])
 
-      setDailyStats(dailyData);
-      setCountryStats(countriesData);
-      setReferrerStats(referrersData);
-      setDataFetched(true);
+      setDailyStats(dailyData)
+      setCountryStats(countriesData)
+      setReferrerStats(referrersData)
+      setPageStats(Array.isArray(pagesData) ? pagesData : [])
+      setBrowserStats(Array.isArray(browsersData) ? browsersData : [])
+      setDeviceStats(Array.isArray(devicesData) ? devicesData : [])
+      setDataFetched(true)
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        console.warn('Stats fetch timed out, will retry on next project selection.');
+        console.warn('Stats fetch timed out, will retry on next project selection.')
       } else {
-        console.error('Error fetching stats:', error);
+        console.error('Error fetching stats:', error)
       }
-      setDataFetched(true); // allow UI to recover
+      setDataFetched(true) // allow UI to recover
     }
-  }, [selectedProject]);
+  }, [selectedProject])
 
+  // Sync loading state
   useEffect(() => {
-    if (dataFetched && realtimeConnected) {
-      setLoading(false);
+    if (projectsLoading) {
+      setLoading(true)
+    } else if (projects.length === 0) {
+      setLoading(false)
+    } else if (dataFetched && realtimeConnected) {
+      setLoading(false)
     } else {
-      setLoading(true);
+      setLoading(true)
     }
-  }, [dataFetched, realtimeConnected]);
-
-  const setupRealtimeConnection = useCallback(() => {
-    if (!selectedProject || eventSourceRef.current?.readyState === EventSource.OPEN) return;
-
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-    if (reconnectionTimeout) {
-      clearTimeout(reconnectionTimeout);
-    }
-
-    if (reconnectionAttempts >= maxReconnectionAttempts) {
-      console.log('Max reconnection attempts reached.');
-      setIsConnecting(false);
-      return;
-    }
-
-    setIsConnecting(true);
-    setRealtimeConnected(false);
-    console.log(`Attempting to connect (attempt ${reconnectionAttempts + 1})`);
-
-    const eventSource = new EventSource(`/api/realtime?projectId=${selectedProject.id}`);
-    eventSourceRef.current = eventSource;
-
-    eventSource.onopen = () => {
-      console.log('SSE connection established');
-      setIsConnecting(false);
-      setRealtimeConnected(true);
-      setReconnectionAttempts(0);
-    };
-
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'error') {
-          console.error('SSE server error:', data.message);
-          eventSource.close();
-          return;
-        }
-        if (data.type === 'stats') {
-          setRealtimeStats(data);
-        }
-      } catch (error) {
-        console.error('Error parsing SSE data:', error);
-      }
-    };
-
-    eventSource.onerror = () => {
-      console.log('SSE connection error. Scheduling reconnect.');
-      eventSource.close();
-      setIsConnecting(false);
-      setRealtimeConnected(false);
-
-      const nextAttempt = reconnectionAttempts + 1;
-      const delay = Math.min(1000 * Math.pow(2, nextAttempt), 30000);
-
-      const timeout = setTimeout(() => {
-        setReconnectionAttempts(nextAttempt);
-      }, delay);
-      setReconnectionTimeout(timeout);
-    };
-  }, [selectedProject, reconnectionAttempts, reconnectionTimeout]);
-
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
+  }, [projectsLoading, projects.length, dataFetched, realtimeConnected])
 
   useEffect(() => {
     if (selectedProject) {
-      fetchStats();
-      // Trigger connection logic whenever project or reconnection state changes
-      setupRealtimeConnection();
+      fetchStats()
     }
+  }, [selectedProject, fetchStats])
 
-    // Cleanup on unmount or when dependencies change
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-      if (reconnectionTimeout) {
-        clearTimeout(reconnectionTimeout);
-      }
-    };
-  }, [selectedProject, reconnectionAttempts, fetchStats, setupRealtimeConnection, reconnectionTimeout]);
-
-  useEffect(() => {
-    if (!dropdownOpen) return;
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [dropdownOpen]);
-
-  const handleProjectSwitch = (project: Project) => {
-    setSelectedProject(project);
-    setDropdownOpen(false);
-    setLoading(true);
-    setDataFetched(false);
-  };
-
-  const createProject = async () => {
-    if (!newProjectName.trim()) return
-
-    setIsCreatingProject(true)
-    try {
-      const response = await fetch('/api/project', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newProjectName })
-      })
-
-      const newProject = await response.json()
-      setProjects([newProject, ...projects])
-      setSelectedProject(newProject)
-      setShowNewProjectModal(false)
-      setNewProjectName('')
-    } catch (error) {
-      console.error('Error creating project:', error)
-    } finally {
-      setIsCreatingProject(false)
-    }
-  }
-
-  const deleteProject = async () => {
-    if (!selectedProject || selectedProject.name !== deleteConfirmationName) {
-      // Maybe show an error toast here
-      console.error('Confirmation name does not match')
-      return
-    }
-
-    setIsDeletingProject(true)
-    try {
-      await fetch(`/api/project/${selectedProject.id}`, { method: 'DELETE' })
-
-      // Reset state and fetch new project list
-      setDeleteConfirmationName('')
-      setShowDeleteModal(false)
-      setSelectedProject(null) // This will trigger a re-fetch in useEffect
-      await fetchProjects()
-
-    } catch (error) {
-      console.error('Error deleting project:', error)
-      // Maybe show an error toast here
-    } finally {
-      setIsDeletingProject(false)
-    }
+  const handleProjectSelect = (project: Project) => {
+    setSelectedProject(project)
+    setLoading(true)
+    setDataFetched(false)
   }
 
   const getTrackingScript = (projectId: string) => {
-    const baseUrl = 'https://spectr.subhashjha.me';
+    const baseUrl = 'https://spectr.subhashjha.me'
     return `<script src="${baseUrl}/track.js" data-site="${projectId}"></script>`
   }
-
 
   const copyToClipboard = async (text: string) => {
     setIsCopyingScript(true)
@@ -326,13 +198,11 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
         return 'Home'
       }
 
-      // Remove leading slash and get the last part
       const parts = path.split('/').filter(part => part.length > 0)
       if (parts.length === 0) {
         return 'Home'
       }
 
-      // Get the last part and capitalize it
       const lastPart = parts[parts.length - 1]
       return lastPart.charAt(0).toUpperCase() + lastPart.slice(1).replace(/[-_]/g, ' ')
     } catch {
@@ -350,8 +220,8 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
     }
   }
 
-  // Show loading state when no projects exist yet
-  if (!loading && projects.length === 0) {
+  // Show welcome/empty state when no projects exist yet
+  if (!projectsLoading && projects.length === 0) {
     return (
       <>
         <div className="min-h-screen bg-black text-zinc-100 flex items-center justify-center">
@@ -369,7 +239,6 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
               onClick={() => setShowNewProjectModal(true)}
               className="flex items-center gap-2 px-6 py-3 bg-white text-zinc-950 rounded hover:bg-zinc-200 transition font-mono font-bold mx-auto cursor-pointer"
             >
-              <PlusIcon className="h-5 w-5" />
               Create Your First Project
             </button>
             <Link 
@@ -381,48 +250,12 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
           </div>
         </div>
 
-        {/* New Project Modal */}
-        {showNewProjectModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-black p-6 rounded-xl border border-zinc-900 w-96">
-              <h3 className="text-xl font-bold text-zinc-100 mb-4 font-mono">Create New Project</h3>
-              <input
-                type="text"
-                placeholder="Project name"
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-white font-mono mb-4"
-                onKeyPress={(e) => e.key === 'Enter' && createProject()}
-              />
-              <div className="flex gap-3">
-                <button
-                  onClick={createProject}
-                  disabled={isCreatingProject}
-                  className="flex-1 px-4 py-2 bg-white text-zinc-950 rounded hover:bg-zinc-200 transition font-mono cursor-pointer disabled:bg-white/50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isCreatingProject ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-zinc-950"></div>
-                      Creating...
-                    </>
-                  ) : (
-                    'Create'
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowNewProjectModal(false)
-                    setNewProjectName('')
-                  }}
-                  disabled={isCreatingProject}
-                  className="flex-1 px-4 py-2 bg-zinc-700 text-zinc-300 rounded hover:bg-zinc-600 transition font-mono cursor-pointer disabled:bg-zinc-700/50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <NewProjectModal
+          isOpen={showNewProjectModal}
+          onClose={() => setShowNewProjectModal(false)}
+          onCreate={createProject}
+          isCreating={isCreatingProject}
+        />
       </>
     )
   }
@@ -479,13 +312,17 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
           </nav>
         </div>
 
-        <div className="mt-auto p-6 border-t border-zinc-900">
-          <div className="text-xs text-zinc-500 mb-2 font-mono">
-            {session.user?.name || session.user?.email}
-          </div>
+        <div className="mt-auto p-6 border-t border-zinc-900 space-y-1">
+          <Link
+            href="/dashboard/profile"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 rounded transition font-mono"
+          >
+            <UserIcon className="h-4 w-4" />
+            Profile
+          </Link>
           <button
             onClick={() => signOut({ callbackUrl: '/' })}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:text-red-400 transition font-mono cursor-pointer"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:text-red-400 hover:bg-zinc-900 rounded transition font-mono cursor-pointer"
           >
             <ArrowRightOnRectangleIcon className="h-4 w-4" />
             Sign Out
@@ -505,39 +342,13 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
               >
                 <Bars3Icon className="h-6 w-6" />
               </button>
-              <div className="relative min-w-[180px] w-56">
-                <button
-                  onClick={() => setDropdownOpen((open) => !open)}
-                  className="w-full flex items-center justify-between px-4 py-2 bg-black border border-zinc-700 rounded text-white font-mono focus:outline-none focus:ring-2 focus:ring-white"
-                >
-                  {selectedProject?.name || 'Select Project'}
-                  <svg className={`w-4 h-4 ml-2 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-                </button>
-                {dropdownOpen && (
-                  <div ref={dropdownRef} className="absolute z-50 mt-2 w-full bg-black rounded-lg shadow-lg border border-zinc-900 overflow-hidden">
-                    <div className="px-4 py-2 text-xs text-zinc-400 font-mono">Personal account</div>
-                    {projects.map((project) => (
-                      <button
-                        key={project.id}
-                        onClick={() => handleProjectSwitch(project)}
-                        className={`w-full text-left px-4 py-2 font-mono text-sm flex items-center gap-2 transition-colors ${selectedProject?.id === project.id ? 'bg-zinc-900 text-white' : 'text-zinc-200 hover:bg-zinc-700'}`}
-                      >
-                        {project.name}
-                        {selectedProject?.id === project.id && (
-                          <svg className="w-4 h-4 ml-auto text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => setShowNewProjectModal(true)}
-                className="flex items-center gap-2 px-3 py-2 bg-white text-zinc-950 rounded hover:bg-zinc-200 transition font-mono text-sm cursor-pointer"
-              >
-                <PlusIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">New Project</span>
-              </button>
+              
+              <ProjectSelector
+                projects={projects}
+                selectedProject={selectedProject}
+                onSelectProject={handleProjectSelect}
+                onCreateProjectClick={() => setShowNewProjectModal(true)}
+              />
             </div>
 
             {/* Real-time connection indicator */}
@@ -562,10 +373,7 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
               </span>
               {!realtimeConnected && !isConnecting && reconnectionAttempts >= maxReconnectionAttempts && (
                 <button
-                  onClick={() => {
-                    setReconnectionAttempts(0)
-                    setupRealtimeConnection()
-                  }}
+                  onClick={retryConnection}
                   className="text-xs text-white hover:text-zinc-200 transition cursor-pointer font-mono"
                 >
                   Retry
@@ -590,6 +398,9 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
               realtimeStats={realtimeStats} 
               countryStats={countryStats} 
               referrerStats={referrerStats} 
+              pageStats={pageStats}
+              browserStats={browserStats}
+              deviceStats={deviceStats}
             />
           )}
 
@@ -695,14 +506,14 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
                 <h3 className="text-zinc-100 font-semibold mb-4 font-mono">Project Details</h3>
                 <div className="space-y-2 text-sm font-mono">
                   <div className="flex justify-between">
-                    <span className="text-zinc-400">Project ID:</span>
-                    <span className="text-white">{selectedProject.id}</span>
+                     <span className="text-zinc-400">Project ID:</span>
+                     <span className="text-white">{selectedProject.id}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-zinc-400">Created:</span>
-                    <span className="text-white">
-                      {new Date(selectedProject.createdAt).toLocaleDateString()}
-                    </span>
+                     <span className="text-zinc-400">Created:</span>
+                     <span className="text-white">
+                       {new Date(selectedProject.createdAt).toLocaleDateString()}
+                     </span>
                   </div>
                 </div>
               </div>
@@ -724,145 +535,21 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
         </div>
       </div>
 
-      {/* Delete Project Modal */}
-      {showDeleteModal && selectedProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-black p-6 rounded-xl border border-red-500/50 w-full max-w-md">
-            <h3 className="text-xl font-bold text-red-400 mb-2 font-mono">Delete Project</h3>
-            <p className="text-zinc-400 mb-4 text-sm font-mono">
-              This action cannot be undone. This will permanently delete the <strong className="text-white">{selectedProject.name}</strong> project and all of its associated data.
-            </p>
-            <p className="text-zinc-400 mb-4 text-sm font-mono">
-              Please type the project name to confirm:
-            </p>
-            <input
-              type="text"
-              placeholder={selectedProject.name}
-              value={deleteConfirmationName}
-              onChange={(e) => setDeleteConfirmationName(e.target.value)}
-              className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-white font-mono mb-4"
-              onKeyPress={(e) => e.key === 'Enter' && deleteProject()}
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={deleteProject}
-                disabled={deleteConfirmationName !== selectedProject.name || isDeletingProject}
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded transition font-mono cursor-pointer disabled:bg-red-500/30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isDeletingProject ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Deleting...
-                  </>
-                ) : (
-                  'Delete this project'
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false)
-                  setDeleteConfirmationName('')
-                }}
-                disabled={isDeletingProject}
-                className="flex-1 px-4 py-2 bg-zinc-700 text-zinc-300 rounded hover:bg-zinc-600 transition font-mono cursor-pointer disabled:bg-zinc-700/50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <NewProjectModal
+        isOpen={showNewProjectModal}
+        onClose={() => setShowNewProjectModal(false)}
+        onCreate={createProject}
+        isCreating={isCreatingProject}
+      />
 
-      {/* New Project Modal */}
-      {showNewProjectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-black p-6 rounded-xl border border-zinc-900 w-96">
-            <h3 className="text-xl font-bold text-zinc-100 mb-4 font-mono">Create New Project</h3>
-            <input
-              type="text"
-              placeholder="Project name"
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-white font-mono mb-4"
-              onKeyPress={(e) => e.key === 'Enter' && createProject()}
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={createProject}
-                disabled={isCreatingProject}
-                className="flex-1 px-4 py-2 bg-white text-zinc-950 rounded hover:bg-zinc-200 transition font-mono cursor-pointer disabled:bg-white/50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isCreatingProject ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-zinc-950"></div>
-                    Creating...
-                  </>
-                ) : (
-                  'Create'
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  setShowNewProjectModal(false)
-                  setNewProjectName('')
-                }}
-                disabled={isCreatingProject}
-                className="flex-1 px-4 py-2 bg-zinc-700 text-zinc-300 rounded hover:bg-zinc-600 transition font-mono cursor-pointer disabled:bg-zinc-700/50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Project Modal */}
-      {showDeleteModal && selectedProject && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-black p-6 rounded-xl border border-red-500/50 w-full max-w-md">
-            <h3 className="text-xl font-bold text-red-400 mb-2 font-mono">Delete Project</h3>
-            <p className="text-zinc-400 mb-4 text-sm font-mono">
-              This action cannot be undone. This will permanently delete the <strong className="text-white">{selectedProject.name}</strong> project and all of its associated data.
-            </p>
-            <p className="text-zinc-400 mb-4 text-sm font-mono">
-              Please type the project name to confirm:
-            </p>
-            <input
-              type="text"
-              placeholder={selectedProject.name}
-              value={deleteConfirmationName}
-              onChange={(e) => setDeleteConfirmationName(e.target.value)}
-              className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-white font-mono mb-4"
-              onKeyPress={(e) => e.key === 'Enter' && deleteProject()}
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={deleteProject}
-                disabled={deleteConfirmationName !== selectedProject.name || isDeletingProject}
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded transition font-mono cursor-pointer disabled:bg-red-500/30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isDeletingProject ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Deleting...
-                  </>
-                ) : (
-                  'Delete this project'
-                )}
-              </button>
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false)
-                  setDeleteConfirmationName('')
-                }}
-                disabled={isDeletingProject}
-                className="flex-1 px-4 py-2 bg-zinc-700 text-zinc-300 rounded hover:bg-zinc-600 transition font-mono cursor-pointer disabled:bg-zinc-700/50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+      {selectedProject && (
+        <DeleteProjectModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onDelete={deleteProject}
+          projectName={selectedProject.name}
+          isDeleting={isDeletingProject}
+        />
       )}
     </div>
   )

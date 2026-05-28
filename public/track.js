@@ -68,22 +68,22 @@
   // Check if we should track this visit
   function shouldTrack() {
     const now = Date.now();
-    const lastTrack = localStorage.getItem(lastTrackKey);
-    const sessionId = localStorage.getItem(sessionKey);
+    const lastTrack = sessionStorage.getItem(lastTrackKey);
+    const sessionId = sessionStorage.getItem(sessionKey);
     
     // If no session exists, create one
     if (!sessionId) {
       const newSessionId = `${siteId}_${now}_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem(sessionKey, newSessionId);
-      localStorage.setItem(lastTrackKey, now.toString());
+      sessionStorage.setItem(sessionKey, newSessionId);
+      sessionStorage.setItem(lastTrackKey, now.toString());
       return true;
     }
     
     // If last track was more than 30 minutes ago, treat as new session
     if (lastTrack && (now - parseInt(lastTrack)) > 30 * 60 * 1000) {
       const newSessionId = `${siteId}_${now}_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem(sessionKey, newSessionId);
-      localStorage.setItem(lastTrackKey, now.toString());
+      sessionStorage.setItem(sessionKey, newSessionId);
+      sessionStorage.setItem(lastTrackKey, now.toString());
       return true;
     }
     
@@ -93,17 +93,17 @@
     }
     
     // Update last track time
-    localStorage.setItem(lastTrackKey, now.toString());
+    sessionStorage.setItem(lastTrackKey, now.toString());
     return true;
   }
   
   // Check if page has changed
   function hasPageChanged() {
     const currentPage = window.location.href;
-    const lastPage = localStorage.getItem(lastPageKey);
+    const lastPage = sessionStorage.getItem(lastPageKey);
     
     if (lastPage !== currentPage) {
-      localStorage.setItem(lastPageKey, currentPage);
+      sessionStorage.setItem(lastPageKey, currentPage);
       return true;
     }
     
@@ -112,7 +112,7 @@
   
   // Get visitor information
   function getVisitorInfo() {
-    const sessionId = localStorage.getItem(sessionKey);
+    const sessionId = sessionStorage.getItem(sessionKey);
     return {
       projectId: siteId,
       pageUrl: window.location.href,
@@ -158,7 +158,7 @@
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
       const now = Date.now();
-      const lastTrack = localStorage.getItem(lastTrackKey);
+      const lastTrack = sessionStorage.getItem(lastTrackKey);
       
       // Only track if it's been more than 5 minutes since last track
       if (!lastTrack || (now - parseInt(lastTrack)) > 5 * 60 * 1000) {

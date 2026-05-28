@@ -28,35 +28,35 @@ import {
 export interface OnlineNowProps {
 	count?: number;
 	visitors?: { userAgent: string }[];
+	deviceStats?: { device: string; share: number }[];
 }
 
 const getDeviceType = (ua: string) => {
 	const lowercaseUa = ua.toLowerCase();
-	if (/mobile|android|iphone|ipad|phone/i.test(lowercaseUa)) return "Mobile";
+	if (/mobile|android|iphone|phone/i.test(lowercaseUa)) return "Mobile";
 	if (/tablet|ipad/i.test(lowercaseUa)) return "Tablet";
 	return "Desktop";
 };
 
-export function OnlineNow({ count = 0, visitors = [] }: OnlineNowProps) {
+export function OnlineNow({ count = 0, visitors = [], deviceStats = [] }: OnlineNowProps) {
 	const totalOnline = count || visitors.length || 0;
 
-	const deviceCounts = visitors.reduce((acc: Record<string, number>, visitor) => {
-		const dev = getDeviceType(visitor.userAgent || "");
-		acc[dev] = (acc[dev] || 0) + 1;
-		return acc;
-	}, { Mobile: 0, Desktop: 0, Tablet: 0 });
-
+	// realtime when someone is live, historical otherwise
 	const deviceShares = totalOnline > 0
-		? [
-				{ label: "Mobile" as const, share: Math.round((deviceCounts.Mobile / totalOnline) * 100) },
-				{ label: "Desktop" as const, share: Math.round((deviceCounts.Desktop / totalOnline) * 100) },
-				{ label: "Tablet" as const, share: Math.round((deviceCounts.Tablet / totalOnline) * 100) },
-			]
-		: [
-				{ label: "Mobile" as const, share: 0 },
-				{ label: "Desktop" as const, share: 0 },
-				{ label: "Tablet" as const, share: 0 },
-			];
+		? (["Mobile", "Desktop", "Tablet"] as const).map((label) => {
+				const matchCount = visitors.filter((v) => getDeviceType(v.userAgent || "") === label).length;
+				return {
+					label,
+					share: Math.round((matchCount / totalOnline) * 100),
+				};
+			})
+		: deviceStats.length > 0
+			? deviceStats.map((d) => ({ label: d.device, share: d.share }))
+			: [
+					{ label: "Mobile" as const, share: 0 },
+					{ label: "Desktop" as const, share: 0 },
+					{ label: "Tablet" as const, share: 0 },
+				];
 
 	return (
 		<Card className="gap-0 pb-0 md:col-span-2 lg:col-span-1 dark:bg-transparent">

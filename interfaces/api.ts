@@ -28,6 +28,9 @@ export type RealtimeStatsResponse = NextResponse<{
 export type WeeklyStatsResponse = NextResponse<DailyStats[] | ApiErrorResponse>;
 export type CountriesStatsResponse = NextResponse<CountryStats[] | ApiErrorResponse>;
 export type ReferrersStatsResponse = NextResponse<ReferrerStats[] | ApiErrorResponse>;
+export type PagesStatsResponse = NextResponse<PageStats[] | ApiErrorResponse>;
+export type BrowserStatsResponse = NextResponse<BrowserStats[] | ApiErrorResponse>;
+export type DevicesStatsResponse = NextResponse<DeviceStats[] | ApiErrorResponse>;
 export type StripeCheckoutResponse = NextResponse<{
   url: string;
   sessionId: string;
@@ -119,6 +122,24 @@ export interface CountryStats {
 export interface ReferrerStats {
   referrer: string;
   visitors: number;
+}
+
+export interface PageStats {
+  pageUrl: string;
+  visitors: number;
+  pageViews: number;
+}
+
+export interface BrowserStats {
+  browser: string;
+  visitors: number;
+  share: number;
+}
+
+export interface DeviceStats {
+  device: string;
+  visitors: number;
+  share: number;
 }
 
 // Stripe Interfaces

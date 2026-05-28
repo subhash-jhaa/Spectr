@@ -192,4 +192,30 @@ export async function handleCorsPreflight(): Promise<NextResponse> {
     status: 204,
     headers: corsHeaders,
   });
+}
+
+// Unified stats route handler helper to reduce duplication
+export async function handleStatsRoute<T>(
+  params: Promise<{ id: string }>,
+  fetchData: (projectId: string) => Promise<{ success: boolean; data?: T; error?: string }>
+): Promise<NextResponse<T | ApiErrorResponse>> {
+  try {
+    const user = await requireAuth();
+    const { id: projectId } = await params;
+    await verifyProjectOwnership(projectId, user.id);
+    const result = await fetchData(projectId);
+    if (!result.success) {
+      return createErrorResponse(result.error || 'Failed to fetch stats', 500);
+    }
+    return createSuccessResponse(result.data!);
+  } catch (error) {
+    console.error('Stats route error:', error);
+    if (error instanceof Error) {
+      if (error.message.includes('Unauthorized'))
+        return createErrorResponse('Unauthorized', 401);
+      if (error.message.includes('Project not found'))
+        return createErrorResponse('Project not found', 404);
+    }
+    return createErrorResponse('Internal server error', 500);
+  }
 } 

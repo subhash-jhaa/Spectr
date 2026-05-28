@@ -1,132 +1,112 @@
+"use client";
+
+import { useState } from "react";
 import NextImage from "next/image";
 import { formatInteger } from "@/components/components/formater";
 import { Button } from "@/components/components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/components/ui/card";
 import {
-	Table,
-	TableBody,
-	TableCaption,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow,
 } from "@/components/components/ui/table";
 import { ArrowRightIcon } from "lucide-react";
 
 const FLAGPACK_BASE = "https://flag.vercel.app";
-
-
-
 const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
 
 function flagUrl(countryCode: string) {
-	return `${FLAGPACK_BASE}/s/${countryCode.toUpperCase()}.svg`;
+  return `${FLAGPACK_BASE}/s/${countryCode.toUpperCase()}.svg`;
 }
 
 export interface TopCountriesProps {
-	data?: { country: string; visitors: number }[];
+  data?: { country: string; visitors: number }[];
+  projectId?: string;
 }
 
 const getCountryCode = (name: string) => {
-	if (!name) return "US";
-	if (name.length === 2) return name.toUpperCase();
-	const map: Record<string, string> = {
-		"united states": "US", "united kingdom": "GB", "germany": "DE",
-		"france": "FR", "canada": "CA", "netherlands": "NL", "india": "IN"
-	};
-	return map[name.toLowerCase()] || "US";
+  if (!name) return "US";
+  if (name.length === 2) return name.toUpperCase();
+  const map: Record<string, string> = {
+    "united states": "US", "united kingdom": "GB", "germany": "DE",
+    "france": "FR", "canada": "CA", "netherlands": "NL", "india": "IN",
+  };
+  return map[name.toLowerCase()] || "US";
 };
 
-export function TopCountries({ data }: TopCountriesProps) {
-	const mappedRows = data && data.length > 0
-		? data.map(item => {
-				const code = getCountryCode(item.country);
-				return {
-					code,
-					name: item.country.length === 2 ? (regionNames.of(code) || code) : item.country,
-					visits: item.visitors,
-					delta: 0
-				};
-			})
-		: [];
+export function TopCountries({ data = [] }: TopCountriesProps) {
+  const [expanded, setExpanded] = useState(false);
 
-	return (
-		<Card className="relative md:col-span-2 dark:bg-transparent">
-			<CardHeader>
-				<CardTitle className="text-balance">Top countries</CardTitle>
-				<CardDescription className="text-pretty">
-					Top countries in the selected period.
-				</CardDescription>
-			</CardHeader>
-			<CardContent className="mask-b-from-50% mask-b-to-100% p-0 pb-2">
-				<Table className="border-t">
-					<TableCaption className="sr-only">
-						Top countries by visits with year-over-year change.
-					</TableCaption>
-					<TableHeader>
-						<TableRow>
-							<TableHead className="pl-6" scope="col">
-								Country
-							</TableHead>
-							<TableHead className="text-end tabular-nums" scope="col">
-								Visits
-							</TableHead>
-							<TableHead className="pr-6 text-end" scope="col">
-								Change
-							</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{mappedRows.length > 0 ? (
-							mappedRows.map((row) => (
-								<TableRow className="hover:bg-transparent" key={row.code}>
-									<TableCell className="max-w-[220px] truncate pl-6 font-medium">
-										<span className="inline-flex max-w-full items-center gap-2">
-											<NextImage
-												alt={`Flag of ${row.code}`}
-												className="h-3.5 w-5 shrink-0 rounded object-cover"
-												height={14}
-												src={flagUrl(row.code)}
-												width={20}
-												unoptimized
-											/>
-											<span className="min-w-0 truncate text-xs">
-												{row.name}
-											</span>
-										</span>
-									</TableCell>
-									<TableCell className="text-end text-muted-foreground text-xs tabular-nums">
-										{formatInteger(row.visits)}
-									</TableCell>
-									<TableCell className="pr-6 text-end text-muted-foreground text-xs">
-										<span className="tabular-nums">
-											{row.delta > 0 ? "+" : ""}
-											{row.delta}%
-										</span>
-									</TableCell>
-								</TableRow>
-							))
-						) : (
-							<TableRow>
-								<TableCell colSpan={3} className="text-center py-8 text-muted-foreground font-mono text-xs">
-									No country data.
-								</TableCell>
-							</TableRow>
-						)}
-					</TableBody>
-				</Table>
-			</CardContent>
+  const mappedRows = data.map((item) => {
+    const code = getCountryCode(item.country);
+    return {
+      code,
+      name: item.country.length === 2 ? (regionNames.of(code) || code) : item.country,
+      visits: item.visitors,
+    };
+  });
 
-			<div className="mask-t-from-30% absolute inset-x-0 bottom-0 flex h-1/5 items-center justify-center bg-background">
-				<Button className="relative" variant="ghost" render={<a href="#" />} nativeButton={false}>View All
-                						<ArrowRightIcon aria-hidden="true" /></Button>
-			</div>
-		</Card>
-	);
+  const displayRows = expanded ? mappedRows : mappedRows.slice(0, 5);
+
+  return (
+    <Card className="relative md:col-span-2 dark:bg-transparent">
+      <CardHeader>
+        <CardTitle className="text-balance">Top countries</CardTitle>
+        <CardDescription className="text-pretty">
+          Top countries in the last 7 days.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className={expanded ? "max-h-96 overflow-y-auto" : ""}>
+          <Table className="border-t">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="pl-6" scope="col">Country</TableHead>
+                <TableHead className="text-end tabular-nums" scope="col">Visits</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {displayRows.length > 0 ? (
+                displayRows.map((row) => (
+                  <TableRow className="hover:bg-transparent" key={row.code}>
+                    <TableCell className="max-w-[220px] truncate pl-6 font-medium">
+                      <span className="inline-flex max-w-full items-center gap-2">
+                        <NextImage
+                          alt={`Flag of ${row.code}`}
+                          className="h-3.5 w-5 shrink-0 rounded object-cover"
+                          height={14}
+                          src={flagUrl(row.code)}
+                          width={20}
+                          unoptimized
+                        />
+                        <span className="min-w-0 truncate text-xs">{row.name}</span>
+                      </span>
+                    </TableCell>
+                    <TableCell className="pr-6 text-end text-muted-foreground text-xs tabular-nums">
+                      {formatInteger(row.visits)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={2} className="text-center py-8 text-muted-foreground font-mono text-xs">
+                    No country data yet.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+      {mappedRows.length > 5 && (
+        <div className="flex items-center justify-center py-2 border-t">
+          <Button variant="ghost" onClick={() => setExpanded(!expanded)}>
+            {expanded ? "Show less" : `View All (${mappedRows.length})`}
+            <ArrowRightIcon className={`transition-transform duration-200 ${expanded ? "rotate-90" : ""}`} aria-hidden="true" />
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
 }
