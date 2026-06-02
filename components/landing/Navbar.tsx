@@ -104,11 +104,11 @@ export function Navbar({ session }: NavbarProps) {
           {NAV_LINKS.map((l) => <NavLink key={l.href} {...l} scrolled={scrolled} />)}
         </nav>
 
-        {/* Desktop CTAs */}
-        <div className="hidden md:flex items-center gap-2">
+        {/* CTAs */}
+        <div className="flex items-center gap-2">
           {session?.user ? (
             <Link href="/dashboard">
-              <SpringBtn className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white px-5 h-9 text-[16px] font-medium transition-all">
+              <SpringBtn className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white px-5 h-9 text-[14px] sm:text-[16px] font-medium transition-all">
                 <LogIn className="h-3.5 w-3.5" /> Dashboard
               </SpringBtn>
             </Link>
@@ -119,7 +119,7 @@ export function Navbar({ session }: NavbarProps) {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 transition={SPRING}
-                className="relative inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white px-5 h-9 text-[16px] font-medium transition-all"
+                className="relative inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white px-4 sm:px-5 h-9 text-[14px] sm:text-[16px] font-medium transition-all"
               >
                 <div className="flex items-center gap-2">
                   <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
@@ -136,7 +136,7 @@ export function Navbar({ session }: NavbarProps) {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 transition={SPRING}
-                className="relative inline-flex items-center gap-1.5 rounded-full bg-white text-zinc-950 hover:bg-zinc-100 px-5 h-9 text-[16px] font-semibold transition-all shadow-[0_4px_12px_rgba(255,255,255,0.1)]"
+                className="hidden md:inline-flex relative items-center gap-1.5 rounded-full bg-white text-zinc-950 hover:bg-zinc-100 px-5 h-9 text-[16px] font-semibold transition-all shadow-[0_4px_12px_rgba(255,255,255,0.1)]"
               >
                 <span>Get Started</span>
                 <ChevronRight className="h-3.5 w-3.5 text-zinc-950" />
@@ -144,91 +144,8 @@ export function Navbar({ session }: NavbarProps) {
             </>
           )}
         </div>
-
-        {/* Mobile trigger */}
-        <motion.button whileTap={{ scale: 0.9 }} onClick={() => setOpen(!open)}
-          className={cn(
-            "md:hidden flex h-9 w-9 items-center justify-center rounded-full transition-colors text-zinc-400 hover:bg-white/5 hover:text-white"
-          )}
-          aria-label="Toggle menu"
-        >
-          <Hamburger open={open} scrolled={scrolled} />
-        </motion.button>
       </motion.header>
-
-      {/* Mobile drawer */}
-      <AnimatePresence>
-        {open && (
-          <>
-            <motion.div key="bd" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-              onClick={() => setOpen(false)}
-            />
-            <motion.div key="dr" initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
-              transition={{ duration: 0.4, ease: EASE }}
-              className="fixed top-0 right-0 bottom-0 z-50 w-[min(320px,85vw)] flex flex-col bg-black border-l border-white/[0.06] shadow-2xl"
-            >
-              {/* Header */}
-              <div className="flex h-16 shrink-0 items-center justify-between px-5 border-b border-white/[0.06]">
-                <LogoMark size={28} />
-                <motion.button whileTap={{ scale: 0.9 }} onClick={() => setOpen(false)}
-                  className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 hover:bg-white/5 hover:text-white transition-colors"
-                  aria-label="Close menu"
-                >
-                  <Hamburger open={true} scrolled={true} />
-                </motion.button>
-              </div>
-
-              {/* Links */}
-              <nav className="flex flex-col gap-1 p-4">
-                {NAV_LINKS.map((l, i) => (
-                  <motion.a key={l.href} href={l.href} onClick={() => setOpen(false)}
-                    initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.05 + i * 0.06, ease: EASE }}
-                    className="flex items-center justify-between rounded-xl px-4 py-3.5 text-sm font-medium text-zinc-300 hover:bg-white/5 hover:text-white transition-colors group"
-                  >
-                    {l.name}
-                    <ArrowUpRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-60 transition-opacity" />
-                  </motion.a>
-                ))}
-              </nav>
-
-              <div className="mx-5 h-px bg-white/[0.06]" />
-
-              {/* CTA */}
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 0, y: 0 }}
-                transition={{ delay: 0.25, ease: EASE }}
-                className="flex flex-col gap-3 p-5 mt-auto"
-              >
-                {!session?.user && (
-                  <button 
-                    onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-                    className="w-full inline-flex items-center justify-between rounded-xl px-5 py-3.5 text-sm font-medium border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white transition-all"
-                  >
-                    <span>Sign in with Google</span>
-                    <svg className="h-4 w-4" viewBox="0 0 24 24">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"></path>
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
-                    </svg>
-                  </button>
-                )}
-                <button 
-                  onClick={() => {
-                    setOpen(false);
-                    signIn('google', { callbackUrl: '/dashboard' });
-                  }}
-                  className="w-full inline-flex items-center justify-between rounded-xl px-5 py-3.5 text-sm font-medium bg-white text-zinc-950 hover:bg-zinc-100 shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all"
-                >
-                  Get Started Free <ChevronRight className="h-4 w-4 opacity-60" />
-                </button>
-              </motion.div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </>
   );
 }
+// Hot-reload trigger comment

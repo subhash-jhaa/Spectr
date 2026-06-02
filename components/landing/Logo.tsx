@@ -36,14 +36,15 @@ export function Logo({ className = "" }: { className?: string }) {
 }
 
 // Icon-only version for compact contexts
-export function LogoMark({ size = 36 }: { size?: number }) {
+export function LogoMark({ size, className }: { size?: number | string; className?: string }) {
   return (
     <svg
-      width={size}
-      height={size}
+      width={size ?? "100%"}
+      height={size ?? "100%"}
       viewBox="0 0 48 48"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
+      className={className}
       aria-label="spectr icon"
     >
       <rect width="48" height="48" rx="12" fill="#1A1A1A" />

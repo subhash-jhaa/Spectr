@@ -3,6 +3,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Code2 } from "lucide-react";
 import Link from "next/link";
+import { FloatingPaths } from "@/components/ui/background-paths";
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -35,7 +36,7 @@ export function Hero() {
       <div className="relative w-full h-full overflow-hidden bg-[#0a0a0a]">
         
         {/* Background Video */}
-        <video
+        {/* <video
           autoPlay
           loop
           muted
@@ -46,10 +47,16 @@ export function Hero() {
             src="/bgv3.mp4"
             type="video/mp4"
           />
-        </video>
+        </video> */}
 
         {/* Gradient Overlay */}
         {/* <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 z-10" /> */}
+
+         {/* Background Paths */}
+        <div className="absolute inset-0 z-0 opacity-40">
+          <FloatingPaths position={1} />
+          <FloatingPaths position={-1} />
+        </div>
 
 
 
@@ -65,8 +72,8 @@ export function Hero() {
             custom={1}
             className="font-bold tracking-tight text-white leading-[1.05] text-[10vw] sm:text-[8vw] md:text-[6vw] lg:text-[4.5vw] xl:text-[4.2vw] 2xl:text-[4.5vw]"
           >
-            See Who&apos;s On Your<br />
-            Site <span className="text-[#DEDBC8]">Right Now.</span>
+            Real-time analytics<br />
+             <span className="text-[#DEDBC8]"> for your site.</span>
           </motion.h1>
 
           <motion.p

@@ -48,7 +48,7 @@ export function Footer() {
       // navLinks={navLinks}
       creatorName="Subhash"
       creatorUrl="https://x.com/subhash-jh"
-      brandIcon={<LogoMark size={64} />}
+      brandIcon={<LogoMark className="w-full h-full" />}
     />
   );
 }

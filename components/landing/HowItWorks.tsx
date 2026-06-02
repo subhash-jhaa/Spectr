@@ -1,5 +1,5 @@
-"use client"
-import React, { useRef, useState } from 'react';
+"use client";
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, useScroll, useTransform, useMotionValueEvent, AnimatePresence, MotionValue } from 'framer-motion';
 import { fadeUp, staggerContainer, SectionLabel } from './Primitives';
 import { STEPS } from './Constants';
@@ -18,14 +18,26 @@ const Card = ({ step, i, progress, range, targetScale }: {
     offset: ['start end', 'start start']
   });
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   const imageScale = useTransform(scrollYProgress, [0, 1], [1.1, 1]);
   const scale = useTransform(progress, range, [1, targetScale]);
 
   return (
-    <div ref={container} className="h-[80vh] flex items-start justify-center sticky top-28 w-full" style={{ zIndex: i + 1 }}>
+    <div 
+      ref={container} 
+      className="h-auto md:h-[80vh] flex items-start justify-center relative md:sticky md:top-28 w-full mb-6 md:mb-0" 
+      style={{ zIndex: i + 1 }}
+    >
       {/* Card */}
       <motion.div 
-        style={{ scale, y: i * 25 }}
+        style={isMobile ? {} : { scale, y: i * 25 }}
         className="relative w-full rounded-xl border border-zinc-800/80 bg-zinc-950/50 backdrop-blur-md overflow-hidden shadow-xl origin-top flex flex-col"
       >
         {/* Card Top: Title & Mobile Step */}
@@ -41,7 +53,7 @@ const Card = ({ step, i, progress, range, targetScale }: {
         {/* Card Bottom: Split Content */}
         <div className="flex flex-col md:flex-row p-6 sm:p-8 gap-8 sm:gap-10 items-center">
           {/* Left: Image */}
-          <div className="w-full md:w-[55%] relative h-64 sm:h-80 md:h-[350px] rounded-xl overflow-hidden bg-zinc-900/50">
+          <div className="w-full md:w-[55%] relative h-48 sm:h-64 md:h-[300px] lg:h-[350px] rounded-xl overflow-hidden bg-zinc-900/50">
             {step.image && (
                <motion.div style={{ scale: imageScale }} className="w-full h-full relative">
                  <Image src={step.image} alt={step.title} fill className="object-cover" unoptimized />
