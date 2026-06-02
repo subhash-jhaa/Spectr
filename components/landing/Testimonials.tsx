@@ -72,7 +72,7 @@ export function Testimonials() {
                 
                 <div className="flex items-center gap-4 mb-6">
                   <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-700">
-                    <NextImage src={t.avatar} alt={t.name} fill className="object-cover" unoptimized />
+                    <NextImage src={t.avatar} alt={t.name} fill sizes="48px" className="object-cover" />
                   </div>
                   <div>
                     <h3 className="text-base font-semibold text-white">{t.name}</h3>

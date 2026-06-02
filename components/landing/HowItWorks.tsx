@@ -56,7 +56,14 @@ const Card = ({ step, i, progress, range, targetScale }: {
           <div className="w-full md:w-[55%] relative h-48 sm:h-64 md:h-[300px] lg:h-[350px] rounded-xl overflow-hidden bg-zinc-900/50">
             {step.image && (
                <motion.div style={{ scale: imageScale }} className="w-full h-full relative">
-                 <Image src={step.image} alt={step.title} fill className="object-cover" unoptimized />
+                 <Image
+                   src={step.image}
+                   alt={step.title}
+                   fill
+                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 55vw, 40vw"
+                   className="object-cover"
+                   priority={i === 0}
+                 />
                </motion.div>
             )}
           </div>
