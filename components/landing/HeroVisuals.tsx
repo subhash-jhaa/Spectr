@@ -151,35 +151,37 @@ export function HeroVisuals() {
         whileInView="visible"
         viewport={{ once: true, amount: 0.2 }}
         variants={staggerContainer}
-        className="rounded-3xl border border-zinc-800/50 bg-zinc-900/10 backdrop-blur-md p-6 sm:p-10 md:p-12 grid grid-cols-1 md:grid-cols-2 gap-8 items-start relative z-10 shadow-[0_0_50px_rgba(0,0,0,0.3)] shadow-inner"
+        className="bg-zinc-950/30 rounded-2xl p-2 relative z-10 border border-zinc-800/80 shadow-[0_0_50px_rgba(0,0,0,0.3)] shadow-inner"
       >
-        <motion.div variants={fadeUp} className="flex flex-col gap-3">
-          <div className="text-left flex items-center gap-3 mb-2">
-            <div className="h-4 w-4 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        <div className="rounded-[14px] bg-zinc-950 border border-zinc-800/30 backdrop-blur-md p-6 sm:p-10 md:p-12 grid grid-cols-1 md:grid-cols-2 gap-8 items-start relative overflow-hidden">
+          <motion.div variants={fadeUp} className="flex flex-col gap-3">
+            <div className="text-left flex items-center gap-3 mb-2">
+              <div className="h-4 w-4 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-600 font-mono">Step 1 — Install</p>
             </div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-600 font-mono">Step 1 — Install</p>
-          </div>
-          <HeroScript />
-          <motion.div variants={fadeIn} className="flex items-center gap-2 text-xs text-zinc-600 px-1 pt-2">
-            <Check className="h-3 w-3 text-emerald-500 shrink-0" />
-            <span>Works with React, Next.js, Vue, or plain HTML</span>
+            <HeroScript />
+            <motion.div variants={fadeIn} className="flex items-center gap-2 text-xs text-zinc-600 px-1 pt-2">
+              <Check className="h-3 w-3 text-emerald-500 shrink-0" />
+              <span>Works with React, Next.js, Vue, or plain HTML</span>
+            </motion.div>
           </motion.div>
-        </motion.div>
 
-        <motion.div variants={fadeUp} className="flex flex-col gap-3">
-          <div className="text-left flex items-center gap-3 mb-2">
-            <div className="h-4 w-4 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center overflow-hidden">
-               <div className="h-full w-full bg-gradient-to-tr from-zinc-800 to-zinc-700 animate-pulse" />
+          <motion.div variants={fadeUp} className="flex flex-col gap-3">
+            <div className="text-left flex items-center gap-3 mb-2">
+              <div className="h-4 w-4 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center overflow-hidden">
+                 <div className="h-full w-full bg-gradient-to-tr from-zinc-800 to-zinc-700 animate-pulse" />
+              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-600 font-mono">Step 2 — Watch it live</p>
             </div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-zinc-600 font-mono">Step 2 — Watch it live</p>
-          </div>
-          <LiveFeed />
-          <motion.div variants={fadeIn} className="flex items-center gap-2 text-xs text-zinc-600 px-1 pt-2">
-            <Check className="h-3 w-3 text-emerald-500 shrink-0" />
-            <span>Data appears within seconds of installing</span>
+            <LiveFeed />
+            <motion.div variants={fadeIn} className="flex items-center gap-2 text-xs text-zinc-600 px-1 pt-2">
+              <Check className="h-3 w-3 text-emerald-500 shrink-0" />
+              <span>Data appears within seconds of installing</span>
+            </motion.div>
           </motion.div>
-        </motion.div>
+        </div>
       </motion.div>
     </section>
   );

@@ -110,7 +110,7 @@ export const Footer = ({
 
         {/* Large background text - FIXED */}
         <div 
-          className="bg-gradient-to-b from-white/[0.08] via-white/[0.03] to-transparent bg-clip-text text-transparent leading-none absolute left-1/2 -translate-x-1/2 bottom-40 md:bottom-32 font-extrabold tracking-tighter pointer-events-none select-none text-center px-4"
+          className="bg-gradient-to-b from-white/[0.22] via-white/[0.10] to-transparent bg-clip-text text-transparent leading-none absolute left-1/2 -translate-x-1/2 bottom-40 md:bottom-32 font-extrabold tracking-tighter pointer-events-none select-none text-center px-4"
           style={{
             fontSize: 'clamp(3rem, 12vw, 10rem)',
             maxWidth: '95vw'
@@ -136,10 +136,10 @@ export const Footer = ({
         </button>
 
         {/* Bottom line */}
-        <div className="absolute bottom-32 sm:bottom-34 backdrop-blur-sm h-px bg-gradient-to-r from-transparent via-white/20 to-transparent w-full left-1/2 -translate-x-1/2"></div>
+        <div className="absolute bottom-32 sm:bottom-34 backdrop-blur-sm h-px bg-gradient-to-r from-transparent via-white/40 to-transparent w-full left-1/2 -translate-x-1/2"></div>
 
         {/* Bottom shadow gradient */}
-        <div className="bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent absolute bottom-0 w-full h-48 pointer-events-none"></div>
+        <div className="bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent absolute bottom-0 w-full h-32 pointer-events-none"></div>
       </footer>
     </section>
   );

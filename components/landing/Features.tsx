@@ -1,7 +1,7 @@
 "use client"
 import React from 'react';
 import { motion } from 'framer-motion';
-import { cn, SectionLabel, CARD, CARD_HOVER, fadeUp } from './Primitives';
+import { cn, SectionLabel, fadeUp } from './Primitives';
 import { FEATURES } from './Constants';
 
 export function Features() {
@@ -36,15 +36,50 @@ interface Feature {
 
 function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
   const { span } = feature;
+  const Icon = feature.icon;
+
+  // Map glow colors based on variant
+  const glowColors: Record<FeatureVariant, string> = {
+    realtime: 'from-blue-500/8 to-transparent',
+    privacy: 'from-rose-500/8 to-transparent',
+    console: 'from-violet-500/8 to-transparent',
+    script: 'from-emerald-500/8 to-transparent',
+    insights: 'from-amber-500/8 to-transparent',
+    api: 'from-fuchsia-500/8 to-transparent',
+  };
+
+  const glowColor = glowColors[feature.variant];
+  const showGiantIcon = feature.variant !== 'realtime' && feature.variant !== 'script';
 
   return (
     <motion.div
       initial="hidden" whileInView="visible" viewport={{ once: true }}
       variants={fadeUp} custom={index * 0.2}
-      className={cn(span === 4 ? "lg:col-span-4" : span === 3 ? "lg:col-span-3" : "lg:col-span-2")}
+      className={cn(
+        span === 4 ? "lg:col-span-4" : span === 3 ? "lg:col-span-3" : "lg:col-span-2",
+        "h-full"
+      )}
     >
-      <div className={cn(CARD, CARD_HOVER, "relative h-full overflow-hidden group p-5 sm:p-6")}>
-        <FeatureContent feature={feature} />
+      {/* Outer Box with Border & Hover Bg Transition */}
+      <div className="bg-zinc-950/30 hover:bg-zinc-950/45 transition-all duration-700 rounded-2xl p-2 h-full relative overflow-hidden border border-zinc-800/80 group">
+        {/* Inner Box with Subtle Border & backdrop blur */}
+        <div className="rounded-[14px] bg-zinc-950 border border-zinc-800/30 h-full transition-all duration-700 relative overflow-hidden w-full p-5 sm:p-6 flex flex-col justify-between">
+          
+          {/* Backdrop Glow Effect on Hover */}
+          <div className={cn(
+            "-bottom-40 md:-bottom-64 left-[50%] -translate-x-[50%] opacity-0 group-hover:opacity-100 z-0 absolute bg-gradient-to-t blur-[4rem] md:blur-[6rem] rounded-full transition-all duration-700 ease-out w-40 md:w-96 h-40 md:h-96 pointer-events-none",
+            glowColor
+          )} />
+
+          <FeatureContent feature={feature} />
+
+          {/* Large bottom-right Icon from the design */}
+          {showGiantIcon && (
+            <div className="absolute bottom-4 right-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-500 z-0 pointer-events-none">
+              <Icon className="w-24 h-24 text-zinc-100" />
+            </div>
+          )}
+        </div>
       </div>
     </motion.div>
   );
