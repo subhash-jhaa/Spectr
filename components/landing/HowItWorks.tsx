@@ -32,12 +32,12 @@ const Card = ({ step, i, progress, range, targetScale }: {
   return (
     <div 
       ref={container} 
-      className="h-auto md:h-[80vh] flex items-start justify-center relative md:sticky md:top-28 w-full mb-6 md:mb-0" 
+      className="h-[75vh] md:h-[80vh] flex items-start justify-center relative sticky top-20 md:top-28 w-full mb-6 md:mb-0" 
       style={{ zIndex: i + 1 }}
     >
       {/* Card */}
       <motion.div 
-        style={isMobile ? {} : { scale, y: i * 25 }}
+        style={{ scale, y: isMobile ? i * 12 : i * 25 }}
         className="relative w-full rounded-xl border border-zinc-800/80 bg-zinc-950/50 backdrop-blur-md overflow-hidden shadow-xl origin-top flex flex-col"
       >
         {/* Card Top: Title & Mobile Step */}
