@@ -78,6 +78,7 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isCopyingScript, setIsCopyingScript] = useState(false)
+  const [hasCopied, setHasCopied] = useState(false)
   const [dataFetched, setDataFetched] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -181,6 +182,8 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
     setIsCopyingScript(true)
     try {
       await navigator.clipboard.writeText(text)
+      setHasCopied(true)
+      setTimeout(() => setHasCopied(false), 2000)
     } catch (error) {
       console.error('Error copying to clipboard:', error)
     } finally {
@@ -488,16 +491,32 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
 
                 <button
                   onClick={() => copyToClipboard(getTrackingScript(selectedProject.id))}
-                  disabled={isCopyingScript}
-                  className="px-4 py-2 bg-white text-zinc-950 rounded hover:bg-zinc-200 transition font-mono cursor-pointer disabled:bg-white/50 disabled:cursor-not-allowed flex items-center gap-2"
+                  disabled={isCopyingScript || hasCopied}
+                  className={`px-4 py-2 border rounded transition font-mono cursor-pointer disabled:cursor-not-allowed flex items-center gap-2 w-fit ${
+                    hasCopied 
+                      ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400' 
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white disabled:opacity-50'
+                  }`}
                 >
                   {isCopyingScript ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-zinc-950"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       Copying...
                     </>
+                  ) : hasCopied ? (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-emerald-400">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
+                      Copied!
+                    </>
                   ) : (
-                    'Copy Script'
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                      </svg>
+                      Copy Script
+                    </>
                   )}
                 </button>
               </div>
