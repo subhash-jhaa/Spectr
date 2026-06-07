@@ -1,6 +1,6 @@
 # 🌌 Spectr - Premium Privacy-First Analytics
 
-![Spectr Banner](public/preview.png)
+![Spectr Banner](public/hero.png)
 
 > **The next generation of web analytics.** Beautiful, high-performance, and deeply respectful of user privacy.
 
