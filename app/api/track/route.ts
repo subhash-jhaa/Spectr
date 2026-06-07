@@ -129,6 +129,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
           const updateResult = await EventQueries.update(existingEvent.id, {
             referrer: referrer || '',
             userAgent: userAgent || '',
+            ip: ip || 'Unknown',
             timestamp: new Date(), // Update timestamp to show recent activity
           });
 
@@ -157,6 +158,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
             pageUrl,
             referrer: referrer || '',
             userAgent: userAgent || '',
+            ip: ip || 'Unknown',
             country: country,
             city: city,
           });
@@ -190,6 +192,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       pageUrl,
       referrer: referrer || '',
       userAgent: userAgent || '',
+      ip: ip || 'Unknown',
       country: country,
       city: city,
     });
