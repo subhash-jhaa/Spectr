@@ -34,7 +34,7 @@ export function Hero() {
     <section className="relative w-full h-[100dvh] min-h-[600px] bg-black overflow-hidden">
       {/* Full-screen Container */}
       <div className="relative w-full h-full overflow-hidden bg-[#0a0a0a]">
-        
+
         {/* Background Video */}
         {/* <video
           autoPlay
@@ -52,7 +52,7 @@ export function Hero() {
         {/* Gradient Overlay */}
         {/* <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 z-10" /> */}
 
-         {/* Background Paths */}
+        {/* Background Paths */}
         <div className="absolute inset-0 z-0 opacity-40">
           <FloatingPaths position={1} />
           <FloatingPaths position={-1} />
@@ -67,13 +67,75 @@ export function Hero() {
           variants={staggerContainer}
           className="absolute bottom-0 left-0 right-0 p-6 pb-20 md:p-12 lg:p-16 z-20 flex flex-col items-start text-left max-w-4xl gap-6 select-none"
         >
+          {/* Peerlist Launchpad Badge */}
+          <motion.div
+            variants={fadeUp}
+            custom={0.5}
+          >
+            <a
+              href="https://peerlist.io/subhashjhadev/project/spectr--know-your-traffic"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 hover:opacity-85 transition-opacity"
+            >
+              {/* Laurel Left */}
+              <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g fill="#00AA45">
+                  {/* Stem */}
+                  <path d="M30 42C22 40 14 32 12 20C10.5 12 12 6 14 2" stroke="#00AA45" strokeWidth="2" strokeLinecap="round" fill="none" />
+                  {/* Left-side leaves (outer curve) */}
+                  <path d="M12 38c-3-1-6-4-5.5-7.5 3 0.5 5.5 3.5 5.5 7.5z" />
+                  <path d="M10 32c-3.5-2-7-5.5-5.5-9 3.5 0.5 6 5 5.5 9z" />
+                  <path d="M8 25c-4-2.5-7-6.5-5-9.5 3.5 1 5.5 5.5 5 9.5z" />
+                  <path d="M7 18c-3.5-3-6-7.5-3.5-10 3 1.5 5 6 3.5 10z" />
+                  <path d="M8 11c-3-3-4.5-7.5-2-9.5 2.5 1.5 3.5 6 2 9.5z" />
+                  {/* Right-side leaves (inner curve) */}
+                  <path d="M28 38c1.5-2.5 1-6 4-7.5 2 2 0.5 5.5-4 7.5z" />
+                  <path d="M24 31c2-3 2-6.5 5-7.5 1.5 2.5 0 5.5-5 7.5z" />
+                  <path d="M20 24c2.5-3 2.5-6.5 5.5-7 1 2.5-0.5 5.5-5.5 7z" />
+                  <path d="M17 17c2.5-3 3-7 6-7 0.5 2.5-1 5.5-6 7z" />
+                  <path d="M14 10c2-3 3-6.5 5.5-6 0 2-1.5 4.5-5.5 6z" />
+                </g>
+              </svg>
+
+              {/* Text Content */}
+              <div className="flex flex-col items-center leading-none">
+                <span className="text-[10px] text-zinc-400 font-bold tracking-[0.3em] mb-1.5 uppercase">
+                  Live on
+                </span>
+                <span className="text-[15px] font-bold text-white flex items-center gap-1.5 leading-none">
+                  <span className="font-sans font-black tracking-tight">Peerlist</span>
+                  <span className="text-zinc-600 font-light">|</span>
+                  <span className="font-serif italic font-medium text-zinc-300">Launchpad</span>
+                </span>
+              </div>
+
+              {/* Laurel Right (mirrored) */}
+              <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'scaleX(-1)' }}>
+                <g fill="#00AA45">
+                  <path d="M30 42C22 40 14 32 12 20C10.5 12 12 6 14 2" stroke="#00AA45" strokeWidth="2" strokeLinecap="round" fill="none" />
+                  <path d="M12 38c-3-1-6-4-5.5-7.5 3 0.5 5.5 3.5 5.5 7.5z" />
+                  <path d="M10 32c-3.5-2-7-5.5-5.5-9 3.5 0.5 6 5 5.5 9z" />
+                  <path d="M8 25c-4-2.5-7-6.5-5-9.5 3.5 1 5.5 5.5 5 9.5z" />
+                  <path d="M7 18c-3.5-3-6-7.5-3.5-10 3 1.5 5 6 3.5 10z" />
+                  <path d="M8 11c-3-3-4.5-7.5-2-9.5 2.5 1.5 3.5 6 2 9.5z" />
+                  <path d="M28 38c1.5-2.5 1-6 4-7.5 2 2 0.5 5.5-4 7.5z" />
+                  <path d="M24 31c2-3 2-6.5 5-7.5 1.5 2.5 0 5.5-5 7.5z" />
+                  <path d="M20 24c2.5-3 2.5-6.5 5.5-7 1 2.5-0.5 5.5-5.5 7z" />
+                  <path d="M17 17c2.5-3 3-7 6-7 0.5 2.5-1 5.5-6 7z" />
+                  <path d="M14 10c2-3 3-6.5 5.5-6 0 2-1.5 4.5-5.5 6z" />
+                </g>
+              </svg>
+            </a>
+          </motion.div>
+
           <motion.h1
             variants={fadeUp}
             custom={1}
             className="font-bold tracking-tight text-white leading-[1.05] text-[10vw] sm:text-[8vw] md:text-[6vw] lg:text-[4.5vw] xl:text-[4.2vw] 2xl:text-[4.5vw]"
           >
             Real-time analytics<br />
-             <span className="text-[#DEDBC8]"> for your site.</span>
+            <span className="text-[#DEDBC8]"> for your site.</span>
           </motion.h1>
 
           <motion.p
