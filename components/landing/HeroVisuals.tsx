@@ -42,25 +42,29 @@ function LiveFeed() {
           <span className="text-[11px] text-zinc-600 font-mono">LIVE</span>
         </div>
       </div>
-      <div className="divide-y divide-zinc-800/40 bg-transparent">
-        {rows.map((v, i) => (
-          <motion.div
-            key={`${v.flag}-${v.page}-${i}`}
-            initial={{ opacity: 0, x: -6 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: i * 0.05 }}
-            className="flex items-center justify-between px-4 py-2.5 text-xs"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <FlagIcon code={v.flag} />
-              <span className={cn(MONO, "text-zinc-300 truncate")}>{v.page}</span>
-            </div>
-            <div className="flex items-center gap-3 shrink-0 pl-3">
-              <span className="text-zinc-600 hidden sm:block">{v.device}</span>
-              <span className={cn(MONO, "text-zinc-500 text-[11px]")}>{v.time}</span>
-            </div>
-          </motion.div>
-        ))}
+      <div className="relative">
+        <div className="divide-y divide-zinc-800/40 bg-transparent">
+          {rows.map((v, i) => (
+            <motion.div
+              key={`${v.flag}-${v.page}-${i}`}
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: i * 0.05 }}
+              className="flex items-center justify-between px-4 py-2.5 text-xs"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <FlagIcon code={v.flag} />
+                <span className={cn(MONO, "text-zinc-300 truncate")}>{v.page}</span>
+              </div>
+              <div className="flex items-center gap-3 shrink-0 pl-3">
+                <span className="text-zinc-600 hidden sm:block">{v.device}</span>
+                <span className={cn(MONO, "text-zinc-500 text-[11px]")}>{v.time}</span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+        {/* Sticky gradient fade to hint at more content scrolling below */}
+        <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-zinc-950/90 to-transparent pointer-events-none" />
       </div>
       <div className="px-4 py-2.5 border-t border-zinc-800/80 flex items-center gap-2 bg-zinc-950/20">
         <span className={cn(MONO, "text-[11px] text-emerald-400")}>●</span>

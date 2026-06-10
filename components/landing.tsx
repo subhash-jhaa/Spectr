@@ -12,6 +12,7 @@ import { CTA } from './landing/CTA';
 import { Footer } from './landing/Footer';
 import { Pricing } from './landing/Pricing';
 import { FAQ } from './landing/FAQ';
+import { ScrollReveal } from './landing/ScrollReveal';
 
 interface LandingProps {
   session?: Session | null;
@@ -25,37 +26,59 @@ export default function Landing({ session }: LandingProps) {
       <Navbar session={session} />
 
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
-      <Hero />
+      <ScrollReveal>
+        <Hero />
+      </ScrollReveal>
 
       {/* ── Hero Visuals ───────────────────────────────────────────────────── */}
-      <HeroVisuals />
+      <ScrollReveal>
+        <HeroVisuals />
+      </ScrollReveal>
 
       {/* ── Stats ──────────────────────────────────────────────────────────── */}
-      <Stats />
+      <ScrollReveal>
+        <Stats />
+      </ScrollReveal>
 
       {/* ── How It Works ───────────────────────────────────────────────────── */}
-      <HowItWorks />
+      <ScrollReveal>
+        <HowItWorks />
+      </ScrollReveal>
 
       {/* ── Features ───────────────────────────────────────────────────────── */}
-      <Features />
+      <ScrollReveal>
+        <Features />
+      </ScrollReveal>
 
       {/* ── Integration / Code section ─────────────────────────────────────── */}
-      <Integration />
+      <ScrollReveal>
+        <Integration />
+      </ScrollReveal>
 
       {/* ── Testimonials ───────────────────────────────────────────────────── */}
-      <Testimonials />
+      <ScrollReveal>
+        <Testimonials />
+      </ScrollReveal>
 
       {/* ── Pricing ────────────────────────────────────────────────────────── */}
-      <Pricing />
+      <ScrollReveal>
+        <Pricing />
+      </ScrollReveal>
 
       {/* ── FAQ ────────────────────────────────────────────────────────────── */}
-      <FAQ />
+      <ScrollReveal>
+        <FAQ />
+      </ScrollReveal>
 
       {/* ── CTA ────────────────────────────────────────────────────────────── */}
-      <CTA />
+      <ScrollReveal>
+        <CTA />
+      </ScrollReveal>
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
-      <Footer />
+      <ScrollReveal>
+        <Footer />
+      </ScrollReveal>
 
     </div>
   );
