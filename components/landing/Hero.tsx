@@ -58,6 +58,9 @@ export function Hero() {
           <FloatingPaths position={-1} />
         </div>
 
+        {/* Premium Subtle Noise Background */}
+        <div className="absolute inset-0 bg-noise opacity-[0.035] pointer-events-none z-0" />
+
 
 
         {/* Bottom-left Aligned Hero Content */}

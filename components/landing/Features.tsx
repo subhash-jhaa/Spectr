@@ -147,7 +147,7 @@ function ConsoleFeature({ feature: { icon: Icon, title, desc } }: { feature: Fea
       </div>
       <h3 className="font-semibold text-zinc-100 text-[14px] mb-1">{title}</h3>
       <p className="text-zinc-500 text-[12px] leading-relaxed mb-4">{desc}</p>
-      <div className="mt-auto bg-zinc-950/40 border border-zinc-800/60 rounded-lg p-2 font-mono text-[9px] text-zinc-500 group-hover:border-zinc-700/80 group-hover:bg-zinc-950/60 transition-all duration-300">
+      <div className="mt-auto bg-zinc-950/40 border border-zinc-800/60 rounded-lg p-2 font-mono text-[9px] text-zinc-500 group-hover:border-zinc-700/80 group-hover:bg-zinc-950/60 transition-all duration-300 code-section">
         <div className="flex gap-2 mb-1">
           <div className="w-1 h-1 rounded-full bg-red-500/30 group-hover:bg-red-500/60 transition-colors duration-300" />
           <div className="w-1 h-1 rounded-full bg-amber-500/30 group-hover:bg-amber-500/60 transition-colors duration-300" />
@@ -171,7 +171,7 @@ function ScriptFeature({ feature: { icon: Icon, title, desc } }: { feature: Feat
           <h3 className="font-semibold text-zinc-100 text-base mb-1">{title}</h3>
           <p className="text-zinc-500 text-[13px] leading-relaxed">{desc}</p>
         </div>
-        <div className="mt-6 rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-2.5 font-mono text-[9px] sm:text-[10px] text-zinc-400 group-hover:border-zinc-700/80 group-hover:bg-zinc-950/60 transition-all duration-300 overflow-hidden">
+        <div className="mt-6 rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-2.5 font-mono text-[9px] sm:text-[10px] text-zinc-400 group-hover:border-zinc-700/80 group-hover:bg-zinc-950/60 transition-all duration-300 overflow-hidden code-section">
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
             <span className="text-zinc-600">&lt;script</span>
             <span className="text-amber-500/80">src</span>
@@ -219,7 +219,7 @@ function ApiFeature({ feature: { icon: Icon, title, desc } }: { feature: Feature
       </div>
       <h3 className="font-semibold text-zinc-100 text-base mb-1">{title}</h3>
       <p className="text-zinc-500 text-[13px] leading-relaxed">{desc}</p>
-      <div className="mt-auto overflow-x-auto rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-3 font-mono text-[9px] text-zinc-500 group-hover:border-zinc-700/80 group-hover:bg-zinc-950/60 transition-all duration-300">
+      <div className="mt-auto overflow-x-auto rounded-lg border border-zinc-800/80 bg-zinc-950/40 p-3 font-mono text-[9px] text-zinc-500 group-hover:border-zinc-700/80 group-hover:bg-zinc-950/60 transition-all duration-300 code-section">
         <div className="text-zinc-600 mb-0.5 group-hover:text-zinc-500 transition-colors duration-300">{`// GET /api/v1/stats`}</div>
         <div className="text-zinc-300 group-hover:text-zinc-200 transition-colors duration-300">{"{"}</div>
         <div className="pl-3 text-zinc-400 group-hover:text-zinc-300 transition-colors duration-300">{`"visitors"`}: <span className="text-emerald-400/80 group-hover:text-emerald-400 transition-colors duration-300">1284</span>,</div>

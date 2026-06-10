@@ -28,7 +28,7 @@ function LiveFeed() {
   }, []);
 
   return (
-    <motion.div variants={scaleIn} className={cn(CARD, "w-full max-w-md mx-auto overflow-hidden relative shadow-2xl bg-zinc-950/40")}>
+    <motion.div variants={scaleIn} className={cn(CARD, "w-full max-w-md mx-auto overflow-hidden relative shadow-2xl bg-zinc-950/40 code-section")}>
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-950/20">
         <div className="flex items-center gap-2">
           <Terminal className="h-3.5 w-3.5 text-zinc-500" />
@@ -89,7 +89,7 @@ export function HeroScript() {
   ];
 
   return (
-    <motion.div variants={scaleIn} className={cn(CARD, "w-full max-w-lg mx-auto overflow-hidden shadow-2xl bg-zinc-950/40")}>
+    <motion.div variants={scaleIn} className={cn(CARD, "w-full max-w-lg mx-auto overflow-hidden shadow-2xl bg-zinc-950/40 code-section")}>
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800 bg-zinc-950/20">
         <div className="flex items-center gap-1.5">
           <div className="h-2.5 w-2.5 rounded-full bg-zinc-800" />

@@ -476,7 +476,7 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
           )}
 
           {activeTab === 'setup' && selectedProject && (
-            <div className="space-y-6">
+            <div className="space-y-6 code-section">
               <div className="bg-black p-6 rounded-xl border border-zinc-900">
                 <h2 className="text-xl font-bold text-zinc-100 mb-4 font-mono">Setup Instructions</h2>
                 <p className="text-zinc-400 mb-4 font-mono">
