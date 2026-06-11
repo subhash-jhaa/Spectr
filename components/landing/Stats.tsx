@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { cn, MONO, fadeUp, staggerContainer } from "./Primitives";
 import { STATS } from "./Constants";
 
-function Counter({ value }: { value: string }) {
+export function Counter({ value }: { value: string }) {
   const [displayValue, setDisplayValue] = useState("0");
   const ref = useRef<HTMLSpanElement>(null);
   const hasAnimated = useRef(false);

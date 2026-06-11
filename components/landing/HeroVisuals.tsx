@@ -15,7 +15,7 @@ function FlagIcon({ code }: { code: string }) {
   );
 }
 
-function LiveFeed() {
+export function LiveFeed() {
   const [rows, setRows] = useState(VISITORS.slice(0, 4));
   const [tick, setTick] = useState(false);
 

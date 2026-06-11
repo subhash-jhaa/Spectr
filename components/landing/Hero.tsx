@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Code2 } from "lucide-react";
 import Link from "next/link";
 import { FloatingPaths } from "@/components/ui/background-paths";
+import { LiveVisitorFeed } from "@/components/LiveVisitorFeed";
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -31,50 +32,27 @@ const fadeUp = {
 
 export function Hero() {
   return (
-    <section className="relative w-full h-[100dvh] min-h-[600px] bg-black overflow-hidden">
-      {/* Full-screen Container */}
-      <div className="relative w-full h-full overflow-hidden bg-[#0a0a0a]">
+    <section className="relative w-full min-h-screen bg-black overflow-hidden flex items-center">
+      {/* Background Paths */}
+      <div className="absolute inset-0 z-0 opacity-40">
+        <FloatingPaths position={1} />
+        <FloatingPaths position={-1} />
+      </div>
 
-        {/* Background Video */}
-        {/* <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-        >
-          <source
-            src="/bgv3.mp4"
-            type="video/mp4"
-          />
-        </video> */}
+      {/* Premium Subtle Noise Background */}
+      <div className="absolute inset-0 bg-noise opacity-[0.035] pointer-events-none z-0" />
 
-        {/* Gradient Overlay */}
-        {/* <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60 z-10" /> */}
-
-        {/* Background Paths */}
-        <div className="absolute inset-0 z-0 opacity-40">
-          <FloatingPaths position={1} />
-          <FloatingPaths position={-1} />
-        </div>
-
-        {/* Premium Subtle Noise Background */}
-        <div className="absolute inset-0 bg-noise opacity-[0.035] pointer-events-none z-0" />
-
-
-
-        {/* Bottom-left Aligned Hero Content */}
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={staggerContainer}
-          className="absolute bottom-0 left-0 right-0 p-6 pb-20 md:p-12 lg:p-16 z-20 flex flex-col items-start text-left max-w-4xl gap-6 select-none"
-        >
+      {/* Main Grid Container */}
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={staggerContainer}
+        className="relative z-20 w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center px-6 py-24 md:px-12 lg:px-16 select-none"
+      >
+        {/* LEFT — Text */}
+        <div className="flex flex-col gap-6 items-start text-left">
           {/* Peerlist Launchpad Badge */}
-          <motion.div
-            variants={fadeUp}
-            custom={0.5}
-          >
+          <motion.div variants={fadeUp} custom={0.5}>
             <a
               href="https://peerlist.io/subhashjhadev/project/spectr--know-your-traffic"
               target="_blank"
@@ -84,15 +62,12 @@ export function Hero() {
               {/* Laurel Left */}
               <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <g fill="#00AA45">
-                  {/* Stem */}
                   <path d="M30 42C22 40 14 32 12 20C10.5 12 12 6 14 2" stroke="#00AA45" strokeWidth="2" strokeLinecap="round" fill="none" />
-                  {/* Left-side leaves (outer curve) */}
                   <path d="M12 38c-3-1-6-4-5.5-7.5 3 0.5 5.5 3.5 5.5 7.5z" />
                   <path d="M10 32c-3.5-2-7-5.5-5.5-9 3.5 0.5 6 5 5.5 9z" />
                   <path d="M8 25c-4-2.5-7-6.5-5-9.5 3.5 1 5.5 5.5 5 9.5z" />
                   <path d="M7 18c-3.5-3-6-7.5-3.5-10 3 1.5 5 6 3.5 10z" />
                   <path d="M8 11c-3-3-4.5-7.5-2-9.5 2.5 1.5 3.5 6 2 9.5z" />
-                  {/* Right-side leaves (inner curve) */}
                   <path d="M28 38c1.5-2.5 1-6 4-7.5 2 2 0.5 5.5-4 7.5z" />
                   <path d="M24 31c2-3 2-6.5 5-7.5 1.5 2.5 0 5.5-5 7.5z" />
                   <path d="M20 24c2.5-3 2.5-6.5 5.5-7 1 2.5-0.5 5.5-5.5 7z" />
@@ -113,7 +88,7 @@ export function Hero() {
                 </span>
               </div>
 
-              {/* Laurel Right (mirrored) */}
+              {/* Laurel Right */}
               <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'scaleX(-1)' }}>
                 <g fill="#00AA45">
                   <path d="M30 42C22 40 14 32 12 20C10.5 12 12 6 14 2" stroke="#00AA45" strokeWidth="2" strokeLinecap="round" fill="none" />
@@ -135,10 +110,10 @@ export function Hero() {
           <motion.h1
             variants={fadeUp}
             custom={1}
-            className="font-bold tracking-tight text-white leading-[1.05] text-[10vw] sm:text-[8vw] md:text-[6vw] lg:text-[4.5vw] xl:text-[4.2vw] 2xl:text-[4.5vw]"
+            className="font-bold tracking-tight text-white leading-[1.05] text-4xl sm:text-5xl lg:text-6xl xl:text-7xl"
           >
-            Real-time analytics<br />
-            <span className="text-[#DEDBC8]"> for your site.</span>
+            <span className="inline-block sm:whitespace-nowrap">Know your traffic.</span><br />
+            <span className="text-[#DEDBC8] inline-block sm:whitespace-nowrap">In real time.</span>
           </motion.h1>
 
           <motion.p
@@ -146,7 +121,7 @@ export function Hero() {
             custom={2}
             className="text-zinc-300 text-base sm:text-lg leading-relaxed max-w-2xl font-medium"
           >
-            Privacy-first, zero-cookie analytics built for developers. Know who&apos;s visiting, where they came from, and exactly what they&apos;re doing.
+            Drop one script tag. Watch your visitors appear live — no cookies, no config.
           </motion.p>
 
           <motion.div
@@ -174,9 +149,13 @@ export function Hero() {
               </motion.button>
             </Link>
           </motion.div>
-        </motion.div>
+        </div>
 
-      </div>
+        {/* RIGHT — Live Feed */}
+        <div className="flex justify-center lg:justify-end w-full">
+          <LiveVisitorFeed />
+        </div>
+      </motion.div>
     </section>
   );
 }

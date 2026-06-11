@@ -2,8 +2,6 @@ import React from 'react';
 import { Session } from 'next-auth';
 import { Navbar } from './landing/Navbar';
 import { Hero } from './landing/Hero';
-import { HeroVisuals } from './landing/HeroVisuals';
-import { Stats } from './landing/Stats';
 import { HowItWorks } from './landing/HowItWorks';
 import { Features } from './landing/Features';
 import { Integration } from './landing/Integration';
@@ -28,16 +26,6 @@ export default function Landing({ session }: LandingProps) {
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
       <ScrollReveal>
         <Hero />
-      </ScrollReveal>
-
-      {/* ── Hero Visuals ───────────────────────────────────────────────────── */}
-      <ScrollReveal>
-        <HeroVisuals />
-      </ScrollReveal>
-
-      {/* ── Stats ──────────────────────────────────────────────────────────── */}
-      <ScrollReveal>
-        <Stats />
       </ScrollReveal>
 
       {/* ── How It Works ───────────────────────────────────────────────────── */}
