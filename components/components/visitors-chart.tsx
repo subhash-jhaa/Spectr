@@ -23,7 +23,7 @@ import { Delta, DeltaIcon, DeltaValue } from "@/components/components/delta";
 const chartConfig = {
 	visitors: {
 		label: "Visitors",
-		color: "var(--chart-2)",
+		color: "#0062ff",
 	},
 } satisfies ChartConfig;
 
