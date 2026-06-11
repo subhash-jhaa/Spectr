@@ -50,7 +50,7 @@ export function Hero() {
         className="relative z-20 w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center px-6 py-24 md:px-12 lg:px-16 select-none"
       >
         {/* LEFT — Text */}
-        <div className="flex flex-col gap-6 items-start text-left">
+        <div className="flex flex-col gap-6 items-center text-center lg:items-start lg:text-left w-full min-w-0">
           {/* Peerlist Launchpad Badge */}
           <motion.div variants={fadeUp} custom={0.5}>
             <a
@@ -119,7 +119,7 @@ export function Hero() {
           <motion.p
             variants={fadeUp}
             custom={2}
-            className="text-zinc-300 text-base sm:text-lg leading-relaxed max-w-2xl font-medium"
+            className="text-zinc-300 text-base sm:text-lg leading-relaxed max-w-2xl font-medium mx-auto lg:mx-0"
           >
             Drop one script tag. Watch your visitors appear live — no cookies, no config.
           </motion.p>

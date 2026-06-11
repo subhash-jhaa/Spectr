@@ -42,18 +42,18 @@ export function CTA() {
             className="space-y-6"
           >
             <h2 className="inline-block text-3xl md:text-5xl lg:text-6xl font-bold bg-[radial-gradient(61.17%_178.53%_at_38.83%_-13.54%,#3B3B3B_0%,#888787_12.61%,#FFFFFF_50%,#888787_80%,#3B3B3B_100%)] bg-clip-text text-transparent px-4 md:px-8 leading-tight tracking-tight">
-              Your All-in-One <br className="sm:hidden" /> Analytics Companion
+              One script tag away <br className="hidden sm:inline" /> from knowing your traffic.
             </h2>
             <p className="max-w-lg text-xs sm:text-sm md:text-base text-zinc-400 mx-auto px-4 leading-relaxed">
-              Simplify visitor tracking, event logs, and site analytics with cutting-edge tools designed to be lightweight, privacy-first, and built for developers.
+              Set up in seconds, query via API, and watch your visitor count grow. Zero cookies, GDPR-compliant, and built for developers.
             </p>
 
             <div className="pt-8">
               <a 
                 href="/auth" 
-                className="px-8 py-4 relative cursor-pointer hover:-translate-y-0.5 transition duration-200 inline-flex items-center justify-center gap-2 bg-white hover:bg-zinc-100 text-zinc-950 shadow-[0_4px_12px_rgba(255,255,255,0.1)] h-12 md:h-14 w-48 md:w-56 rounded-full font-semibold text-sm tracking-wide"
+                className="px-8 py-4 relative cursor-pointer hover:-translate-y-0.5 transition duration-200 inline-flex items-center justify-center gap-2 bg-white hover:bg-zinc-100 text-zinc-950 shadow-[0_4px_12px_rgba(255,255,255,0.1)] h-12 md:h-14 w-56 md:w-64 rounded-full font-semibold text-sm tracking-wide"
               >
-                <span>Get Started Now</span>
+                <span>Start Tracking Free</span>
                 <ArrowRight className="h-4 w-4 text-zinc-950" />
               </a>
             </div>

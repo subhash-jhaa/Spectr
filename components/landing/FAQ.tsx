@@ -49,7 +49,7 @@ function FAQItem({ question, answer, isOpen, onClick }: FAQItemProps) {
 }
 
 export function FAQ() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   const faqs = [
     {
@@ -75,7 +75,7 @@ export function FAQ() {
   ];
 
   return (
-    <section id="faq" className="relative py-20 sm:py-28 bg-black overflow-hidden border-t border-zinc-900">
+    <section id="faq" className="relative py-24 sm:py-32 bg-black overflow-hidden border-t border-zinc-850 mt-16 md:mt-24">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Header */}
@@ -84,7 +84,7 @@ export function FAQ() {
             Let&apos;s Answer Your Questions
           </h2>
           <p className="max-w-lg text-sm text-zinc-400 mx-auto mt-4 leading-relaxed">
-            Simplify web analytics, visitor tracking, and developer console insights with cutting-edge tools designed for modern creators.
+            Have questions about integration, data privacy, or custom events? Find quick answers to common developer queries here.
           </p>
         </div>
 

@@ -1,35 +1,31 @@
 'use client';
 
 import React from 'react';
-import NextImage from 'next/image';
 import { Quote } from 'lucide-react';
 import { cn, CARD, CARD_HOVER } from './Primitives';
 
 // ─── Constants & Data ────────────────────────────────────────────────────────
+// ─── Constants & Data ────────────────────────────────────────────────────────
 const MAIN_TESTIMONIALS = [
   {
-    name: "Sarah Johnson",
-    role: "Founder, SaaSify",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&h=200&auto=format&fit=crop",
-    content: "This platform has completely transformed how I manage my visitor insights. The real-time console is extremely intuitive and powerful."
+    name: "Yash Yadav",
+    role: "Full Stack Engineer",
+    content: "Congrats on the launch, Subhash! Dropped it on my portfolio and the setup was literally 5 seconds. The real-time dashboard updates instantly."
   },
   {
-    name: "Michael Chen",
-    role: "Lead Engineer, DevCore",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&h=200&auto=format&fit=crop",
-    content: "The privacy-first tracking has given us all the insights we need without having to show annoying cookie consent banners to our developers."
+    name: "Karan Verma",
+    role: "Frontend Developer",
+    content: "The dev console mode is super handy. Being able to see active user logs right there is extremely useful during development."
   },
   {
-    name: "Emma Davis",
-    role: "Solopreneur",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=200&h=200&auto=format&fit=crop",
-    content: "As someone launching multiple indie products, this platform made it incredibly easy to get started and get clean visitor analytics in seconds."
+    name: "Anjali Sharma",
+    role: "Indie Builder",
+    content: "Finally, an analytics tool that doesn't require GDPR consent banners or slow down my page load speed. Exactly what I was looking for."
   },
   {
-    name: "Alex Patel",
-    role: "Tech Lead, FlowState",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&h=200&auto=format&fit=crop",
-    content: "Dropped the 1-line script in my React app and had live page tracking instantly. The developer-first experience is simply unmatched."
+    name: "Rohan Mehta",
+    role: "Software Engineer",
+    content: "Simple, clean, and under 2KB. This is exactly what I wanted for my personal projects instead of configuring heavy analytics software."
   }
 ];
 
@@ -71,13 +67,16 @@ export function Testimonials() {
                 <div className="absolute inset-px rounded-[11px] bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none -z-10" />
                 
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="relative w-12 h-12 rounded-full overflow-hidden border border-zinc-700">
-                    <NextImage src={t.avatar} alt={t.name} fill sizes="48px" className="object-cover" />
+                  <div className="w-11 h-11 rounded-full border border-zinc-800 bg-zinc-950 flex items-center justify-center text-[#DEDBC8] font-mono text-sm font-bold shrink-0 shadow-inner">
+                    {t.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                   </div>
                   <div>
-                    <h3 className="text-base font-semibold text-white">{t.name}</h3>
-                    <p className="text-xs text-zinc-400">{t.role}</p>
+                    <h3 className="text-sm font-semibold text-white">{t.name}</h3>
+                    <p className="text-xs text-zinc-500">{t.role}</p>
                   </div>
+                  <span className="text-[9px] text-[#00AA45] bg-[#00AA45]/5 border border-[#00AA45]/20 rounded px-1.5 py-0.5 ml-auto font-mono uppercase tracking-wider font-semibold">
+                    Peerlist
+                  </span>
                 </div>
 
                 <div className="relative flex-1">
