@@ -1,6 +1,9 @@
 import Landing from "@/components/landing";
-import { getOptionalSession } from "@/lib/auth-utils";
+import { getOptionalAppSession } from "@/lib/session";
 import type { Metadata } from "next";
+import type { Session } from "next-auth";
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: "Real-time Website Analytics — spectr",
@@ -8,11 +11,13 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const session = await getOptionalSession();
+  const user = await getOptionalAppSession();
+  // Build Session-compatible shape for Landing/Navbar
+  const session = user ? { user, expires: '' } as unknown as Session : null;
   
   return (
     <div className="">
       <Landing session={session} />
     </div>
   );
-}
+}

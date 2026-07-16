@@ -15,7 +15,7 @@ import {
   UserIcon,
 } from '@heroicons/react/24/outline'
 import { LogoMark } from './landing/Logo'
-import { Dashboard } from '@/components/components/dashboard'
+import { Dashboard } from '@/components/dashboard/dashboard'
 
 // Custom Hooks
 import { useProjects, Project } from './hooks/useProjects'

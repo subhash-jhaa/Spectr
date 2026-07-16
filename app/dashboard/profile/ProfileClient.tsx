@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { signOut } from 'next-auth/react';
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
-} from '@/components/components/ui/card';
+} from '@/components/ui/card';
 import {
   Avatar, AvatarFallback, AvatarImage,
-} from '@/components/components/ui/avatar';
+} from '@/components/ui/avatar';
 import { TrashIcon, FolderIcon, LogOutIcon } from 'lucide-react';
 
 interface Props {

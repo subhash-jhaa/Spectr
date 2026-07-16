@@ -16,6 +16,7 @@ import {
   TrackingResponse,
   LocationData 
 } from '../../../interfaces/api';
+import { DatabaseEvent } from '../../../interfaces/database';
 import { ProjectQueries, EventQueries } from '../../../queries';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
@@ -61,6 +62,12 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
 
     if (!validateProjectId(projectId)) {
       return createErrorResponse('Invalid project ID', 400);
+    }
+
+    // Bot/crawler filtering — exclude from analytics
+    const BOT_PATTERN = /bot|crawl|spider|slurp|bingpreview|mediapartners|facebookexternalhit|linkedinbot|embedly|quora|pinterest|twitterbot|whatsapp|telegram|googlebot|yandex|baiduspider|duckduckbot|semrush|ahrefsbot|dotbot|rogerbot|screaming frog/i;
+    if (userAgent && BOT_PATTERN.test(userAgent)) {
+      return createSuccessResponse({ success: true, eventId: 'bot' });
     }
 
     // Get the client IP early for rate limiting and geolocation
@@ -120,8 +127,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       const existingEventResult = await EventQueries.findRecentBySession(projectId, sessionId, 5);
 
       if (existingEventResult.success && existingEventResult.data) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const existingEvent = existingEventResult.data as any;
+        const existingEvent = existingEventResult.data as DatabaseEvent;
         
         // Check if this is a page change (different URL)
         if (existingEvent.pageUrl === pageUrl) {
@@ -146,8 +152,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
 
           return createSuccessResponse({ 
             success: true, 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            eventId: (updateResult.data as any).id, 
+            eventId: (updateResult.data as DatabaseEvent).id, 
             updated: true 
           });
         } else {
@@ -176,8 +181,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
 
           return createSuccessResponse({ 
             success: true, 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            eventId: (createResult.data as any).id, 
+            eventId: (createResult.data as DatabaseEvent).id, 
             updated: false, 
             pageChange: true 
           });
@@ -210,8 +214,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
 
     return createSuccessResponse({ 
       success: true, 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      eventId: (createResult.data as any).id, 
+      eventId: (createResult.data as DatabaseEvent).id, 
       updated: false 
     });
   } catch (error) {

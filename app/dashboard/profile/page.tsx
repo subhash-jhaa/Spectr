@@ -1,14 +1,20 @@
-import { requireAuth } from '@/lib/auth-utils';
+import { requireAppSession } from '@/lib/session';
+import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import ProfileClient from './ProfileClient';
 
-export default async function ProfilePage() {
-  const session = await requireAuth();
+export const dynamic = 'force-dynamic';
 
-  if (!session?.user) return null;
+export default async function ProfilePage() {
+  let sessionUser;
+  try {
+    sessionUser = await requireAppSession();
+  } catch {
+    redirect('/auth');
+  }
 
   const user = await prisma.user.findUnique({
-    where: { id: (session.user as { id: string }).id },
+    where: { id: sessionUser.id },
     include: {
       projects: { orderBy: { createdAt: 'desc' } },
     },
@@ -33,3 +39,4 @@ export default async function ProfilePage() {
     />
   );
 }
+

@@ -1,4 +1,14 @@
 import { prisma } from '@/lib/prisma';
+import { Redis } from '@upstash/redis';
+
+const hasRedisConfig = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+
+const redis = hasRedisConfig
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    })
+  : null;
 
 export interface Visitor {
   id: string;
@@ -93,11 +103,23 @@ export async function sendStats(projectId: string, controller: ReadableStreamDef
 
 // Function to broadcast updates to all connected clients for a project
 export async function broadcastUpdate(projectId: string) {
+  // Notify local connections
   const projectConnections = connections.get(projectId);
   if (projectConnections) {
     const promises = Array.from(projectConnections).map(controller => 
       sendStats(projectId, controller)
     );
     await Promise.all(promises);
+  }
+
+  // Publish cross-instance hint via Redis so other instances' polling picks it up.
+  // ponytail: Upstash HTTP Redis can't do persistent pub/sub — this timestamp hint
+  // lets other instances know data changed, their next 5s poll re-queries the DB.
+  if (redis) {
+    try {
+      await redis.set(`spectr:updated:${projectId}`, Date.now(), { ex: 10 });
+    } catch (error) {
+      console.debug('Redis cross-instance hint failed:', error);
+    }
   }
 }

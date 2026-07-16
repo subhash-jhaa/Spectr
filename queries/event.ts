@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { 
   DatabaseEvent, 
   EventWithProject, 
@@ -50,7 +51,7 @@ export class EventQueries {
     options: QueryOptions = {}
   ): Promise<QueryResult<DatabaseEvent[]>> {
     try {
-      const where: any = {};
+      const where: Prisma.EventWhereInput = {};
       
       if (filters.id) where.id = filters.id;
       if (filters.projectId) where.projectId = filters.projectId;
@@ -217,7 +218,7 @@ export class EventQueries {
   static async create(eventData: Partial<DatabaseEvent>): Promise<CreateResult<DatabaseEvent>> {
     try {
       const event = await prisma.event.create({
-        data: eventData as any
+        data: eventData as Prisma.EventCreateInput
       });
 
       return {
@@ -556,12 +557,12 @@ export class EventQueries {
   }
 
   /**
-   * Get browser stats
+   * Combined browser + device stats from a single query
    */
-  static async getBrowserStats(
+  static async getUserAgentStats(
     projectId: string,
     days: number = 30
-  ): Promise<QueryResult<BrowserStats[]>> {
+  ): Promise<QueryResult<{ browsers: BrowserStats[]; devices: DeviceStats[] }>> {
     try {
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
       const rows = await this.getUserAgentCounts(projectId, startDate);
@@ -576,18 +577,26 @@ export class EventQueries {
         return 'Other';
       };
 
-      // Merge counts by browser name
       const browserCounts: Record<string, number> = {};
+      const deviceCounts = { Mobile: 0, Desktop: 0, Tablet: 0 };
       let total = 0;
 
       for (const row of rows) {
-        const browser = getBrowser(row.userAgent);
         const count = Number(row.count);
-        browserCounts[browser] = (browserCounts[browser] || 0) + count;
         total += count;
+        // Browser
+        const browser = getBrowser(row.userAgent);
+        browserCounts[browser] = (browserCounts[browser] || 0) + count;
+        // Device
+        const device = /mobile|android|iphone|phone/i.test(row.userAgent)
+          ? 'Mobile'
+          : /tablet|ipad/i.test(row.userAgent)
+          ? 'Tablet'
+          : 'Desktop';
+        deviceCounts[device] += count;
       }
 
-      const data: BrowserStats[] = Object.entries(browserCounts)
+      const browsers: BrowserStats[] = Object.entries(browserCounts)
         .map(([browser, visitors]) => ({
           browser,
           visitors,
@@ -595,52 +604,45 @@ export class EventQueries {
         }))
         .sort((a, b) => b.visitors - a.visitors);
 
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error getting browser stats:', error);
-      return { success: false, error: 'Failed to get browser stats' };
-    }
-  }
-
-  /**
-   * Get device stats
-   */
-  static async getDeviceStats(
-    projectId: string,
-    days: number = 7
-  ): Promise<QueryResult<DeviceStats[]>> {
-    try {
-      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-      const rows = await this.getUserAgentCounts(projectId, startDate);
-
-      const counts = { Mobile: 0, Desktop: 0, Tablet: 0 };
-      let total = 0;
-
-      for (const { userAgent, count } of rows) {
-        const n = Number(count);
-        const device = /mobile|android|iphone|phone/i.test(userAgent)
-          ? 'Mobile'
-          : /tablet|ipad/i.test(userAgent)
-          ? 'Tablet'
-          : 'Desktop';
-        counts[device] += n;
-        total += n;
-      }
-
-      const data: DeviceStats[] = Object.entries(counts).map(([device, visitors]) => ({
+      const devices: DeviceStats[] = Object.entries(deviceCounts).map(([device, visitors]) => ({
         device,
         visitors,
         share: total > 0 ? Math.round((visitors / total) * 100) : 0,
       }));
 
-      return {
-        success: true,
-        data,
-      };
+      return { success: true, data: { browsers, devices } };
     } catch (error) {
-      console.error('Error getting device stats:', error);
-      return { success: false, error: 'Failed to get device stats' };
+      console.error('Error getting user agent stats:', error);
+      return { success: false, error: 'Failed to get user agent stats' };
     }
+  }
+
+  /**
+   * Get browser stats (delegates to getUserAgentStats)
+   */
+  static async getBrowserStats(
+    projectId: string,
+    days: number = 30
+  ): Promise<QueryResult<BrowserStats[]>> {
+    const result = await this.getUserAgentStats(projectId, days);
+    if (!result.success || !result.data) {
+      return { success: false, error: result.error };
+    }
+    return { success: true, data: result.data.browsers };
+  }
+
+  /**
+   * Get device stats (delegates to getUserAgentStats)
+   */
+  static async getDeviceStats(
+    projectId: string,
+    days: number = 7
+  ): Promise<QueryResult<DeviceStats[]>> {
+    const result = await this.getUserAgentStats(projectId, days);
+    if (!result.success || !result.data) {
+      return { success: false, error: result.error };
+    }
+    return { success: true, data: result.data.devices };
   }
 
   /**

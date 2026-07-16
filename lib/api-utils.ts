@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAppSession, requireAppSession } from '@/lib/session';
 import { SessionUser, ApiErrorResponse, CorsHeaders } from '../interfaces/api';
 import { ProjectQueries } from '../queries';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+// Authenticated API rate limiter (generous: 60 req/min per user)
+const hasRedisConfig = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+const authRatelimit = hasRedisConfig
+  ? new Ratelimit({
+      redis: new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL!,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      }),
+      limiter: Ratelimit.slidingWindow(60, '1 m'),
+      prefix: '@upstash/ratelimit:auth',
+    })
+  : null;
 
 // CORS headers for cross-origin requests
 export const corsHeaders: CorsHeaders = {
@@ -201,6 +216,15 @@ export async function handleStatsRoute<T>(
 ): Promise<NextResponse<T | ApiErrorResponse>> {
   try {
     const user = await requireAuth();
+
+    // Rate limit authenticated API routes
+    if (authRatelimit) {
+      const { success } = await authRatelimit.limit(user.id);
+      if (!success) {
+        return createErrorResponse('Too many requests', 429);
+      }
+    }
+
     const { id: projectId } = await params;
     await verifyProjectOwnership(projectId, user.id);
     const result = await fetchData(projectId);

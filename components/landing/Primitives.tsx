@@ -1,7 +1,7 @@
 import React from 'react';
+import { cn } from '@/lib/utils';
+export { cn };
 
-// ─── Utility ──────────────────────────────────────────────────────────────────
-export function cn(...c: (string | undefined | false)[]) { return c.filter(Boolean).join(' '); }
 
 // ─── Primitives ───────────────────────────────────────────────────────────────
 export function Badge({ children, className }: { children: React.ReactNode; className?: string }) {

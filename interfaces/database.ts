@@ -171,8 +171,8 @@ export interface TransactionOptions {
 
 export interface BatchOperation<T> {
   create?: Partial<T>[];
-  update?: { where: any; data: Partial<T> }[];
-  delete?: any[];
+  update?: { where: Record<string, unknown>; data: Partial<T> }[];
+  delete?: Record<string, unknown>[];
 }
 
 // Database connection interfaces

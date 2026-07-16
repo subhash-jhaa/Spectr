@@ -62,3 +62,23 @@ export async function requireAppSession(): Promise<SessionUser> {
   }
   return user;
 }
+
+/**
+ * Redirect authenticated users to /dashboard.
+ * Used on pages like /auth that only guests should see.
+ */
+export async function requireGuestSession(): Promise<null> {
+  const { redirect } = await import('next/navigation');
+  const user = await getAppSession();
+  if (user?.id) {
+    redirect('/dashboard');
+  }
+  return null;
+}
+
+/**
+ * Non-throwing session check — returns null when not logged in.
+ */
+export async function getOptionalAppSession(): Promise<SessionUser | null> {
+  return getAppSession();
+}
