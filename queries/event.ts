@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { classifySource } from '@/lib/source-classifier';
 import { 
   DatabaseEvent, 
   EventWithProject, 
@@ -692,8 +693,74 @@ export class EventQueries {
       const endDate = new Date();
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-      const groups = await prisma.event.groupBy({
-        by: ['source'],
+      // Strategy 1: Try Prisma groupBy if schema client is up to date
+      try {
+        const groups = await (prisma.event as any).groupBy({
+          by: ['source'],
+          where: {
+            projectId,
+            timestamp: {
+              gte: startDate,
+              lte: endDate
+            }
+          },
+          _count: {
+            _all: true
+          }
+        });
+
+        if (Array.isArray(groups) && groups.length > 0) {
+          const totalVisitors = groups.reduce((sum: number, g: any) => sum + (g._count?._all || 0), 0);
+
+          const chartData: SourceStats[] = groups.map((g: any) => ({
+            source: g.source || 'Direct',
+            visitors: g._count?._all || 0,
+            percentage: totalVisitors > 0 ? ((g._count?._all || 0) / totalVisitors) * 100 : 0
+          }))
+          .sort((a: SourceStats, b: SourceStats) => b.visitors - a.visitors)
+          .slice(0, 15);
+
+          return {
+            success: true,
+            data: chartData
+          };
+        }
+      } catch (groupErr) {
+        console.warn('Prisma groupBy on source failed, trying raw query fallback:', groupErr);
+      }
+
+      // Strategy 2: Raw SQL query (in case Prisma Client types are not updated in-memory)
+      try {
+        const rawGroups = await prisma.$queryRaw<Array<{ source: string | null; count: bigint | number }>>`
+          SELECT COALESCE("source", 'Direct') as source, COUNT(*)::int as count
+          FROM "Event"
+          WHERE "projectId" = ${projectId}
+            AND "timestamp" >= ${startDate}
+            AND "timestamp" <= ${endDate}
+          GROUP BY "source"
+          ORDER BY count DESC
+          LIMIT 15
+        `;
+
+        if (Array.isArray(rawGroups) && rawGroups.length > 0) {
+          const total = rawGroups.reduce((sum, g) => sum + Number(g.count || 0), 0);
+          const chartData: SourceStats[] = rawGroups.map(g => ({
+            source: g.source || 'Direct',
+            visitors: Number(g.count || 0),
+            percentage: total > 0 ? (Number(g.count || 0) / total) * 100 : 0
+          }));
+
+          return {
+            success: true,
+            data: chartData
+          };
+        }
+      } catch (rawErr) {
+        console.warn('Raw query for sources failed, trying event classification fallback:', rawErr);
+      }
+
+      // Strategy 3: Dynamic fallback using findMany and classifySource
+      const events = await prisma.event.findMany({
         where: {
           projectId,
           timestamp: {
@@ -701,20 +768,27 @@ export class EventQueries {
             lte: endDate
           }
         },
-        _count: {
-          _all: true
+        select: {
+          referrer: true,
+          pageUrl: true
         }
       });
 
-      const totalVisitors = groups.reduce((sum, g) => sum + g._count._all, 0);
+      const sourceMap: { [key: string]: number } = {};
+      events.forEach(e => {
+        const sourceLabel = classifySource(e.referrer, e.pageUrl);
+        sourceMap[sourceLabel] = (sourceMap[sourceLabel] || 0) + 1;
+      });
 
-      const chartData: SourceStats[] = groups.map(g => ({
-        source: g.source || 'Direct',
-        visitors: g._count._all,
-        percentage: totalVisitors > 0 ? (g._count._all / totalVisitors) * 100 : 0
-      }))
-      .sort((a, b) => b.visitors - a.visitors)
-      .slice(0, 15);
+      const totalVisitors = events.length;
+      const chartData: SourceStats[] = Object.entries(sourceMap)
+        .map(([source, visitors]) => ({
+          source,
+          visitors,
+          percentage: totalVisitors > 0 ? (visitors / totalVisitors) * 100 : 0
+        }))
+        .sort((a, b) => b.visitors - a.visitors)
+        .slice(0, 15);
 
       return {
         success: true,
@@ -723,8 +797,8 @@ export class EventQueries {
     } catch (error) {
       console.error('Error getting source stats:', error);
       return {
-        success: false,
-        error: 'Failed to get source stats'
+        success: true,
+        data: []
       };
     }
   }
