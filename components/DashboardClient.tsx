@@ -63,6 +63,12 @@ interface DeviceStats {
   share: number
 }
 
+interface SourceStats {
+  source: string
+  visitors: number
+  percentage?: number
+}
+
 const DashboardClient = ({ session }: DashboardClientProps) => {
   if (process.env.NODE_ENV === 'development') {
     console.debug('Dashboard session active for:', session.user?.email);
@@ -74,6 +80,7 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
   const [pageStats, setPageStats] = useState<PageStats[]>([])
   const [browserStats, setBrowserStats] = useState<BrowserStats[]>([])
   const [deviceStats, setDeviceStats] = useState<DeviceStats[]>([])
+  const [sourceStats, setSourceStats] = useState<SourceStats[]>([])
   const [showNewProjectModal, setShowNewProjectModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -122,13 +129,14 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
         }
       }
 
-      const [dailyData, countriesData, referrersData, pagesData, browsersData, devicesData] = await Promise.all([
+      const [dailyData, countriesData, referrersData, pagesData, browsersData, devicesData, sourcesData] = await Promise.all([
         fetchWithCheck(`/api/stats/project/${selectedProject.id}/7days`),
         fetchWithCheck(`/api/stats/project/${selectedProject.id}/countries`),
         fetchWithCheck(`/api/stats/project/${selectedProject.id}/referrers`),
         fetchWithCheck(`/api/stats/project/${selectedProject.id}/pages`),
         fetchWithCheck(`/api/stats/project/${selectedProject.id}/browsers`),
-        fetchWithCheck(`/api/stats/project/${selectedProject.id}/devices`)
+        fetchWithCheck(`/api/stats/project/${selectedProject.id}/devices`),
+        fetchWithCheck(`/api/stats/project/${selectedProject.id}/sources`)
       ])
 
       setDailyStats(dailyData)
@@ -137,6 +145,7 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
       setPageStats(Array.isArray(pagesData) ? pagesData : [])
       setBrowserStats(Array.isArray(browsersData) ? browsersData : [])
       setDeviceStats(Array.isArray(devicesData) ? devicesData : [])
+      setSourceStats(Array.isArray(sourcesData) ? sourcesData : [])
       setDataFetched(true)
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -401,6 +410,7 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
               realtimeStats={realtimeStats} 
               countryStats={countryStats} 
               referrerStats={referrerStats} 
+              sourceStats={sourceStats}
               pageStats={pageStats}
               browserStats={browserStats}
               deviceStats={deviceStats}
@@ -459,6 +469,16 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
                             <span className="text-xs text-zinc-500 font-mono">🔗</span>
                             <span className="text-xs text-zinc-400 font-mono">
                               From: {visitor.referrer}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Source Badge */}
+                        {visitor.source && visitor.source !== 'Direct' && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-zinc-500 font-mono">📡</span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-zinc-800 border border-zinc-700 text-zinc-200">
+                              {visitor.source}
                             </span>
                           </div>
                         )}

@@ -39,6 +39,7 @@ model Event {
   sessionId String?
   pageUrl   String
   referrer  String
+  source    String   @default("Direct")
   userAgent String
   ip        String
   country   String
@@ -47,6 +48,7 @@ model Event {
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId, timestamp])
+  @@index([projectId, source])
 }
 
 model Account {

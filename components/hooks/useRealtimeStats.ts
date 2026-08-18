@@ -4,6 +4,7 @@ interface Visitor {
   id: string
   pageUrl: string
   referrer: string
+  source: string
   country: string
   city: string
   userAgent: string

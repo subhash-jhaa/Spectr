@@ -31,6 +31,7 @@ export type ReferrersStatsResponse = NextResponse<ReferrerStats[] | ApiErrorResp
 export type PagesStatsResponse = NextResponse<PageStats[] | ApiErrorResponse>;
 export type BrowserStatsResponse = NextResponse<BrowserStats[] | ApiErrorResponse>;
 export type DevicesStatsResponse = NextResponse<DeviceStats[] | ApiErrorResponse>;
+export type SourcesStatsResponse = NextResponse<SourceStats[] | ApiErrorResponse>;
 export type StripeCheckoutResponse = NextResponse<{
   url: string;
   sessionId: string;
@@ -102,6 +103,7 @@ export interface VisitorDetail {
   id: string;
   pageUrl: string;
   referrer: string | null;
+  source: string;
   country: string | null;
   city: string | null;
   userAgent: string;
@@ -140,6 +142,12 @@ export interface DeviceStats {
   device: string;
   visitors: number;
   share: number;
+}
+
+export interface SourceStats {
+  source: string;
+  visitors: number;
+  percentage: number;
 }
 
 // Stripe Interfaces

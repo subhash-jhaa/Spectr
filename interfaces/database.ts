@@ -119,11 +119,18 @@ export interface DeviceStats {
   share: number;
 }
 
+export interface SourceStats {
+  source: string;
+  visitors: number;
+  percentage: number;
+}
+
 // Real-time interfaces
 export interface RealtimeVisitor {
   id: string;
   pageUrl: string;
   referrer: string | null;
+  source: string;
   country: string | null;
   city: string | null;
   userAgent: string;

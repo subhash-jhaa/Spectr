@@ -17,7 +17,8 @@ import {
   PageStats,
   BrowserStats,
   DeviceStats,
-  VisitorStats
+  VisitorStats,
+  SourceStats
 } from '../interfaces/database';
 
 export class EventQueries {
@@ -309,6 +310,7 @@ export class EventQueries {
             id: event.id,
             pageUrl: event.pageUrl,
             referrer: event.referrer,
+            source: (event as any).source || 'Direct',
             country: event.country,
             city: event.city,
             userAgent: event.userAgent,
@@ -679,6 +681,51 @@ export class EventQueries {
     } catch (error) {
       console.error('Error counting events by project:', error);
       return 0;
+    }
+  }
+
+  /**
+   * Get traffic source stats (grouped by source field)
+   */
+  static async getSourceStats(projectId: string, days: number = 30): Promise<QueryResult<SourceStats[]>> {
+    try {
+      const endDate = new Date();
+      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+      const groups = await prisma.event.groupBy({
+        by: ['source'],
+        where: {
+          projectId,
+          timestamp: {
+            gte: startDate,
+            lte: endDate
+          }
+        },
+        _count: {
+          _all: true
+        }
+      });
+
+      const totalVisitors = groups.reduce((sum, g) => sum + g._count._all, 0);
+
+      const chartData: SourceStats[] = groups.map(g => ({
+        source: g.source || 'Direct',
+        visitors: g._count._all,
+        percentage: totalVisitors > 0 ? (g._count._all / totalVisitors) * 100 : 0
+      }))
+      .sort((a, b) => b.visitors - a.visitors)
+      .slice(0, 15);
+
+      return {
+        success: true,
+        data: chartData
+      };
+    } catch (error) {
+      console.error('Error getting source stats:', error);
+      return {
+        success: false,
+        error: 'Failed to get source stats'
+      };
     }
   }
 } 

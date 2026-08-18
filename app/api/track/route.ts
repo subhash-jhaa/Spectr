@@ -11,6 +11,7 @@ import {
   debugLog,
   handleCorsPreflight
 } from '@/lib/api-utils';
+import { classifySource } from '@/lib/source-classifier';
 import { 
   TrackingRequest, 
   TrackingResponse,
@@ -122,6 +123,9 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       debugLog('IP Geolocation Result:', { ip, location });
     }
 
+    // Classify traffic source from referrer and URL params
+    const source = classifySource(referrer, pageUrl);
+
     // Check for recent events from the same session
     if (sessionId) {
       const existingEventResult = await EventQueries.findRecentBySession(projectId, sessionId, 5);
@@ -134,6 +138,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
           // Same page, update the existing event
           const updateResult = await EventQueries.update(existingEvent.id, {
             referrer: referrer || '',
+            source,
             userAgent: userAgent || '',
             ip: ip || 'Unknown',
             timestamp: new Date(), // Update timestamp to show recent activity
@@ -162,6 +167,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
             sessionId: sessionId || '',
             pageUrl,
             referrer: referrer || '',
+            source,
             userAgent: userAgent || '',
             ip: ip || 'Unknown',
             country: country,
@@ -195,6 +201,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       sessionId: sessionId || '',
       pageUrl,
       referrer: referrer || '',
+      source,
       userAgent: userAgent || '',
       ip: ip || 'Unknown',
       country: country,
