@@ -63,7 +63,7 @@ export const Footer = ({
                       href={link.href}
                       className="text-zinc-500 hover:text-white transition-all duration-300"
                       target="_blank"
-                      rel="noopener noreferrer"
+                      rel="noopener"
                     >
                       <div className="w-6 h-6 hover:scale-125 duration-300">
                         {link.icon}
@@ -76,15 +76,19 @@ export const Footer = ({
 
               {navLinks.length > 0 && (
                 <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-sm font-medium text-zinc-500 max-w-full px-4">
-                  {navLinks.map((link, index) => (
-                    <Link
-                      key={index}
-                      className="hover:text-white duration-300 transition-colors"
-                      href={link.href}
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
+                  {navLinks.map((link, index) => {
+                    const isExternal = link.href.startsWith("http");
+                    return (
+                      <Link
+                        key={index}
+                        className="hover:text-white duration-300 transition-colors"
+                        href={link.href}
+                        {...(isExternal ? { target: "_blank", rel: "noopener" } : {})}
+                      >
+                        {link.label}
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -99,7 +103,8 @@ export const Footer = ({
                 <Link
                   href={creatorUrl}
                   target="_blank"
-                  className="text-sm !text-white hover:text-zinc-300 transition-colors duration-300"
+                  rel="noopener"
+                  className="text-sm !text-white hover:text-zinc-300 transition-colors duration-300 underline-offset-4 hover:underline"
                 >
                   Crafted by {creatorName}
                 </Link>

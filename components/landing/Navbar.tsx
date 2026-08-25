@@ -24,10 +24,12 @@ const EASE   = [0.16, 1, 0.3, 1] as const;
 
 // Desktop nav link with sliding underline
 function NavLink({ name, href, onClick }: { name: string; href: string; onClick?: () => void }) {
+  const isExternal = href.startsWith("http");
   return (
     <a 
       href={href} 
       onClick={onClick} 
+      {...(isExternal ? { target: "_blank", rel: "noopener" } : {})}
       className="group relative px-2 lg:px-4 py-2 text-[14px] lg:text-[16px] font-medium text-zinc-400 hover:text-white transition-colors duration-200"
     >
       {name}

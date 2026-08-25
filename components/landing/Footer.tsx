@@ -3,6 +3,7 @@ import React from "react";
 import { Footer as AnimatedFooter } from "@/components/ui/modem-animated-footer";
 import { LogoMark } from "./Logo";
 import {
+  Globe,
   Mail,
 } from "lucide-react";
 
@@ -27,28 +28,35 @@ export function Footer() {
       label: "GitHub",
     },
     {
+      icon: <Globe className="w-6 h-6" />,
+      href: "https://subhashjha.me",
+      label: "Portfolio",
+    },
+    {
       icon: <Mail className="w-6 h-6" />,
       href: "mailto:contact@spectr.com",
       label: "Email",
     },
   ];
 
-  // const navLinks = [
-  //   { label: "Features", href: "/#features" },
-  //   { label: "How It Works", href: "/#how-it-works" },
-  //   { label: "Integration", href: "/#code" },
-  //   { label: "Pricing", href: "/#pricing" },
-  // ];
+  const navLinks = [
+    { label: "Features", href: "/#features" },
+    { label: "How It Works", href: "/#how-it-works" },
+    { label: "Integration", href: "/#code" },
+    { label: "Pricing", href: "/#pricing" },
+    { label: "Developer Portfolio", href: "https://subhashjha.me" },
+  ];
 
   return (
     <AnimatedFooter
       brandName="spectr"
       brandDescription="Realtime, privacy-first analytics for developers. Know who's visiting, where they came from, and exactly what they're doing."
       socialLinks={socialLinks}
-      // navLinks={navLinks}
-      creatorName="Subhash"
-      creatorUrl="https://x.com/subhash-jh"
+      navLinks={navLinks}
+      creatorName="Subhash Jha"
+      creatorUrl="https://subhashjha.me"
       brandIcon={<LogoMark className="w-full h-full" />}
     />
   );
 }
+

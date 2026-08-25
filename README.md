@@ -114,8 +114,8 @@ Spectr is designed with strict respect for user privacy:
 
 Software provided under the **MIT License**.
 
-Built with ❤️ by **subhash-jhaa**. For support, please open an issue in the repository or join our community discussions.
+Built with ❤️ by [**Subhash Jha**](https://subhashjha.me). For support, please open an issue in the repository or join our community discussions.
 
 ---
 
-**Ready to see who's viewing you?** [Get Started with Spectr](https://spectr.subhashjha.me/auth)
+**Ready to see who's viewing you?** [Get Started with Spectr](https://spectr.subhashjha.me)

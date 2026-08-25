@@ -42,8 +42,9 @@ export const metadata: Metadata = {
     "web analytics",
     "spectr",
   ],
-  authors: [{ name: "Subhash Jha" }],
+  authors: [{ name: "Subhash Jha", url: "https://subhashjha.me" }],
   creator: "Subhash Jha",
+  publisher: "Subhash Jha",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
@@ -70,7 +71,7 @@ export const metadata: Metadata = {
     title: "spectr | Know Your Traffic.",
     description: "Real-time, privacy-first analytics for developers. Zero cookies, zero bloat, and GDPR/CCPA compliant.",
     images: ["/preview.png"],
-    creator: "@subhash_jha",
+    creator: "@subhash_jh",
   },
   robots: {
     index: true,
@@ -102,6 +103,11 @@ const jsonLd = {
     "@type": "Person",
     "name": "Subhash Jha",
     "url": "https://subhashjha.me",
+    "sameAs": [
+      "https://subhashjha.me",
+      "https://x.com/subhash_jh",
+      "https://github.com/subhash-jhaa"
+    ],
   },
 };
 
