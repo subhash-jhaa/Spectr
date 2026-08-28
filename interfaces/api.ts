@@ -84,6 +84,13 @@ export interface TrackingRequest {
   referrer?: string;
   userAgent?: string;
   sessionId?: string;
+  utm?: {
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_term?: string;
+    utm_content?: string;
+  };
 }
 
 // Geolocation Interfaces
@@ -148,6 +155,12 @@ export interface SourceStats {
   source: string;
   visitors: number;
   percentage: number;
+}
+
+export interface ReferrerBreakdownItem {
+  name: string;
+  views: number;
+  sessions: number;
 }
 
 // Stripe Interfaces

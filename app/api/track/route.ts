@@ -56,6 +56,12 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
     const body: TrackingRequest = await request.json();
     const { projectId, pageUrl, referrer, userAgent, sessionId } = body;
 
+    // Extract UTM parameters from client payload
+    const utmMedium   = body.utm?.utm_medium   || null;
+    const utmCampaign = body.utm?.utm_campaign || null;
+    const utmTerm     = body.utm?.utm_term     || null;
+    const utmContent  = body.utm?.utm_content  || null;
+
     // Validate required fields
     if (!body.projectId || !body.pageUrl) {
       return createErrorResponse('Missing required fields: projectId, pageUrl', 400);
@@ -168,6 +174,10 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
             pageUrl,
             referrer: referrer || '',
             source,
+            utmMedium,
+            utmCampaign,
+            utmTerm,
+            utmContent,
             userAgent: userAgent || '',
             ip: ip || 'Unknown',
             country: country,
@@ -202,6 +212,10 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       pageUrl,
       referrer: referrer || '',
       source,
+      utmMedium,
+      utmCampaign,
+      utmTerm,
+      utmContent,
       userAgent: userAgent || '',
       ip: ip || 'Unknown',
       country: country,

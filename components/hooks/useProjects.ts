@@ -6,7 +6,7 @@ export interface Project {
   createdAt: string
 }
 
-export const useProjects = () => {
+export const useProjects = (initialProjectId?: string) => {
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
@@ -16,17 +16,22 @@ export const useProjects = () => {
   const fetchProjects = useCallback(async () => {
     try {
       const response = await fetch('/api/project')
-      const data = await response.json()
+      const data: Project[] = await response.json()
       setProjects(data)
-      if (data.length > 0 && !selectedProject) {
-        setSelectedProject(data[0])
+      if (data.length > 0) {
+        setSelectedProject((prev) => {
+          if (initialProjectId) {
+            return data.find((p) => p.id === initialProjectId) || data[0]
+          }
+          return prev || data[0]
+        })
       }
       setLoading(false)
     } catch (error) {
       console.error('Error fetching projects:', error)
       setLoading(false)
     }
-  }, [selectedProject])
+  }, [initialProjectId])
 
   const createProject = useCallback(async (name: string) => {
     if (!name.trim()) return null
@@ -71,9 +76,32 @@ export const useProjects = () => {
     }
   }, [selectedProject, fetchProjects])
 
+  const deleteProjectById = useCallback(async (projectId: string, confirmName: string) => {
+    const targetProject = projects.find(p => p.id === projectId)
+    if (!targetProject || targetProject.name !== confirmName) {
+      console.error('Confirmation name does not match')
+      return false
+    }
+
+    setIsDeletingProject(true)
+    try {
+      await fetch(`/api/project/${projectId}`, { method: 'DELETE' })
+      if (selectedProject?.id === projectId) {
+        setSelectedProject(null)
+      }
+      await fetchProjects()
+      return true
+    } catch (error) {
+      console.error('Error deleting project:', error)
+      return false
+    } finally {
+      setIsDeletingProject(false)
+    }
+  }, [projects, selectedProject, fetchProjects])
+
   useEffect(() => {
     fetchProjects()
-  }, [fetchProjects]) // run once on mount
+  }, [fetchProjects])
 
   return {
     projects,
@@ -85,6 +113,7 @@ export const useProjects = () => {
     isDeletingProject,
     fetchProjects,
     createProject,
-    deleteProject
+    deleteProject,
+    deleteProjectById
   }
 }

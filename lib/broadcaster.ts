@@ -14,6 +14,7 @@ export interface Visitor {
   id: string;
   pageUrl: string;
   referrer: string | null;
+  source?: string | null;
   country: string | null;
   city: string | null;
   userAgent: string | null;
@@ -44,12 +45,13 @@ export async function sendStats(projectId: string, controller: ReadableStreamDef
   if (closedControllers.has(controller)) return;
 
   try {
-    const oneMinuteAgo = new Date(Date.now() - 60 * 1000);
+    // 5-minute active window for live visitor telemetry
+    const liveWindow = new Date(Date.now() - 5 * 60 * 1000);
     
     const realtimeEvents = await prisma.event.findMany({
       where: {
         projectId,
-        timestamp: { gte: oneMinuteAgo },
+        timestamp: { gte: liveWindow },
       },
       orderBy: { timestamp: 'desc' },
       take: 100,
@@ -66,6 +68,7 @@ export async function sendStats(projectId: string, controller: ReadableStreamDef
           id: event.id,
           pageUrl: event.pageUrl,
           referrer: event.referrer,
+          source: event.source || 'Direct',
           country: event.country,
           city: event.city,
           userAgent: event.userAgent,

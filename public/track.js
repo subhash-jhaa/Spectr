@@ -7,6 +7,7 @@
                  document.querySelector('script[src*="track.js"]');
 
   const siteId = script?.getAttribute('data-site');
+  const customApi = script?.getAttribute('data-api');
 
   if (!siteId) {
     console.warn("Spectr: No 'data-site' attribute found on script tag.");
@@ -14,13 +15,15 @@
   }
 
   // 2. Determine API tracking endpoint URL
-  let apiUrl = 'https://spectr.subhashjha.me/api/track';
-  try {
-    if (script?.src) {
-      apiUrl = `${new URL(script.src).origin}/api/track`;
+  let apiUrl = customApi || 'https://spectr.subhashjha.me/api/track';
+  if (!customApi) {
+    try {
+      if (script?.src) {
+        apiUrl = `${new URL(script.src).origin}/api/track`;
+      }
+    } catch {
+      // Fallback to default endpoint if URL parsing fails
     }
-  } catch {
-    // Fallback to default endpoint if URL parsing fails
   }
 
   // 3. Storage keys
@@ -42,7 +45,7 @@
   }
 
   // Check whether we should track (rate limiting & page change detection)
-  function shouldTrackVisit() {
+  function shouldTrackVisit(isHeartbeat) {
     const now = Date.now();
     const currentPage = window.location.href;
     const lastPage = sessionStorage.getItem(LAST_PAGE_KEY);
@@ -50,10 +53,18 @@
 
     const pageChanged = lastPage !== currentPage;
     const isNewSessionOrExpired = !sessionStorage.getItem(SESSION_KEY) || (now - lastTrack) > 30 * 60 * 1000;
-    const isDebounced = (now - lastTrack) < 5 * 60 * 1000;
+    
+    // Heartbeat pings every 30s
+    if (isHeartbeat) {
+      if (now - lastTrack >= 25 * 1000) {
+        sessionStorage.setItem(LAST_TRACK_KEY, now.toString());
+        return true;
+      }
+      return false;
+    }
 
-    // Track if page URL changed, or session is fresh/expired, or 5 min debounce window passed
-    if (pageChanged || isNewSessionOrExpired || !isDebounced) {
+    // Normal pageview or page changed
+    if (pageChanged || isNewSessionOrExpired || (now - lastTrack) > 30 * 1000) {
       sessionStorage.setItem(LAST_PAGE_KEY, currentPage);
       sessionStorage.setItem(LAST_TRACK_KEY, now.toString());
       getOrCreateSessionId(now);
@@ -63,46 +74,72 @@
     return false;
   }
 
-  // Send tracking beacon
-  function track() {
-    if (!shouldTrackVisit()) return;
+  // Parse UTM parameters from current URL
+  function getUtmParams() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      return {
+        utm_source:   params.get('utm_source')   || params.get('ref') || params.get('source') || '',
+        utm_medium:   params.get('utm_medium')   || '',
+        utm_campaign: params.get('utm_campaign') || '',
+        utm_term:     params.get('utm_term')     || '',
+        utm_content:  params.get('utm_content')  || ''
+      };
+    } catch(e) { return {}; }
+  }
 
-    const payload = {
+  // Send tracking beacon
+  function track(isHeartbeat) {
+    if (!shouldTrackVisit(isHeartbeat)) return;
+
+    var utm = getUtmParams();
+    var payload = {
       projectId: siteId,
       pageUrl: window.location.href,
       referrer: document.referrer || '',
       userAgent: navigator.userAgent,
-      sessionId: sessionStorage.getItem(SESSION_KEY) || ''
+      sessionId: sessionStorage.getItem(SESSION_KEY) || '',
+      utm: utm
     };
 
-    fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).catch(error => {
-      console.debug('Spectr: Tracking request failed', error);
-    });
+    var payloadStr = JSON.stringify(payload);
+    if (typeof fetch === 'function') {
+      fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payloadStr,
+        keepalive: true
+      }).catch(function(error) {
+        console.debug('Spectr: Tracking request failed', error);
+      });
+    } else if (navigator.sendBeacon) {
+      navigator.sendBeacon(apiUrl, payloadStr);
+    }
   }
 
   // Initial load tracking
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', track);
+    document.addEventListener('DOMContentLoaded', function() { track(false); });
   } else {
-    track();
+    track(false);
   }
 
-  // Visibility tracking (when user returns to tab after 5+ mins)
+  // Live visitor heartbeat every 30 seconds while tab is active
+  setInterval(function() {
+    if (!document.hidden) {
+      track(true);
+    }
+  }, 30 * 1000);
+
+  // Visibility tracking (when user returns to tab)
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
-      const lastTrack = Number(sessionStorage.getItem(LAST_TRACK_KEY)) || 0;
-      if (Date.now() - lastTrack > 5 * 60 * 1000) {
-        track();
-      }
+      track(false);
     }
   });
 
   // SPA navigation handling (History API & hashchange)
-  const scheduleTrack = () => setTimeout(track, 100);
+  const scheduleTrack = () => setTimeout(function() { track(false); }, 100);
 
   window.addEventListener('popstate', scheduleTrack);
   window.addEventListener('hashchange', scheduleTrack);

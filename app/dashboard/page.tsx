@@ -1,26 +1,27 @@
 import { requireAppSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
-import DashboardClient from '@/components/DashboardClient'
+import ProjectsHubClient from '@/components/dashboard/projects-hub-client'
 import React from 'react'
 import type { Session } from 'next-auth'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
 const Dashboard = async () => {
-  let user;
+  let user
   try {
-    user = await requireAppSession();
+    user = await requireAppSession()
   } catch {
-    redirect('/auth');
+    redirect('/auth')
   }
 
-  // Build a Session-compatible shape for DashboardClient
+  // Build a Session-compatible shape for ProjectsHubClient
   const session = {
     user: { id: user.id, email: user.email, name: user.name, image: user.image },
     expires: '',
-  };
+  }
 
-  return <DashboardClient session={session as unknown as Session} />
+  return <ProjectsHubClient session={session as unknown as Session} />
 }
 
-export default Dashboard;
+export default Dashboard
+

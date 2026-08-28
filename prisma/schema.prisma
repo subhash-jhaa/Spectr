@@ -34,18 +34,22 @@ model Project {
 }
 
 model Event {
-  id        String   @id @default(uuid())
-  projectId String
-  sessionId String?
-  pageUrl   String
-  referrer  String
-  source    String   @default("Direct")
-  userAgent String
-  ip        String
-  country   String
-  city      String
-  timestamp DateTime @default(now())
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid())
+  projectId   String
+  sessionId   String?
+  pageUrl     String
+  referrer    String
+  source      String   @default("Direct")
+  utmMedium   String?
+  utmCampaign String?
+  utmTerm     String?
+  utmContent  String?
+  userAgent   String
+  ip          String
+  country     String
+  city        String
+  timestamp   DateTime @default(now())
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId, timestamp])
   @@index([projectId, source])

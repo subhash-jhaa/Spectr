@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { Session } from 'next-auth'
 import React, { useState, useEffect, useCallback } from 'react'
@@ -13,6 +14,11 @@ import {
   Bars3Icon,
   XMarkIcon,
   UserIcon,
+  ArrowLeftIcon,
+  Squares2X2Icon,
+  GlobeAltIcon,
+  DocumentTextIcon,
+  ArrowTopRightOnSquareIcon
 } from '@heroicons/react/24/outline'
 import { LogoMark } from './landing/Logo'
 import { Dashboard } from '@/components/dashboard/dashboard'
@@ -22,12 +28,12 @@ import { useProjects, Project } from './hooks/useProjects'
 import { useRealtimeStats } from './hooks/useRealtimeStats'
 
 // Sub-components
-import { ProjectSelector } from './ProjectSelector'
-import { NewProjectModal } from './NewProjectModal'
 import { DeleteProjectModal } from './DeleteProjectModal'
+import { SnippetGenerator } from './dashboard/snippet-generator'
 
 interface DashboardClientProps {
   session: Session
+  initialProjectId?: string
 }
 
 interface DailyStats {
@@ -69,10 +75,8 @@ interface SourceStats {
   percentage?: number
 }
 
-const DashboardClient = ({ session }: DashboardClientProps) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.debug('Dashboard session active for:', session.user?.email);
-  }
+const DashboardClient = ({ session, initialProjectId }: DashboardClientProps) => {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([])
   const [countryStats, setCountryStats] = useState<CountryStats[]>([])
@@ -81,11 +85,8 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
   const [browserStats, setBrowserStats] = useState<BrowserStats[]>([])
   const [deviceStats, setDeviceStats] = useState<DeviceStats[]>([])
   const [sourceStats, setSourceStats] = useState<SourceStats[]>([])
-  const [showNewProjectModal, setShowNewProjectModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isCopyingScript, setIsCopyingScript] = useState(false)
-  const [hasCopied, setHasCopied] = useState(false)
   const [dataFetched, setDataFetched] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -93,13 +94,10 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
   const {
     projects,
     selectedProject,
-    setSelectedProject,
     loading: projectsLoading,
-    isCreatingProject,
     isDeletingProject,
-    createProject,
     deleteProject
-  } = useProjects()
+  } = useProjects(initialProjectId)
 
   const {
     realtimeStats,
@@ -110,8 +108,10 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
     retryConnection
   } = useRealtimeStats(selectedProject?.id)
 
+  const projectId = selectedProject?.id
+
   const fetchStats = useCallback(async () => {
-    if (!selectedProject) return
+    if (!projectId) return
     setDataFetched(false)
     try {
       const fetchWithCheck = async (url: string) => {
@@ -130,13 +130,13 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
       }
 
       const [dailyData, countriesData, referrersData, pagesData, browsersData, devicesData, sourcesData] = await Promise.all([
-        fetchWithCheck(`/api/stats/project/${selectedProject.id}/7days`),
-        fetchWithCheck(`/api/stats/project/${selectedProject.id}/countries`),
-        fetchWithCheck(`/api/stats/project/${selectedProject.id}/referrers`),
-        fetchWithCheck(`/api/stats/project/${selectedProject.id}/pages`),
-        fetchWithCheck(`/api/stats/project/${selectedProject.id}/browsers`),
-        fetchWithCheck(`/api/stats/project/${selectedProject.id}/devices`),
-        fetchWithCheck(`/api/stats/project/${selectedProject.id}/sources`)
+        fetchWithCheck(`/api/stats/project/${projectId}/7days`),
+        fetchWithCheck(`/api/stats/project/${projectId}/countries`),
+        fetchWithCheck(`/api/stats/project/${projectId}/referrers`),
+        fetchWithCheck(`/api/stats/project/${projectId}/pages`),
+        fetchWithCheck(`/api/stats/project/${projectId}/browsers`),
+        fetchWithCheck(`/api/stats/project/${projectId}/devices`),
+        fetchWithCheck(`/api/stats/project/${projectId}/sources`)
       ])
 
       setDailyStats(dailyData)
@@ -147,194 +147,167 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
       setDeviceStats(Array.isArray(devicesData) ? devicesData : [])
       setSourceStats(Array.isArray(sourcesData) ? sourcesData : [])
       setDataFetched(true)
+      setLoading(false)
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
         console.warn('Stats fetch timed out, will retry on next project selection.')
       } else {
         console.error('Error fetching stats:', error)
       }
-      setDataFetched(true) // allow UI to recover
+      setDataFetched(true)
+      setLoading(false)
     }
-  }, [selectedProject])
+  }, [projectId])
 
   // Sync loading state
   useEffect(() => {
     if (projectsLoading) {
       setLoading(true)
-    } else if (projects.length === 0) {
+    } else if (projects.length === 0 || dataFetched) {
       setLoading(false)
-    } else if (dataFetched && realtimeConnected) {
-      setLoading(false)
-    } else {
-      setLoading(true)
     }
-  }, [projectsLoading, projects.length, dataFetched, realtimeConnected])
+  }, [projectsLoading, projects.length, dataFetched])
 
   useEffect(() => {
-    if (selectedProject) {
+    if (projectId) {
       fetchStats()
     }
-  }, [selectedProject, fetchStats])
+  }, [projectId, fetchStats])
 
-  const handleProjectSelect = (project: Project) => {
-    setSelectedProject(project)
-    setLoading(true)
-    setDataFetched(false)
-  }
-
-  const getTrackingScript = (projectId: string) => {
-    const baseUrl = 'https://spectr.subhashjha.me'
-    return `<script src="${baseUrl}/track.js" data-site="${projectId}"></script>`
-  }
-
-  const copyToClipboard = async (text: string) => {
-    setIsCopyingScript(true)
-    try {
-      await navigator.clipboard.writeText(text)
-      setHasCopied(true)
-      setTimeout(() => setHasCopied(false), 2000)
-    } catch (error) {
-      console.error('Error copying to clipboard:', error)
-    } finally {
-      setIsCopyingScript(false)
+  const handleDeleteProject = async (confirmName: string) => {
+    const success = await deleteProject(confirmName)
+    if (success) {
+      router.push('/dashboard')
     }
+    return success
   }
 
-  // Function to extract page name from URL
   const getPageName = (url: string) => {
     try {
-      const urlObj = new URL(url)
-      const path = urlObj.pathname
-
-      if (path === '/' || path === '') {
-        return 'Home'
-      }
-
-      const parts = path.split('/').filter(part => part.length > 0)
-      if (parts.length === 0) {
-        return 'Home'
-      }
-
-      const lastPart = parts[parts.length - 1]
-      return lastPart.charAt(0).toUpperCase() + lastPart.slice(1).replace(/[-_]/g, ' ')
+      const pathname = new URL(url.startsWith('http') ? url : `https://${url}`).pathname
+      if (!pathname || pathname === '/') return '/'
+      return pathname
     } catch {
-      return 'Unknown Page'
+      return url || '/'
     }
   }
 
-  // Function to get domain from URL
   const getDomain = (url: string) => {
     try {
-      const urlObj = new URL(url)
-      return urlObj.hostname
+      return new URL(url.startsWith('http') ? url : `https://${url}`).hostname.replace(/^www\./, '')
     } catch {
-      return 'Unknown'
+      return 'Direct'
     }
   }
 
   // Show welcome/empty state when no projects exist yet
   if (!projectsLoading && projects.length === 0) {
     return (
-      <>
-        <div className="min-h-screen bg-black text-zinc-100 flex items-center justify-center">
-          <div className="text-center max-w-md mx-auto px-4">
-            <div className="animate-pulse">
-              <div className="h-16 w-16 bg-white/20 rounded-full mx-auto mb-6 flex items-center justify-center">
-                <UserGroupIcon className="h-8 w-8 text-white" />
-              </div>
-            </div>
-            <h2 className="text-2xl font-bold text-white font-mono mb-4">Welcome to spectr!</h2>
-            <p className="text-zinc-400 font-mono mb-6">
-              Create your first project to start tracking visitors in real-time. It only takes a few seconds to set up.
-            </p>
-            <button
-              onClick={() => setShowNewProjectModal(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-white text-zinc-950 rounded hover:bg-zinc-200 transition font-mono font-bold mx-auto cursor-pointer"
-            >
-              Create Your First Project
-            </button>
-            <Link 
-              href="/" 
-              className="block mt-6 text-zinc-500 hover:text-zinc-300 transition-colors font-mono text-sm underline underline-offset-4"
-            >
-              Back to Home
-            </Link>
+      <div className="min-h-screen bg-black text-zinc-100 flex items-center justify-center p-4 selection:bg-zinc-800 selection:text-white">
+        <div className="text-center max-w-md mx-auto p-8 bg-zinc-950/70 border border-zinc-900 rounded-2xl backdrop-blur-md">
+          <div className="h-14 w-14 bg-zinc-900 border border-zinc-800 rounded-2xl mx-auto mb-6 flex items-center justify-center text-zinc-400">
+            <UserGroupIcon className="h-7 w-7 text-white" />
           </div>
+          <h2 className="text-xl font-bold text-white font-mono mb-2">No Projects Found</h2>
+          <p className="text-zinc-400 font-mono text-xs mb-6 leading-relaxed">
+            You don&apos;t have any active projects yet. Create a project to start tracking visitors in real-time.
+          </p>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-zinc-950 rounded-lg hover:bg-zinc-200 transition font-mono text-xs font-bold mx-auto cursor-pointer"
+          >
+            Go to Projects Hub
+          </Link>
         </div>
-
-        <NewProjectModal
-          isOpen={showNewProjectModal}
-          onClose={() => setShowNewProjectModal(false)}
-          onCreate={createProject}
-          isCreating={isCreatingProject}
-        />
-      </>
+      </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 flex">
+    <div className="min-h-screen bg-black text-zinc-100 flex selection:bg-zinc-800 selection:text-white">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-black/80 border-r border-zinc-900 backdrop-blur-xl transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 ease-in-out`}>
-        <div className="p-6">
-          <div className="flex items-center justify-between gap-2 mb-8">
-            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-              <LogoMark size={28} />
-              <span className="font-bold text-lg text-white font-mono">spectr</span>
+      <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-zinc-950/90 border-r border-zinc-900/80 backdrop-blur-xl transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col justify-between`}>
+        <div className="p-5">
+          <div className="flex items-center justify-between gap-2 mb-6">
+            <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+              <LogoMark size={26} />
+              <span className="font-bold text-base text-white font-mono tracking-tight">spectr</span>
             </Link>
             <button
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden text-zinc-400 hover:text-white cursor-pointer"
             >
-              <XMarkIcon className="h-6 w-6" />
+              <XMarkIcon className="h-5 w-5" />
             </button>
           </div>
 
-          <nav className="space-y-2">
+          <div className="mb-5">
+            <Link
+              href="/dashboard"
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-mono text-zinc-400 hover:text-white bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700 rounded-lg transition-colors"
+            >
+              <Squares2X2Icon className="h-4 w-4 text-zinc-400" />
+              <span>All Projects</span>
+            </Link>
+          </div>
+
+          <div className="text-[11px] font-mono uppercase tracking-wider text-zinc-500 mb-2 px-1 font-semibold">
+            Analytics
+          </div>
+
+          <nav className="space-y-1.5">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm font-mono transition cursor-pointer ${activeTab === 'overview'
-                  ? 'bg-white text-zinc-950'
-                  : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-mono transition cursor-pointer ${activeTab === 'overview'
+                  ? 'bg-zinc-800 text-white font-semibold border border-zinc-700/60 shadow-sm'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-900/60'
                 }`}
             >
-              <ChartBarIcon className="h-5 w-5" />
+              <ChartBarIcon className="h-4 w-4" />
               Overview
             </button>
             <button
               onClick={() => setActiveTab('live')}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm font-mono transition cursor-pointer ${activeTab === 'live'
-                  ? 'bg-white text-zinc-950'
-                  : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-mono transition cursor-pointer ${activeTab === 'live'
+                  ? 'bg-zinc-800 text-white font-semibold border border-zinc-700/60 shadow-sm'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-900/60'
                 }`}
             >
-              <EyeIcon className="h-5 w-5" />
-              Live Feed
+              <div className="flex items-center gap-3">
+                <EyeIcon className="h-4 w-4" />
+                Live Feed
+              </div>
+              {realtimeStats.count > 0 && (
+                <span className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-1.5 py-0.2 rounded-full font-bold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  {realtimeStats.count}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab('setup')}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded text-sm font-mono transition cursor-pointer ${activeTab === 'setup'
-                  ? 'bg-white text-zinc-950'
-                  : 'text-zinc-300 hover:text-white hover:bg-zinc-900'
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-mono transition cursor-pointer ${activeTab === 'setup'
+                  ? 'bg-zinc-800 text-white font-semibold border border-zinc-700/60 shadow-sm'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-900/60'
                 }`}
             >
-              <CogIcon className="h-5 w-5" />
-              Setup
+              <CogIcon className="h-4 w-4" />
+              Setup & Config
             </button>
           </nav>
         </div>
 
-        <div className="mt-auto p-6 border-t border-zinc-900 space-y-1">
+        <div className="p-5 border-t border-zinc-900/80 space-y-1 bg-zinc-950/40">
           <Link
             href="/dashboard/profile"
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-zinc-900 rounded transition font-mono"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-400 hover:text-white hover:bg-zinc-900/60 rounded-lg transition font-mono"
           >
             <UserIcon className="h-4 w-4" />
-            Profile
+            Profile Settings
           </Link>
           <button
             onClick={() => signOut({ callbackUrl: '/' })}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:text-red-400 hover:bg-zinc-900 rounded transition font-mono cursor-pointer"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-zinc-400 hover:text-red-400 hover:bg-zinc-900/60 rounded-lg transition font-mono cursor-pointer"
           >
             <ArrowRightOnRectangleIcon className="h-4 w-4" />
             Sign Out
@@ -343,69 +316,82 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col md:ml-0">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <div className="bg-black/80 border-b border-zinc-900 p-4 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 bg-zinc-950/80 border-b border-zinc-900/80 px-4 sm:px-6 py-3.5 backdrop-blur-xl">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsSidebarOpen(true)}
                 className="md:hidden text-zinc-400 hover:text-white cursor-pointer"
               >
-                <Bars3Icon className="h-6 w-6" />
+                <Bars3Icon className="h-5 w-5" />
               </button>
               
-              <ProjectSelector
-                projects={projects}
-                selectedProject={selectedProject}
-                onSelectProject={handleProjectSelect}
-                onCreateProjectClick={() => setShowNewProjectModal(true)}
-              />
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-1.5 text-xs font-mono text-zinc-400 hover:text-white bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700 px-2.5 py-1 rounded-lg transition-colors"
+                title="Back to All Projects"
+              >
+                <ArrowLeftIcon className="w-3.5 h-3.5" />
+                <span>Projects</span>
+              </Link>
+
+              <span className="text-zinc-700 font-mono">/</span>
+
+              <span className="text-xs font-bold font-mono text-white tracking-tight truncate max-w-[180px] sm:max-w-[300px]">
+                {selectedProject?.name || 'Analytics'}
+              </span>
             </div>
 
             {/* Real-time connection indicator */}
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${realtimeConnected
-                  ? 'bg-zinc-100'
-                  : isConnecting
-                    ? 'bg-blue-400 animate-pulse'
-                    : reconnectionAttempts > 0
-                      ? 'bg-yellow-400 animate-pulse'
-                      : 'bg-red-400 animate-pulse'
-                }`}></div>
-              <span className="text-xs text-zinc-400 font-mono">
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-zinc-900/60 border border-zinc-800/80">
+              <span className="relative flex h-2 w-2">
+                {realtimeConnected ? (
+                  <>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </>
+                ) : isConnecting ? (
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400 animate-pulse"></span>
+                ) : (
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-400"></span>
+                )}
+              </span>
+              <span className="text-[11px] text-zinc-400 font-mono">
                 {realtimeConnected
-                  ? 'Live'
+                  ? 'Live Stream'
                   : isConnecting
                     ? 'Connecting...'
                     : reconnectionAttempts > 0
-                      ? `Reconnecting... (${reconnectionAttempts}/${maxReconnectionAttempts})`
+                      ? `Retrying (${reconnectionAttempts}/${maxReconnectionAttempts})`
                       : 'Disconnected'
                 }
               </span>
               {!realtimeConnected && !isConnecting && reconnectionAttempts >= maxReconnectionAttempts && (
                 <button
                   onClick={retryConnection}
-                  className="text-xs text-white hover:text-zinc-200 transition cursor-pointer font-mono"
+                  className="text-[11px] text-white hover:underline transition cursor-pointer font-mono ml-1 font-semibold"
                 >
                   Retry
                 </button>
               )}
             </div>
           </div>
-        </div>
+        </header>
 
         {/* Content Area */}
-        <div className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
           {loading && (
-            <div className="flex items-center gap-2 mb-4 p-3 bg-black rounded-xl border border-zinc-900 w-fit mx-auto">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              <span className="text-white font-mono text-sm">Fetching project data...</span>
+            <div className="flex items-center gap-2.5 mb-6 p-3 bg-zinc-950/80 border border-zinc-800/80 rounded-xl w-fit mx-auto shadow-lg backdrop-blur-md">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-zinc-600 border-t-white"></div>
+              <span className="text-zinc-300 font-mono text-xs">Syncing project metrics...</span>
             </div>
           )}
 
           {activeTab === 'overview' && (
             <Dashboard 
+              projectId={projectId}
               dailyStats={dailyStats} 
               realtimeStats={realtimeStats} 
               countryStats={countryStats} 
@@ -418,77 +404,81 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
           )}
 
           {activeTab === 'live' && (
-            <div className="space-y-6">
-              <div className="bg-black p-6 rounded-xl border border-zinc-900">
-                <div className="flex items-center gap-3 mb-4">
-                  <EyeIcon className="h-6 w-6 text-zinc-100" />
-                  <h2 className="text-xl font-bold text-zinc-100 font-mono">Live Feed</h2>
-                  <span className="text-sm text-zinc-400 font-mono">
-                    {realtimeStats.count} active visitors
-                  </span>
+            <div className="space-y-6 max-w-5xl mx-auto">
+              <div className="bg-zinc-950/70 border border-zinc-900/80 rounded-xl p-6 backdrop-blur-md shadow-sm">
+                <div className="flex items-center justify-between pb-4 border-b border-zinc-900/80 mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300">
+                      <EyeIcon className="h-4 w-4 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-white font-mono tracking-tight">Real-Time Visitor Feed</h2>
+                      <p className="text-xs text-zinc-500 font-mono mt-0.5">Live stream of active user telemetry</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/40 border border-emerald-500/20 text-emerald-400 text-xs font-mono font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    {realtimeStats.count} {realtimeStats.count === 1 ? 'active visitor' : 'active visitors'}
+                  </div>
                 </div>
 
                 {realtimeStats.visitors.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                     {realtimeStats.visitors.map((visitor) => (
-                      <div key={visitor.id} className="bg-black p-4 rounded border border-zinc-900">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-zinc-100 rounded-full animate-pulse"></div>
-                            <span className="text-sm text-white font-mono font-semibold">
-                              {visitor.country}, {visitor.city}
+                      <div
+                        key={visitor.id}
+                        className="bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-4 hover:border-zinc-700/60 transition-colors flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                              </span>
+                              <span className="text-xs font-bold font-mono text-white">
+                                {visitor.country || 'Unknown'}, {visitor.city || 'Unknown'}
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-zinc-500 font-mono">
+                              {new Date(visitor.timestamp).toLocaleTimeString()}
                             </span>
                           </div>
-                          <span className="text-xs text-zinc-500 font-mono">
-                            {new Date(visitor.timestamp).toLocaleTimeString()}
+
+                          {/* Page Information */}
+                          <div className="bg-zinc-950/60 border border-zinc-800/40 rounded-lg p-2.5 mb-2.5">
+                            <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-300 truncate">
+                              <DocumentTextIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                              <span className="font-semibold text-white truncate">
+                                {getPageName(visitor.pageUrl)}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-zinc-600 font-mono truncate mt-1">
+                              {visitor.pageUrl}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Badges / Referrer */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-zinc-800/40 text-[11px] font-mono">
+                          {visitor.referrer && visitor.referrer !== '' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-800/60 text-zinc-400 border border-zinc-700/40">
+                              <span>Ref:</span>
+                              <span className="text-zinc-200 truncate max-w-[120px]">{getDomain(visitor.referrer)}</span>
+                            </span>
+                          )}
+                          <span className="inline-flex items-center px-2 py-0.5 rounded bg-zinc-800/60 text-zinc-300 border border-zinc-700/40">
+                            {visitor.source || 'Direct'}
                           </span>
                         </div>
-
-                        {/* Page Information */}
-                        <div className="bg-black p-3 rounded mb-2">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs text-zinc-500 font-mono">🌐</span>
-                            <span className="text-xs text-zinc-400 font-mono">{getDomain(visitor.pageUrl)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-zinc-500 font-mono">📄</span>
-                            <span className="text-sm text-white font-mono font-semibold">
-                              {getPageName(visitor.pageUrl)}
-                            </span>
-                          </div>
-                          <div className="mt-1">
-                            <span className="text-xs text-zinc-600 font-mono break-all">
-                              {visitor.pageUrl}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Referrer Information */}
-                        {visitor.referrer && visitor.referrer !== '' && (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-zinc-500 font-mono">🔗</span>
-                            <span className="text-xs text-zinc-400 font-mono">
-                              From: {visitor.referrer}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Source Badge */}
-                        {visitor.source && visitor.source !== 'Direct' && (
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-zinc-500 font-mono">📡</span>
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-zinc-800 border border-zinc-700 text-zinc-200">
-                              {visitor.source}
-                            </span>
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <EyeIcon className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
-                    <p className="text-zinc-400 font-mono">No active visitors right now</p>
+                  <div className="text-center py-16 px-4">
+                    <EyeIcon className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
+                    <h3 className="text-sm font-bold font-mono text-zinc-400">No active visitors right now</h3>
+                    <p className="text-xs text-zinc-600 font-mono mt-1">Telemetry will show up immediately when a visitor loads your site.</p>
                   </div>
                 )}
               </div>
@@ -496,96 +486,56 @@ const DashboardClient = ({ session }: DashboardClientProps) => {
           )}
 
           {activeTab === 'setup' && selectedProject && (
-            <div className="space-y-6 code-section">
-              <div className="bg-black p-6 rounded-xl border border-zinc-900">
-                <h2 className="text-xl font-bold text-zinc-100 mb-4 font-mono">Setup Instructions</h2>
-                <p className="text-zinc-400 mb-4 font-mono">
-                  Add this script to your website&apos;s <code className="bg-black p-1 rounded text-white">&lt;head&gt;</code> to start tracking visitors:
-                </p>
+            <div className="space-y-6 max-w-4xl mx-auto code-section">
+              <SnippetGenerator
+                projectId={selectedProject.id}
+                projectName={selectedProject.name}
+                isConnected={realtimeConnected}
+                activeVisitorsCount={realtimeStats.count}
+              />
 
-                <div className="bg-black p-4 rounded border border-zinc-900 mb-4">
-                  <code className="text-white font-mono text-sm select-all">
-                    {getTrackingScript(selectedProject.id)}
-                  </code>
-                </div>
-
-                <button
-                  onClick={() => copyToClipboard(getTrackingScript(selectedProject.id))}
-                  disabled={isCopyingScript || hasCopied}
-                  className={`px-4 py-2 border rounded transition font-mono cursor-pointer disabled:cursor-not-allowed flex items-center gap-2 w-fit ${
-                    hasCopied 
-                      ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400' 
-                      : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-white disabled:opacity-50'
-                  }`}
-                >
-                  {isCopyingScript ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Copying...
-                    </>
-                  ) : hasCopied ? (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-emerald-400">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                      </svg>
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
-                      </svg>
-                      Copy Script
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <div className="bg-black p-6 rounded-xl border border-zinc-900">
-                <h3 className="text-zinc-100 font-semibold mb-4 font-mono">Project Details</h3>
-                <div className="space-y-2 text-sm font-mono">
-                  <div className="flex justify-between">
-                     <span className="text-zinc-400">Project ID:</span>
-                     <span className="text-white">{selectedProject.id}</span>
+              <div className="bg-zinc-950/70 border border-zinc-900/80 rounded-xl p-6 backdrop-blur-md shadow-sm">
+                <h3 className="text-sm font-bold font-mono text-white tracking-tight mb-4 uppercase tracking-wider text-zinc-400">Project Configuration</h3>
+                <div className="space-y-3 text-xs font-mono">
+                  <div className="flex items-center justify-between py-2 border-b border-zinc-900/80">
+                     <span className="text-zinc-400">Project ID</span>
+                     <span className="text-white font-mono bg-zinc-900/80 px-2 py-1 rounded border border-zinc-800 select-all">{selectedProject.id}</span>
                   </div>
-                  <div className="flex justify-between">
-                     <span className="text-zinc-400">Created:</span>
-                     <span className="text-white">
-                       {new Date(selectedProject.createdAt).toLocaleDateString()}
+                  <div className="flex items-center justify-between py-2 border-b border-zinc-900/80">
+                     <span className="text-zinc-400">Project Name</span>
+                     <span className="text-white font-bold">{selectedProject.name}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                     <span className="text-zinc-400">Created Date</span>
+                     <span className="text-zinc-300">
+                       {new Date(selectedProject.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
                      </span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-red-900/20 p-6 rounded-xl border border-red-500/30">
-                <h3 className="text-red-400 font-semibold mb-2 font-mono">Danger Zone</h3>
-                <p className="text-zinc-400 text-sm mb-4 font-mono">
-                  Deleting a project is irreversible. It will permanently remove the project and all associated event data.
+              <div className="bg-red-950/20 border border-red-500/20 rounded-xl p-6 backdrop-blur-md">
+                <h3 className="text-sm font-bold font-mono text-red-400 tracking-tight mb-1.5">Danger Zone</h3>
+                <p className="text-xs text-zinc-400 font-mono mb-4 leading-relaxed">
+                  Permanently delete this project and all associated visitor event logs and analytics data. This action cannot be undone.
                 </p>
                 <button
                   onClick={() => setShowDeleteModal(true)}
-                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition font-mono cursor-pointer"
+                  className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition font-mono text-xs font-bold cursor-pointer"
                 >
                   Delete Project
                 </button>
               </div>
             </div>
           )}
-        </div>
+        </main>
       </div>
-
-      <NewProjectModal
-        isOpen={showNewProjectModal}
-        onClose={() => setShowNewProjectModal(false)}
-        onCreate={createProject}
-        isCreating={isCreatingProject}
-      />
 
       {selectedProject && (
         <DeleteProjectModal
           isOpen={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
-          onDelete={deleteProject}
+          onDelete={handleDeleteProject}
           projectName={selectedProject.name}
           isDeleting={isDeletingProject}
         />

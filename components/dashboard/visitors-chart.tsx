@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useId } from "react";
+import React, { useMemo } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import { formatInteger } from "@/components/dashboard/formater";
 import {
@@ -18,8 +18,6 @@ import {
 } from "@/components/ui/chart";
 import { Delta, DeltaIcon, DeltaValue } from "@/components/dashboard/delta";
 
-
-
 const chartConfig = {
 	visitors: {
 		label: "Visitors",
@@ -32,49 +30,54 @@ export interface VisitorsChartProps {
 }
 
 export function VisitorsChart({ data }: VisitorsChartProps) {
-	const gradientId = `visitors-area-${useId().replace(/:/g, "")}`;
+	const gradientId = "visitors-area-gradient";
 
-  const getLast7Days = () => {
+  const chartDataFormatted = useMemo(() => {
+    if (data && data.length > 0) {
+      return data.map(d => ({
+        month: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
+        visitors: d.visitors
+      }));
+    }
     const result = [];
+    const now = new Date();
     for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
       result.push({
-        month: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        month: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
         visitors: 0
       });
     }
     return result;
-  };
-
-  const chartDataFormatted = data && data.length > 0
-    ? data.map(d => ({
-        month: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
-        visitors: d.visitors
-      }))
-    : getLast7Days();
+  }, [data]);
 
   const total = chartDataFormatted.reduce((sum, row) => sum + row.visitors, 0);
 
 	return (
-		<Card className="md:col-span-2 lg:col-span-3 dark:bg-transparent">
-			<CardHeader className="flex flex-row items-start justify-between">
-				<div className="flex flex-col gap-1.5">
-					<CardTitle className="font-mono text-2xl tabular-nums">
+		<Card className="md:col-span-2 lg:col-span-3 bg-zinc-950/70 border border-zinc-900/80 rounded-xl backdrop-blur-md hover:border-zinc-800/80 transition-all duration-200 shadow-sm">
+			<CardHeader className="flex flex-row items-start justify-between pb-4 border-b border-zinc-900/80">
+				<div className="flex flex-col gap-1">
+					<div className="flex items-center gap-2">
+						<span className="text-xs font-mono font-medium text-zinc-400 uppercase tracking-wider">Unique Visitors</span>
+					</div>
+					<CardTitle className="font-mono text-3xl font-bold tracking-tight text-white tabular-nums">
 						{formatInteger(total)}
 					</CardTitle>
-					<CardDescription className="text-pretty">
-						Total visitors in the last 7 days.
+					<CardDescription className="text-xs font-mono text-zinc-500">
+						Total visitors in the last 7 days
 					</CardDescription>
 				</div>
-				<Delta value={0.0} variant="badge">
-					<DeltaIcon variant="trend" />
-					<DeltaValue suffix="%" />
-					<span>vs prior period</span>
-				</Delta>
+				<div className="flex items-center gap-2">
+					<Delta value={0.0} variant="badge">
+						<DeltaIcon variant="trend" />
+						<DeltaValue suffix="%" />
+						<span className="text-zinc-500">vs prior</span>
+					</Delta>
+				</div>
 			</CardHeader>
-			<CardContent>
+			<CardContent className="pt-4 pb-2">
 				<ChartContainer
+					id="visitors-chart"
 					className="aspect-auto h-60 w-full"
 					config={chartConfig}
 				>
@@ -82,36 +85,41 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
 						accessibilityLayer
 						data={chartDataFormatted}
 						margin={{
-							left: 12,
-							right: 12,
+							left: 8,
+							right: 8,
+							top: 8,
+							bottom: 0,
 						}}
 					>
 						<defs>
 							<linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
 								<stop
 									offset="0%"
-									stopColor="var(--color-visitors)"
+									stopColor="#0062ff"
 									stopOpacity={0.35}
 								/>
 								<stop
 									offset="100%"
-									stopColor="var(--color-visitors)"
+									stopColor="#0062ff"
 									stopOpacity={0}
 								/>
 							</linearGradient>
 						</defs>
-						<CartesianGrid vertical={false} />
+						<CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" />
 						<XAxis
 							axisLine={false}
 							dataKey="month"
-							tickFormatter={(value) => String(value).slice(0, 3)}
+							tickFormatter={(value) => String(value).slice(0, 6)}
 							tickLine={false}
-							tickMargin={8}
+							tickMargin={10}
+							stroke="rgba(255,255,255,0.4)"
+							fontSize={11}
+							fontFamily="monospace"
 						/>
 						<ChartTooltip
-							content={<ChartTooltipContent indicator="dashed" />}
+							content={<ChartTooltipContent indicator="line" />}
 							cursor={{
-								stroke: "var(--color-visitors)",
+								stroke: "#0062ff",
 								strokeDasharray: "3 3",
 								strokeLinecap: "round",
 							}}
@@ -120,14 +128,21 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
 						<Area
 							dataKey="visitors"
 							dot={{
-								fill: "var(--color-visitors)",
-								r: 2.5,
+								fill: "#0062ff",
+								r: 3,
 								strokeWidth: 2,
+								stroke: "#09090b",
+							}}
+							activeDot={{
+								fill: "#ffffff",
+								r: 5,
+								strokeWidth: 2,
+								stroke: "#0062ff",
 							}}
 							fill={`url(#${gradientId})`}
-							isAnimationActive={false}
+							isAnimationActive={true}
 							name={chartConfig.visitors.label}
-							stroke="var(--color-visitors)"
+							stroke="#0062ff"
 							strokeWidth={2}
 							type="linear"
 						/>

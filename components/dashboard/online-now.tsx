@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import {
 	Card,
 	CardContent,
@@ -9,11 +8,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { StatusIndicator } from "@/components/indicator";
 import { Delta, DeltaIcon, DeltaValue } from "@/components/dashboard/delta";
 import {
@@ -59,20 +53,21 @@ export function OnlineNow({ count = 0, visitors = [], deviceStats = [] }: Online
 				];
 
 	return (
-		<Card className="gap-0 pb-0 md:col-span-2 lg:col-span-1 dark:bg-transparent">
-			<CardHeader className="flex flex-row items-start justify-between gap-3 border-b">
-				<div className="flex min-w-0 flex-col gap-0">
-					<CardTitle className="font-mono text-2xl tabular-nums">{totalOnline}</CardTitle>
-					<CardDescription>
-						<Tooltip>
-							<TooltipTrigger render={<Button className={cn(
-																	"cursor-help px-1 py-px font-normal text-muted-foreground",
-																	"hover:underline-0"
-																)} type="button" variant="link" />}><StatusIndicator /><span>visitors online</span></TooltipTrigger>
-							<TooltipContent side="bottom">
-								Active visitors right now.
-							</TooltipContent>
-						</Tooltip>
+		<Card className="gap-0 pb-0 md:col-span-2 lg:col-span-1 bg-zinc-950/70 border border-zinc-900/80 rounded-xl backdrop-blur-md hover:border-zinc-800/80 transition-all duration-200 shadow-sm flex flex-col justify-between">
+			<CardHeader className="flex flex-row items-start justify-between pb-4 border-b border-zinc-900/80">
+				<div className="flex min-w-0 flex-col gap-1">
+					<div className="flex items-center gap-1.5">
+						<span className="text-xs font-mono font-medium text-zinc-400 uppercase tracking-wider">Active Now</span>
+					</div>
+					<div className="flex items-center gap-2.5">
+						<CardTitle className="font-mono text-3xl font-bold tracking-tight text-white tabular-nums">{totalOnline}</CardTitle>
+						<span className="relative flex h-2.5 w-2.5">
+							<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+							<span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+						</span>
+					</div>
+					<CardDescription className="text-xs font-mono text-zinc-500">
+						Live visitors on site
 					</CardDescription>
 				</div>
 				<Delta value={0.0} variant="badge">
@@ -80,15 +75,14 @@ export function OnlineNow({ count = 0, visitors = [], deviceStats = [] }: Online
 					<DeltaValue suffix="%" />
 				</Delta>
 			</CardHeader>
-			<CardContent
-				className={cn("relative flex h-full items-center px-0 py-2")}
-			>
+			<CardContent className="px-4 py-4">
+				<div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-2.5">Device Distribution</div>
 				<ShareBarList>
 					{deviceShares.map((d) => (
 						<ShareBarListItem key={d.label} value={d.share}>
 							<ShareBarListContent>
-								<ShareBarListLabel>{d.label}</ShareBarListLabel>
-								<ShareBarListValue>{d.share}%</ShareBarListValue>
+								<ShareBarListLabel className="text-xs font-mono text-zinc-300">{d.label}</ShareBarListLabel>
+								<ShareBarListValue className="text-xs font-mono text-zinc-400">{d.share}%</ShareBarListValue>
 							</ShareBarListContent>
 							<ShareBarListFill data-online-bar />
 						</ShareBarListItem>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
@@ -8,7 +9,13 @@ import {
 import {
   Avatar, AvatarFallback, AvatarImage,
 } from '@/components/ui/avatar';
-import { TrashIcon, FolderIcon, LogOutIcon } from 'lucide-react';
+import {
+  TrashIcon,
+  FolderIcon,
+  ArrowLeftIcon,
+  ArrowRightOnRectangleIcon,
+  CheckIcon
+} from '@heroicons/react/24/outline';
 
 interface Props {
   user: {
@@ -26,7 +33,7 @@ interface Props {
 }
 
 export default function ProfileClient({ user, projects: initialProjects }: Props) {
-  const [name, setName] = useState(user.name);
+  const [name, setName] = useState(user.name || '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [projects, setProjects] = useState(initialProjects);
@@ -57,129 +64,160 @@ export default function ProfileClient({ user, projects: initialProjects }: Props
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-8 space-y-6">
+    <div className="min-h-screen bg-black text-zinc-100 selection:bg-zinc-800 selection:text-white py-10 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl mx-auto space-y-6">
 
-      {/* Back */}
-      <a href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">
-        ← Back to dashboard
-      </a>
-
-      <h1 className="text-xl font-semibold">Profile</h1>
-
-      {/* Profile section */}
-      <Card className="dark:bg-transparent">
-        <CardHeader>
-          <CardTitle className="text-base">Your profile</CardTitle>
-          <CardDescription>Update your display name.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <Avatar className="size-14">
-              <AvatarImage src={user.image} />
-              <AvatarFallback>{user.name?.charAt(0) ?? 'U'}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="text-sm font-medium">{user.name}</p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs text-muted-foreground">Display name</label>
-            <input
-              className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-ring"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs text-muted-foreground">Email</label>
-            <input
-              className="w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm text-muted-foreground outline-none cursor-not-allowed"
-              value={user.email}
-              disabled
-            />
-            <p className="text-xs text-muted-foreground">
-              Email is managed by Google and cannot be changed here.
-            </p>
-          </div>
-
-          <button
-            onClick={handleSave}
-            disabled={saving || name.trim() === user.name}
-            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50 hover:opacity-90 transition-opacity"
+        {/* Back Link */}
+        <div>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-xs font-mono text-zinc-400 hover:text-white bg-zinc-950 border border-zinc-800 hover:border-zinc-700 px-3 py-1.5 rounded-lg transition-colors"
           >
-            {saving ? 'Saving...' : saved ? 'Saved ✓' : 'Save changes'}
-          </button>
-        </CardContent>
-      </Card>
+            <ArrowLeftIcon className="w-3.5 h-3.5" />
+            <span>Back to Projects Hub</span>
+          </Link>
+        </div>
 
-      {/* Projects section */}
-      <Card className="dark:bg-transparent">
-        <CardHeader>
-          <CardTitle className="text-base">Your projects</CardTitle>
-          <CardDescription>
-            {projects.length} project{projects.length !== 1 ? 's' : ''} tracked.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {projects.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              No projects yet. Create one from the dashboard.
-            </p>
-          ) : (
-            projects.map((project) => (
-              <div
-                key={project.id}
-                className="flex items-center justify-between rounded-md border border-border px-4 py-3"
-              >
-                <div className="flex items-center gap-3">
-                  <FolderIcon className="size-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">{project.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Created {new Date(project.createdAt).toLocaleDateString('en-US', {
-                        month: 'short', day: 'numeric', year: 'numeric',
-                      })}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleDeleteProject(project.id)}
-                  disabled={deletingId === project.id}
-                  className="rounded-md p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
-                >
-                  <TrashIcon className="size-4" />
-                </button>
+        <div>
+          <h1 className="text-2xl font-bold font-mono text-white tracking-tight">Account & Profile</h1>
+          <p className="text-xs text-zinc-400 font-mono mt-1">Manage your account credentials and project associations</p>
+        </div>
+
+        {/* Profile section */}
+        <Card className="bg-zinc-950/70 border border-zinc-900/80 rounded-xl backdrop-blur-md shadow-sm">
+          <CardHeader className="pb-4 border-b border-zinc-900/80">
+            <CardTitle className="text-base font-bold font-mono text-white tracking-tight">Personal Details</CardTitle>
+            <CardDescription className="text-xs font-mono text-zinc-500">Your public identity on Spectr</CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 space-y-5">
+            <div className="flex items-center gap-4">
+              <Avatar className="size-14 border border-zinc-800">
+                <AvatarImage src={user.image} />
+                <AvatarFallback className="bg-zinc-900 text-white font-mono text-base font-bold">
+                  {user.name?.charAt(0) ?? 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-bold font-mono text-white">{user.name || 'Anonymous User'}</p>
+                <p className="text-xs font-mono text-zinc-400">{user.email}</p>
               </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+            </div>
 
-      {/* Account section */}
-      <Card className="dark:bg-transparent">
-        <CardHeader>
-          <CardTitle className="text-base">Account</CardTitle>
-          <CardDescription>
-            Member since {new Date(user.createdAt).toLocaleDateString('en-US', {
-              month: 'long', year: 'numeric',
-            })}.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <button
-            onClick={() => signOut({ callbackUrl: '/auth' })}
-            className="flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-          >
-            <LogOutIcon className="size-4" />
-            Sign out
-          </button>
-        </CardContent>
-      </Card>
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono text-zinc-400 font-semibold">Display Name</label>
+              <input
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-900/60 px-3 py-2 text-xs font-mono text-white outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your display name"
+              />
+            </div>
 
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono text-zinc-400 font-semibold">Email Address</label>
+              <input
+                className="w-full rounded-lg border border-zinc-800/60 bg-zinc-950 px-3 py-2 text-xs font-mono text-zinc-500 outline-none cursor-not-allowed"
+                value={user.email}
+                disabled
+              />
+              <p className="text-[11px] font-mono text-zinc-600">
+                Email is synced with your authentication provider and cannot be modified directly.
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={handleSave}
+                disabled={saving || name.trim() === user.name}
+                className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-xs font-bold font-mono text-zinc-950 disabled:opacity-40 hover:bg-zinc-200 transition cursor-pointer"
+              >
+                {saving ? (
+                  'Saving...'
+                ) : saved ? (
+                  <>
+                    <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
+                    Saved Changes
+                  </>
+                ) : (
+                  'Save Profile'
+                )}
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Projects section */}
+        <Card className="bg-zinc-950/70 border border-zinc-900/80 rounded-xl backdrop-blur-md shadow-sm">
+          <CardHeader className="pb-4 border-b border-zinc-900/80">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base font-bold font-mono text-white tracking-tight">Active Projects</CardTitle>
+                <CardDescription className="text-xs font-mono text-zinc-500">
+                  {projects.length} project{projects.length !== 1 ? 's' : ''} under your management
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6 space-y-3">
+            {projects.length === 0 ? (
+              <p className="text-xs font-mono text-zinc-500 py-6 text-center">
+                No active projects found. Create one from the Projects Hub.
+              </p>
+            ) : (
+              projects.map((project) => (
+                <div
+                  key={project.id}
+                  className="flex items-center justify-between rounded-xl border border-zinc-800/80 bg-zinc-900/40 px-4 py-3 hover:border-zinc-700/80 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-400">
+                      <FolderIcon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold font-mono text-white">{project.name}</p>
+                      <p className="text-[11px] font-mono text-zinc-500">
+                        ID: {project.id} · Created {new Date(project.createdAt).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteProject(project.id)}
+                    disabled={deletingId === project.id}
+                    title="Delete project"
+                    className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-zinc-800/80 rounded-lg transition-colors disabled:opacity-40 cursor-pointer"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Account section */}
+        <Card className="bg-zinc-950/70 border border-zinc-900/80 rounded-xl backdrop-blur-md shadow-sm">
+          <CardHeader className="pb-4 border-b border-zinc-900/80">
+            <CardTitle className="text-base font-bold font-mono text-white tracking-tight">Session & Security</CardTitle>
+            <CardDescription className="text-xs font-mono text-zinc-500">
+              Member since {new Date(user.createdAt).toLocaleDateString('en-US', {
+                month: 'long', year: 'numeric',
+              })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <button
+              onClick={() => signOut({ callbackUrl: '/auth' })}
+              className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-mono font-bold text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
+            >
+              <ArrowRightOnRectangleIcon className="w-4 h-4" />
+              Sign Out of Spectr
+            </button>
+          </CardContent>
+        </Card>
+
+      </div>
     </div>
   );
 }

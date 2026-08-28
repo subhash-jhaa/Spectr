@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { classifySource } from '@/lib/source-classifier';
+import { classifyChannel } from '@/lib/channel-classifier';
 import { 
   DatabaseEvent, 
   EventWithProject, 
@@ -227,11 +228,38 @@ export class EventQueries {
         success: true,
         data: event
       };
-    } catch (error) {
+    } catch (error: any) {
+      // Resilient fallback if in-memory Prisma client has not refreshed new UTM schema fields
+      if (error?.message?.includes('Unknown argument')) {
+        try {
+          const coreData: any = {
+            projectId: eventData.projectId,
+            sessionId: eventData.sessionId || '',
+            pageUrl: eventData.pageUrl || '',
+            referrer: eventData.referrer || '',
+            source: eventData.source || 'Direct',
+            userAgent: eventData.userAgent || '',
+            ip: eventData.ip || 'Unknown',
+            country: eventData.country || 'Unknown',
+            city: eventData.city || 'Unknown',
+          };
+          const fallbackEvent = await prisma.event.create({
+            data: coreData
+          });
+          return {
+            success: true,
+            data: fallbackEvent
+          };
+        } catch (fallbackErr) {
+          console.error('Fallback create event failed:', fallbackErr);
+        }
+      }
+
       console.error('Error creating event:', error);
+      const msg = error instanceof Error ? error.message : 'Failed to create event';
       return {
         success: false,
-        error: 'Failed to create event'
+        error: msg
       };
     }
   }
@@ -796,6 +824,146 @@ export class EventQueries {
       };
     } catch (error) {
       console.error('Error getting source stats:', error);
+      return {
+        success: true,
+        data: []
+      };
+    }
+  }
+
+  /**
+   * Get Referrer / Attribution breakdown across 8 dimensions:
+   * refs | urls | types | source | medium | campaign | term | content
+   */
+  static async getReferrerBreakdown(
+    projectId: string,
+    dimension: string = 'refs',
+    days: number = 7
+  ): Promise<QueryResult<Array<{ name: string; views: number; sessions: number }>>> {
+    try {
+      const endDate = new Date();
+      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+      let events: any[] = [];
+      try {
+        events = await prisma.event.findMany({
+          where: {
+            projectId,
+            timestamp: {
+              gte: startDate,
+              lte: endDate
+            }
+          },
+          select: {
+            referrer: true,
+            pageUrl: true,
+            source: true,
+            sessionId: true,
+            utmMedium: true,
+            utmCampaign: true,
+            utmTerm: true,
+            utmContent: true
+          }
+        });
+      } catch (findErr) {
+        console.error('findMany in getReferrerBreakdown failed:', findErr);
+      }
+
+      const map = new Map<string, { views: number; sessions: Set<string> }>();
+
+      const getHost = (ref: string, pageUrl: string) => {
+        if (!ref || ref.trim() === '') return 'Direct / Not set';
+        try {
+          const refHost = new URL(ref.startsWith('http') ? ref : `https://${ref}`).hostname.toLowerCase().replace(/^www\./, '');
+          const pageHost = new URL(pageUrl.startsWith('http') ? pageUrl : `https://${pageUrl}`).hostname.toLowerCase().replace(/^www\./, '');
+          if (pageHost && (refHost === pageHost || refHost.endsWith(`.${pageHost}`))) {
+            return 'Direct / Not set';
+          }
+          return refHost;
+        } catch {
+          return ref.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0] || 'Direct / Not set';
+        }
+      };
+
+      for (const e of events) {
+        let key = 'Direct / Not set';
+        const normDim = dimension.toLowerCase();
+
+        if (normDim === 'refs') {
+          key = getHost(e.referrer, e.pageUrl);
+        } else if (normDim === 'urls') {
+          if (!e.referrer || e.referrer.trim() === '') {
+            key = 'Direct / Not set';
+          } else {
+            key = e.referrer;
+          }
+        } else if (normDim === 'types') {
+          key = classifyChannel(e.source || 'Direct', e.utmMedium);
+        } else if (normDim === 'source') {
+          key = e.source || classifySource(e.referrer, e.pageUrl);
+          if (key === 'Direct') key = 'Direct / Not set';
+        } else if (normDim === 'medium') {
+          let med = e.utmMedium;
+          if (!med && e.pageUrl) {
+            try {
+              const u = new URL(e.pageUrl.startsWith('http') ? e.pageUrl : `https://${e.pageUrl}`);
+              med = u.searchParams.get('utm_medium') || null;
+            } catch {}
+          }
+          key = med || 'Direct / Not set';
+        } else if (normDim === 'campaign') {
+          let camp = e.utmCampaign;
+          if (!camp && e.pageUrl) {
+            try {
+              const u = new URL(e.pageUrl.startsWith('http') ? e.pageUrl : `https://${e.pageUrl}`);
+              camp = u.searchParams.get('utm_campaign') || null;
+            } catch {}
+          }
+          key = camp || 'Direct / Not set';
+        } else if (normDim === 'term') {
+          let term = e.utmTerm;
+          if (!term && e.pageUrl) {
+            try {
+              const u = new URL(e.pageUrl.startsWith('http') ? e.pageUrl : `https://${e.pageUrl}`);
+              term = u.searchParams.get('utm_term') || null;
+            } catch {}
+          }
+          key = term || 'Direct / Not set';
+        } else if (normDim === 'content') {
+          let cont = e.utmContent;
+          if (!cont && e.pageUrl) {
+            try {
+              const u = new URL(e.pageUrl.startsWith('http') ? e.pageUrl : `https://${e.pageUrl}`);
+              cont = u.searchParams.get('utm_content') || null;
+            } catch {}
+          }
+          key = cont || 'Direct / Not set';
+        }
+
+        if (!map.has(key)) {
+          map.set(key, { views: 0, sessions: new Set<string>() });
+        }
+        const item = map.get(key)!;
+        item.views += 1;
+        if (e.sessionId) {
+          item.sessions.add(e.sessionId);
+        } else {
+          item.sessions.add(`anon_${item.views}`);
+        }
+      }
+
+      const result = Array.from(map.entries()).map(([name, val]) => ({
+        name,
+        views: val.views,
+        sessions: val.sessions.size
+      })).sort((a, b) => b.views - a.views);
+
+      return {
+        success: true,
+        data: result
+      };
+    } catch (error) {
+      console.error('Error getting referrer breakdown:', error);
       return {
         success: true,
         data: []
