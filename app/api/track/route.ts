@@ -230,7 +230,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
     });
 
     if (!createResult.success || !createResult.data) {
-      return createErrorResponse('Failed to create event', 500);
+      return createErrorResponse(createResult.error || 'Failed to create event', 500);
     }
 
     // Broadcast update for real-time updates

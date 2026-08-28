@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { randomUUID } from 'crypto';
 import { classifySource } from '@/lib/source-classifier';
 import { classifyChannel } from '@/lib/channel-classifier';
 import { 
@@ -233,7 +234,7 @@ export class EventQueries {
 
       // Resilient fallback: Raw SQL insert with all fields, or fallback to core fields
       try {
-        const id = eventData.id || crypto.randomUUID();
+        const id = eventData.id || randomUUID();
         const projectId = eventData.projectId!;
         const sessionId = eventData.sessionId || '';
         const pageUrl = eventData.pageUrl || '';
