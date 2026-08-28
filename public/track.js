@@ -98,6 +98,7 @@
     } catch(e) {}
 
     var locale = navigator.language || '';
+    var utm = getUtmParams();
 
     var payload = {
       projectId: siteId,
