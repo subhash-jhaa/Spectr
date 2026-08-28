@@ -5,6 +5,9 @@ import {
   verifyProjectOwnership 
 } from '@/lib/api-utils';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const projectId = searchParams.get('projectId');
@@ -12,6 +15,20 @@ export async function GET(request: NextRequest) {
   if (!projectId) {
     return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
   }
+
+  // Authenticate before creating the stream (avoids Next.js 15 async cookie context errors)
+  try {
+    const user = await requireAuth();
+    await verifyProjectOwnership(projectId, user.id);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unauthorized';
+    return NextResponse.json(
+      { error: message },
+      { status: message.includes('Project not found') ? 404 : 401 }
+    );
+  }
+
+  const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -35,9 +52,6 @@ export async function GET(request: NextRequest) {
       };
       
       try {
-        const user = await requireAuth();
-        await verifyProjectOwnership(projectId, user.id);
-
         // Add this new connection to the set for this project
         if (!connections.has(projectId)) {
           connections.set(projectId, new Set());
@@ -45,7 +59,6 @@ export async function GET(request: NextRequest) {
         connections.get(projectId)!.add(controller);
         
         request.signal.addEventListener('abort', () => {
-          console.log(`Client for project ${projectId} disconnected.`);
           markControllerClosed(controller);
           cleanup();
           try {
@@ -58,6 +71,9 @@ export async function GET(request: NextRequest) {
           cleanup();
           return;
         }
+
+        // Send initial ping to flush headers immediately through reverse proxies / CDNs
+        controller.enqueue(encoder.encode(': ping\n\n'));
 
         await sendStats(projectId, controller);
 
@@ -88,8 +104,8 @@ export async function GET(request: NextRequest) {
         const message = error instanceof Error ? error.message : 'An unknown error occurred';
         console.error(`SSE stream error for project ${projectId}:`, message);
         try {
-            controller.enqueue(`data: ${JSON.stringify({ type: 'error', message })}\n\n`);
-            controller.close();
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', message })}\n\n`));
+          controller.close();
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch(_e) {}
         cleanup();
@@ -99,9 +115,10 @@ export async function GET(request: NextRequest) {
 
   return new Response(stream, {
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
       'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no',
     },
   });
 }

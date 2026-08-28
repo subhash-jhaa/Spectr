@@ -26,6 +26,7 @@ export interface Visitor {
 export const connections = new Map<string, Set<ReadableStreamDefaultController>>();
 
 const closedControllers = new WeakSet<ReadableStreamDefaultController>();
+const encoder = new TextEncoder();
 
 export function markControllerClosed(controller: ReadableStreamDefaultController) {
   closedControllers.add(controller);
@@ -87,7 +88,7 @@ export async function sendStats(projectId: string, controller: ReadableStreamDef
 
     // Final guard: check again right before enqueue
     if (!closedControllers.has(controller)) {
-      controller.enqueue(`data: ${JSON.stringify(stats)}\n\n`);
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify(stats)}\n\n`));
     }
   } catch (error: unknown) {
     const isClosedError = 

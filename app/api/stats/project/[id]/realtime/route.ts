@@ -7,5 +7,5 @@ export async function GET(
   request: NextRequest,
   { params }: RequestContext
 ): Promise<RealtimeStatsResponse> {
-  return handleStatsRoute(params, (projectId) => EventQueries.getRealtimeStats(projectId, 1));
+  return handleStatsRoute(params, (projectId) => EventQueries.getRealtimeStats(projectId, 5));
 }
