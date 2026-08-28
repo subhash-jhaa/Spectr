@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import {
 	Card,
 	CardContent,
@@ -8,7 +7,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { StatusIndicator } from "@/components/indicator";
 import { Delta, DeltaIcon, DeltaValue } from "@/components/dashboard/delta";
 import {
 	ShareBarList,

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import {
 	Avatar,
@@ -48,7 +49,7 @@ export function NavUser() {
 				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
-					<DropdownMenuItem render={<a href="/dashboard/profile" />}>
+					<DropdownMenuItem render={<Link href="/dashboard/profile" />}>
 						<UserIcon />
 						Account
 					</DropdownMenuItem>

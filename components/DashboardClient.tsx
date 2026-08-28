@@ -17,16 +17,14 @@ import {
   UserIcon,
   ArrowLeftIcon,
   Squares2X2Icon,
-  GlobeAltIcon,
   DocumentTextIcon,
-  ArrowTopRightOnSquareIcon
 } from '@heroicons/react/24/outline'
 import { LogoMark } from './landing/Logo'
 import { Dashboard } from '@/components/dashboard/dashboard'
 import { getCountryCode, getCountryName } from '@/lib/geo-utils'
 
 // Custom Hooks
-import { useProjects, Project } from './hooks/useProjects'
+import { useProjects } from './hooks/useProjects'
 import { useRealtimeStats } from './hooks/useRealtimeStats'
 
 // Sub-components
@@ -34,7 +32,7 @@ import { DeleteProjectModal } from './DeleteProjectModal'
 import { SnippetGenerator } from './dashboard/snippet-generator'
 
 interface DashboardClientProps {
-  session: Session
+  session?: Session
   initialProjectId?: string
 }
 
@@ -77,7 +75,7 @@ interface SourceStats {
   percentage?: number
 }
 
-const DashboardClient = ({ session, initialProjectId }: DashboardClientProps) => {
+const DashboardClient = ({ initialProjectId }: DashboardClientProps) => {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([])

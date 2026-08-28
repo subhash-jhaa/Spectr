@@ -67,7 +67,7 @@ export function WebVitals() {
 							</span>
 						</div>
 						<CardDescription className="text-xs font-mono text-zinc-400 mt-1">
-							Google's 3 official metrics measuring real user speed, responsiveness, and stability
+							Google&apos;s 3 official metrics measuring real user speed, responsiveness, and stability
 						</CardDescription>
 					</div>
 					<div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/40 border border-emerald-500/20 text-emerald-400 text-xs font-mono font-semibold w-fit">

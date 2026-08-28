@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react";
 import { formatInteger } from "@/components/dashboard/formater";
-import { Button } from "@/components/ui/button";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
