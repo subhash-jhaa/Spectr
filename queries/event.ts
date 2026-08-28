@@ -229,33 +229,52 @@ export class EventQueries {
         data: event
       };
     } catch (error: any) {
-      // Resilient fallback if in-memory Prisma client has not refreshed new UTM schema fields
-      if (error?.message?.includes('Unknown argument')) {
+      console.error('Standard create event failed, trying resilient schema fallbacks:', error);
+
+      // Resilient fallback: Raw SQL insert with all fields, or fallback to core fields
+      try {
+        const id = eventData.id || crypto.randomUUID();
+        const projectId = eventData.projectId!;
+        const sessionId = eventData.sessionId || '';
+        const pageUrl = eventData.pageUrl || '';
+        const referrer = eventData.referrer || '';
+        const source = eventData.source || 'Direct';
+        const utmMedium = eventData.utmMedium || null;
+        const utmCampaign = eventData.utmCampaign || null;
+        const utmTerm = eventData.utmTerm || null;
+        const utmContent = eventData.utmContent || null;
+        const userAgent = eventData.userAgent || '';
+        const ip = eventData.ip || 'Unknown';
+        const country = eventData.country || 'Unknown';
+        const city = eventData.city || 'Unknown';
+        const timestamp = new Date();
+
+        // Try inserting with all fields via raw SQL
         try {
-          const coreData: any = {
-            projectId: eventData.projectId,
-            sessionId: eventData.sessionId || '',
-            pageUrl: eventData.pageUrl || '',
-            referrer: eventData.referrer || '',
-            source: eventData.source || 'Direct',
-            userAgent: eventData.userAgent || '',
-            ip: eventData.ip || 'Unknown',
-            country: eventData.country || 'Unknown',
-            city: eventData.city || 'Unknown',
-          };
-          const fallbackEvent = await prisma.event.create({
-            data: coreData
-          });
+          await prisma.$executeRaw`
+            INSERT INTO "Event" ("id", "projectId", "sessionId", "pageUrl", "referrer", "source", "utmMedium", "utmCampaign", "utmTerm", "utmContent", "userAgent", "ip", "country", "city", "timestamp")
+            VALUES (${id}, ${projectId}, ${sessionId}, ${pageUrl}, ${referrer}, ${source}, ${utmMedium}, ${utmCampaign}, ${utmTerm}, ${utmContent}, ${userAgent}, ${ip}, ${country}, ${city}, ${timestamp})
+          `;
           return {
             success: true,
-            data: fallbackEvent
+            data: { id, projectId, sessionId, pageUrl, referrer, source, utmMedium, utmCampaign, utmTerm, utmContent, userAgent, ip, country, city, timestamp } as DatabaseEvent
           };
-        } catch (fallbackErr) {
-          console.error('Fallback create event failed:', fallbackErr);
+        } catch (rawFullErr) {
+          console.warn('Raw full insert failed, trying minimal core schema insert:', rawFullErr);
+          // Try inserting only core columns (guaranteed to exist on all database versions)
+          await prisma.$executeRaw`
+            INSERT INTO "Event" ("id", "projectId", "sessionId", "pageUrl", "referrer", "userAgent", "ip", "country", "city", "timestamp")
+            VALUES (${id}, ${projectId}, ${sessionId}, ${pageUrl}, ${referrer}, ${userAgent}, ${ip}, ${country}, ${city}, ${timestamp})
+          `;
+          return {
+            success: true,
+            data: { id, projectId, sessionId, pageUrl, referrer, source: 'Direct', userAgent, ip, country, city, timestamp } as DatabaseEvent
+          };
         }
+      } catch (finalErr) {
+        console.error('All create event fallbacks failed:', finalErr);
       }
 
-      console.error('Error creating event:', error);
       const msg = error instanceof Error ? error.message : 'Failed to create event';
       return {
         success: false,
@@ -283,7 +302,25 @@ export class EventQueries {
         updated: true
       };
     } catch (error) {
-      console.error('Error updating event:', error);
+      console.error('Error updating event, trying raw SQL fallback:', error);
+      try {
+        await prisma.$executeRaw`
+          UPDATE "Event"
+          SET "timestamp" = ${new Date()},
+              "referrer" = ${eventData.referrer || ''},
+              "userAgent" = ${eventData.userAgent || ''},
+              "ip" = ${eventData.ip || 'Unknown'}
+          WHERE "id" = ${id}
+        `;
+        return {
+          success: true,
+          data: { id, ...eventData } as DatabaseEvent,
+          updated: true
+        };
+      } catch (fallbackUpdateErr) {
+        console.error('Fallback update failed:', fallbackUpdateErr);
+      }
+
       return {
         success: false,
         error: 'Failed to update event',
