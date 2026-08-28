@@ -34,6 +34,62 @@ export class ProjectQueries {
   }
 
   /**
+   * Find a project by ID or by Name (with case-insensitive & hyphen/space fallback)
+   */
+  static async findByIdOrName(idOrName: string): Promise<QueryResult<DatabaseProject>> {
+    try {
+      if (!idOrName || typeof idOrName !== 'string') {
+        return { success: false, error: 'Invalid project identifier' };
+      }
+
+      const trimmed = idOrName.trim();
+
+      // 1. Try finding by exact ID (UUID)
+      let project = await prisma.project.findUnique({
+        where: { id: trimmed }
+      });
+
+      // 2. If not found by ID, try finding by case-insensitive name
+      if (!project) {
+        project = await prisma.project.findFirst({
+          where: {
+            name: {
+              equals: trimmed,
+              mode: 'insensitive'
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+      }
+
+      // 3. If still not found and contains hyphens/underscores, try space replacement (e.g. "my-portfolio" -> "my portfolio")
+      if (!project && (trimmed.includes('-') || trimmed.includes('_'))) {
+        const spaced = trimmed.replace(/[-_]+/g, ' ');
+        project = await prisma.project.findFirst({
+          where: {
+            name: {
+              equals: spaced,
+              mode: 'insensitive'
+            }
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+      }
+
+      return {
+        success: true,
+        data: project || undefined
+      };
+    } catch (error) {
+      console.error('Error finding project by ID or name:', error);
+      return {
+        success: false,
+        error: 'Failed to find project'
+      };
+    }
+  }
+
+  /**
    * Find project by ID with user verification
    */
   static async findByIdAndUser(id: string, userId: string): Promise<QueryResult<DatabaseProject>> {

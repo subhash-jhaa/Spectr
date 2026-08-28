@@ -20,11 +20,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/track.js",
+        source: "/:path(track\\.js|track\\.v1\\.js)",
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=86400, stale-while-revalidate=604800",
+            value: "public, max-age=300, stale-while-revalidate=3600",
           },
           {
             key: "Access-Control-Allow-Origin",
@@ -39,6 +39,14 @@ const nextConfig: NextConfig = {
             value: "application/javascript; charset=utf-8",
           },
         ],
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/track.v1.js",
+        destination: "/track.js",
       },
     ];
   },

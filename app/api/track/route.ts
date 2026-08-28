@@ -40,7 +40,7 @@ const redis = hasRedisConfig
 const ratelimit = redis
   ? new Ratelimit({
       redis,
-      limiter: Ratelimit.tokenBucket(10, '1 m', 20),
+      limiter: Ratelimit.slidingWindow(60, '1 m'),
       analytics: true,
       prefix: '@upstash/ratelimit',
     })
@@ -77,12 +77,19 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       return createSuccessResponse({ success: true, eventId: 'bot' });
     }
 
+    // Verify project exists (by ID or fallback by name)
+    const projectResult = await ProjectQueries.findByIdOrName(projectId);
+    if (!projectResult.success || !projectResult.data) {
+      return createErrorResponse('Project not found', 404);
+    }
+    const resolvedProjectId = projectResult.data.id;
+
     // Get the client IP early for rate limiting and geolocation
     const ip = getClientIP(request);
 
     // Rate Limiting
     if (ratelimit) {
-      const identifier = `${ip}:${projectId}`;
+      const identifier = `${ip}:${resolvedProjectId}`;
       const { success, reset } = await ratelimit.limit(identifier);
 
       if (!success) {
@@ -90,12 +97,6 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
           'Retry-After': String(Math.ceil((reset - Date.now()) / 1000)),
         });
       }
-    }
-
-    // Verify project exists
-    const projectResult = await ProjectQueries.findById(projectId);
-    if (!projectResult.success || !projectResult.data) {
-      return createErrorResponse('Project not found', 404);
     }
 
     // Detect location from headers, timezone, and locale
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
 
     // Check for recent events from the same session
     if (sessionId) {
-      const existingEventResult = await EventQueries.findRecentBySession(projectId, sessionId, 5);
+      const existingEventResult = await EventQueries.findRecentBySession(resolvedProjectId, sessionId, 5);
 
       if (existingEventResult.success && existingEventResult.data) {
         const existingEvent = existingEventResult.data as DatabaseEvent;
@@ -162,7 +163,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
 
           // Broadcast update for real-time updates
           try {
-            await broadcastUpdate(projectId);
+            await broadcastUpdate(resolvedProjectId);
           } catch (error) {
             console.debug('Failed to broadcast update:', error);
           }
@@ -175,7 +176,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
         } else {
           // Different page, create a new event to show navigation
           const createResult = await EventQueries.create({
-            projectId,
+            projectId: resolvedProjectId,
             sessionId: sessionId || '',
             pageUrl,
             referrer: referrer || '',
@@ -196,7 +197,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
 
           // Broadcast update for real-time updates
           try {
-            await broadcastUpdate(projectId);
+            await broadcastUpdate(resolvedProjectId);
           } catch (error) {
             console.debug('Failed to broadcast update:', error);
           }
@@ -213,7 +214,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
 
     // Create new event (first visit or no session)
     const createResult = await EventQueries.create({
-      projectId,
+      projectId: resolvedProjectId,
       sessionId: sessionId || '',
       pageUrl,
       referrer: referrer || '',
@@ -234,7 +235,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
 
     // Broadcast update for real-time updates
     try {
-      await broadcastUpdate(projectId);
+      await broadcastUpdate(resolvedProjectId);
     } catch (error) {
       console.debug('Failed to broadcast update:', error);
     }
