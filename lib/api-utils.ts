@@ -114,41 +114,75 @@ export function getClientIP(request: NextRequest): string {
   return 'Unknown';
 }
 
-export function getCountry(request: NextRequest): string {
+import { getCountryFromTimezone, getCountryFromLocale, getCountryName } from '@/lib/geo-utils';
+
+export function getCountry(request: NextRequest, clientTimezone?: string, clientLocale?: string): string {
   const cfCountry = request.headers.get('cf-ipcountry');
+  const vercelCountry = request.headers.get('x-vercel-ip-country');
+  const cloudfrontCountry = request.headers.get('cloudfront-viewer-country');
   const xCountry = request.headers.get('x-country');
   const xGeoCountry = request.headers.get('x-geo-country');
-  const xVercelCountry = request.headers.get('x-vercel-ip-country');
 
-  if (cfCountry && cfCountry !== 'XX') {
-    return cfCountry;
+  if (cfCountry && cfCountry !== 'XX' && cfCountry !== 'T1') {
+    return getCountryName(cfCountry);
+  }
+  if (vercelCountry && vercelCountry !== 'XX') {
+    return getCountryName(vercelCountry);
+  }
+  if (cloudfrontCountry) {
+    return getCountryName(cloudfrontCountry);
   }
   if (xCountry) {
-    return xCountry;
+    return getCountryName(xCountry);
   }
   if (xGeoCountry) {
-    return xGeoCountry;
+    return getCountryName(xGeoCountry);
   }
-  if (xVercelCountry) {
-    return xVercelCountry;
+
+  // Fallback to client-side timezone if headers are unavailable (e.g. localhost, private IPs)
+  const tzCountry = getCountryFromTimezone(clientTimezone);
+  if (tzCountry) {
+    return getCountryName(tzCountry);
+  }
+
+  // Fallback to client browser locale
+  const locCountry = getCountryFromLocale(clientLocale);
+  if (locCountry) {
+    return getCountryName(locCountry);
   }
 
   return 'Unknown';
 }
 
-export function getCity(request: NextRequest): string {
+export function getCity(request: NextRequest, clientTimezone?: string): string {
   const cfCity = request.headers.get('cf-ipcity');
+  const vercelCity = request.headers.get('x-vercel-ip-city');
+  const cloudfrontCity = request.headers.get('cloudfront-viewer-city');
   const xCity = request.headers.get('x-city');
   const xGeoCity = request.headers.get('x-geo-city');
 
   if (cfCity) {
-    return cfCity;
+    try { return decodeURIComponent(cfCity); } catch { return cfCity; }
+  }
+  if (vercelCity) {
+    try { return decodeURIComponent(vercelCity); } catch { return vercelCity; }
+  }
+  if (cloudfrontCity) {
+    try { return decodeURIComponent(cloudfrontCity); } catch { return cloudfrontCity; }
   }
   if (xCity) {
-    return xCity;
+    try { return decodeURIComponent(xCity); } catch { return xCity; }
   }
   if (xGeoCity) {
-    return xGeoCity;
+    try { return decodeURIComponent(xGeoCity); } catch { return xGeoCity; }
+  }
+
+  // If city is unknown, extract city name from timezone (e.g. 'Asia/Kolkata' -> 'Kolkata')
+  if (clientTimezone && clientTimezone.includes('/')) {
+    const citySegment = clientTimezone.split('/')[1];
+    if (citySegment) {
+      return citySegment.replace(/_/g, ' ');
+    }
   }
 
   return 'Unknown';
@@ -158,18 +192,29 @@ export function getCity(request: NextRequest): string {
 export async function getLocationFromIP(ip: string): Promise<{ country: string; city: string }> {
   try {
     // Skip if IP is localhost or private
-    if (ip === 'Unknown' || ip.startsWith('127.') || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) {
+    if (!ip || ip === 'Unknown' || ip === '::1' || ip.startsWith('127.') || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.') || ip === 'localhost') {
       return { country: 'Unknown', city: 'Unknown' };
     }
 
-    const response = await fetch(`http://ip-api.com/json/${ip}?fields=country,city`);
-    const data = await response.json();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
 
-    if (data.status === 'success') {
-      return {
-        country: data.country || 'Unknown',
-        city: data.city || 'Unknown'
-      };
+    try {
+      const response = await fetch(`https://ipwho.is/${ip}`, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'Spectr-Analytics' }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.success) {
+          return {
+            country: data.country || (data.country_code ? getCountryName(data.country_code) : 'Unknown'),
+            city: data.city || 'Unknown'
+          };
+        }
+      }
+    } finally {
+      clearTimeout(timeoutId);
     }
   } catch (error) {
     console.debug('IP geolocation failed:', error);

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import { Session } from 'next-auth'
@@ -22,6 +23,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { LogoMark } from './landing/Logo'
 import { Dashboard } from '@/components/dashboard/dashboard'
+import { getCountryCode, getCountryName } from '@/lib/geo-utils'
 
 // Custom Hooks
 import { useProjects, Project } from './hooks/useProjects'
@@ -436,8 +438,18 @@ const DashboardClient = ({ session, initialProjectId }: DashboardClientProps) =>
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                               </span>
+                              {visitor.country && visitor.country !== 'Unknown' && (
+                                <NextImage
+                                  src={`https://flag.vercel.app/s/${getCountryCode(visitor.country)}.svg`}
+                                  alt={visitor.country}
+                                  width={16}
+                                  height={12}
+                                  className="rounded-[2px] object-cover shrink-0"
+                                  unoptimized
+                                />
+                              )}
                               <span className="text-xs font-bold font-mono text-white">
-                                {visitor.country || 'Unknown'}, {visitor.city || 'Unknown'}
+                                {getCountryName(visitor.country || 'Unknown')}{visitor.city && visitor.city !== 'Unknown' ? `, ${visitor.city}` : ''}
                               </span>
                             </div>
                             <span className="text-[11px] text-zinc-500 font-mono">

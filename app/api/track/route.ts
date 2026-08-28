@@ -54,7 +54,7 @@ export async function OPTIONS() {
 export async function POST(request: NextRequest): Promise<TrackingResponse> {
   try {
     const body: TrackingRequest = await request.json();
-    const { projectId, pageUrl, referrer, userAgent, sessionId } = body;
+    const { projectId, pageUrl, referrer, userAgent, sessionId, timezone, locale } = body;
 
     // Extract UTM parameters from client payload
     const utmMedium   = body.utm?.utm_medium   || null;
@@ -98,9 +98,9 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       return createErrorResponse('Project not found', 404);
     }
 
-    // Detect location from headers
-    let country = getCountry(request);
-    let city = getCity(request);
+    // Detect location from headers, timezone, and locale
+    let country = getCountry(request, timezone, locale);
+    let city = getCity(request, timezone);
 
     // Debug logging for development
     debugLog('Tracking Debug Info:', {
@@ -109,6 +109,8 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       city,
       pageUrl,
       sessionId,
+      timezone,
+      locale,
       headers: {
         'x-forwarded-for': request.headers.get('x-forwarded-for'),
         'x-real-ip': request.headers.get('x-real-ip'),
@@ -120,11 +122,15 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       }
     });
 
-    // If we couldn't get location from headers, try IP geolocation
+    // If country is still Unknown and we have a public IP, perform IP geolocation lookup
     if (country === 'Unknown' && ip !== 'Unknown') {
       const location: LocationData = await getLocationFromIP(ip);
-      country = location.country;
-      city = location.city;
+      if (location.country !== 'Unknown') {
+        country = location.country;
+      }
+      if (location.city !== 'Unknown') {
+        city = location.city;
+      }
       
       debugLog('IP Geolocation Result:', { ip, location });
     }

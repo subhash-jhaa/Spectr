@@ -84,6 +84,8 @@ export interface TrackingRequest {
   referrer?: string;
   userAgent?: string;
   sessionId?: string;
+  timezone?: string;
+  locale?: string;
   utm?: {
     utm_source?: string;
     utm_medium?: string;

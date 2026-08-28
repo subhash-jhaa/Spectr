@@ -10,13 +10,14 @@ import {
   Table, TableBody, TableCell, TableHead,
   TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ChevronDownIcon, GlobeAmericasIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { getCountryCode, getCountryName } from "@/lib/geo-utils";
 
 const FLAGPACK_BASE = "https://flag.vercel.app";
-const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
 
 function flagUrl(countryCode: string) {
-  return `${FLAGPACK_BASE}/s/${countryCode.toUpperCase()}.svg`;
+  const code = countryCode && countryCode.length === 2 && countryCode !== 'UN' ? countryCode.toUpperCase() : 'US';
+  return `${FLAGPACK_BASE}/s/${code}.svg`;
 }
 
 export interface TopCountriesProps {
@@ -24,26 +25,16 @@ export interface TopCountriesProps {
   projectId?: string;
 }
 
-const getCountryCode = (name: string) => {
-  if (!name) return "US";
-  if (name.length === 2) return name.toUpperCase();
-  const map: Record<string, string> = {
-    "united states": "US", "united kingdom": "GB", "germany": "DE",
-    "france": "FR", "canada": "CA", "netherlands": "NL", "india": "IN",
-    "australia": "AU", "brazil": "BR", "japan": "JP", "china": "CN",
-  };
-  return map[name.toLowerCase()] || "US";
-};
-
 export function TopCountries({ data = [] }: TopCountriesProps) {
   const [expanded, setExpanded] = useState(false);
 
   const mappedRows = useMemo(() => {
     return data.map((item) => {
       const code = getCountryCode(item.country);
+      const name = getCountryName(item.country);
       return {
         code,
-        name: item.country.length === 2 ? (regionNames.of(code) || code) : item.country,
+        name: name !== 'Unknown' ? name : (item.country || 'Unknown'),
         visits: item.visitors,
       };
     });

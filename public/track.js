@@ -92,13 +92,21 @@
   function track(isHeartbeat) {
     if (!shouldTrackVisit(isHeartbeat)) return;
 
-    var utm = getUtmParams();
+    var timezone = '';
+    try {
+      timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    } catch(e) {}
+
+    var locale = navigator.language || '';
+
     var payload = {
       projectId: siteId,
       pageUrl: window.location.href,
       referrer: document.referrer || '',
       userAgent: navigator.userAgent,
       sessionId: sessionStorage.getItem(SESSION_KEY) || '',
+      timezone: timezone,
+      locale: locale,
       utm: utm
     };
 
