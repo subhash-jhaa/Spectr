@@ -1,161 +1,139 @@
 "use client";
+
 import React from "react";
-import { motion } from "framer-motion";
-import { ArrowRight, Code2 } from "lucide-react";
 import Link from "next/link";
-import { FloatingPaths } from "@/components/ui/background-paths";
-import { LiveVisitorFeed } from "@/components/LiveVisitorFeed";
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-      delayChildren: 0.1,
-    },
-  },
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i: number = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      delay: i * 0.1,
-      duration: 0.8,
-      ease: [0.16, 1, 0.3, 1] as const,
-    },
-  }),
-};
+import Image from "next/image";
+import { ArrowRight, Code2 } from "lucide-react";
+import { DitherBackground } from "@/components/ui/dither-background";
 
 export function Hero() {
   return (
-    <section className="relative w-full min-h-screen bg-black overflow-hidden flex items-center">
-      {/* Background Paths */}
-      <div className="absolute inset-0 z-0 opacity-40">
-        <FloatingPaths position={1} />
-        <FloatingPaths position={-1} />
-      </div>
+    <div className="theme-zinc w-full" style={{ "--radius": "0.5rem" } as React.CSSProperties}>
+      <div className="flex min-h-full w-full items-center justify-center">
+        <section className="relative isolate w-full min-h-screen translate-z-0 overflow-hidden px-4 pt-28 pb-12 sm:px-6 md:px-8 md:pt-32 md:pb-20 lg:pb-32 flex flex-col items-center">
+          
+          {/* ── Mountain Dither Background with Bottom Fade Mask ── */}
+          <div
+            className="absolute inset-0 h-full max-h-[85vh] w-full brightness-70 filter pointer-events-none z-0"
+            style={{
+              WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 40%, transparent 100%)",
+              maskImage: "linear-gradient(to bottom, black 0%, black 40%, transparent 100%)",
+            }}
+          >
+            <DitherBackground imageSrc="/bg-image.png" pixelSize={2} />
+          </div>
 
-      {/* Premium Subtle Noise Background */}
-      <div className="absolute inset-0 bg-noise opacity-[0.035] pointer-events-none z-0" />
+          {/* ── Centered Hero Content Container ── */}
+          <div className="relative z-20 mx-auto flex max-w-5xl flex-col items-center justify-center text-center py-6 sm:py-10">
+            
+            {/* Peerlist Launchpad Badge */}
+            <div className="mb-4">
+              <a
+                href="https://peerlist.io/subhashjhadev/project/spectr--know-your-traffic"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-3 hover:opacity-90 transition-opacity bg-neutral-950/40 border border-white/10 backdrop-blur-md px-3.5 py-1 rounded-full"
+              >
+                {/* Laurel Left */}
+                <svg width="28" height="34" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <g fill="#00AA45">
+                    <path d="M30 42C22 40 14 32 12 20C10.5 12 12 6 14 2" stroke="#00AA45" strokeWidth="2" strokeLinecap="round" fill="none" />
+                    <path d="M12 38c-3-1-6-4-5.5-7.5 3 0.5 5.5 3.5 5.5 7.5z" />
+                    <path d="M10 32c-3.5-2-7-5.5-5.5-9 3.5 0.5 6 5 5.5 9z" />
+                    <path d="M8 25c-4-2.5-7-6.5-5-9.5 3.5 1 5.5 5.5 5 9.5z" />
+                    <path d="M7 18c-3.5-3-6-7.5-3.5-10 3 1.5 5 6 3.5 10z" />
+                    <path d="M8 11c-3-3-4.5-7.5-2-9.5 2.5 1.5 3.5 6 2 9.5z" />
+                    <path d="M28 38c1.5-2.5 1-6 4-7.5 2 2 0.5 5.5-4 7.5z" />
+                    <path d="M24 31c2-3 2-6.5 5-7.5 1.5 2.5 0 5.5-5 7.5z" />
+                    <path d="M20 24c2.5-3 2.5-6.5 5.5-7 1 2.5-0.5 5.5-5.5 7z" />
+                    <path d="M17 17c2.5-3 3-7 6-7 0.5 2.5-1 5.5-6 7z" />
+                    <path d="M14 10c2-3 3-6.5 5.5-6 0 2-1.5 4.5-5.5 6z" />
+                  </g>
+                </svg>
 
-      {/* Main Grid Container */}
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={staggerContainer}
-        className="relative z-20 w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center px-6 py-24 md:px-12 lg:px-16 select-none"
-      >
-        {/* LEFT — Text */}
-        <div className="flex flex-col gap-6 items-center text-center lg:items-start lg:text-left w-full min-w-0">
-          {/* Peerlist Launchpad Badge */}
-          <motion.div variants={fadeUp} custom={0.5}>
-            <a
-              href="https://peerlist.io/subhashjhadev/project/spectr--know-your-traffic"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 hover:opacity-85 transition-opacity"
-            >
-              {/* Laurel Left */}
-              <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g fill="#00AA45">
-                  <path d="M30 42C22 40 14 32 12 20C10.5 12 12 6 14 2" stroke="#00AA45" strokeWidth="2" strokeLinecap="round" fill="none" />
-                  <path d="M12 38c-3-1-6-4-5.5-7.5 3 0.5 5.5 3.5 5.5 7.5z" />
-                  <path d="M10 32c-3.5-2-7-5.5-5.5-9 3.5 0.5 6 5 5.5 9z" />
-                  <path d="M8 25c-4-2.5-7-6.5-5-9.5 3.5 1 5.5 5.5 5 9.5z" />
-                  <path d="M7 18c-3.5-3-6-7.5-3.5-10 3 1.5 5 6 3.5 10z" />
-                  <path d="M8 11c-3-3-4.5-7.5-2-9.5 2.5 1.5 3.5 6 2 9.5z" />
-                  <path d="M28 38c1.5-2.5 1-6 4-7.5 2 2 0.5 5.5-4 7.5z" />
-                  <path d="M24 31c2-3 2-6.5 5-7.5 1.5 2.5 0 5.5-5 7.5z" />
-                  <path d="M20 24c2.5-3 2.5-6.5 5.5-7 1 2.5-0.5 5.5-5.5 7z" />
-                  <path d="M17 17c2.5-3 3-7 6-7 0.5 2.5-1 5.5-6 7z" />
-                  <path d="M14 10c2-3 3-6.5 5.5-6 0 2-1.5 4.5-5.5 6z" />
-                </g>
-              </svg>
+                {/* Text Content */}
+                <div className="flex items-center gap-1.5 leading-none text-xs">
+                  <span className="text-[10px] text-zinc-400 font-bold tracking-[0.2em] uppercase">Live on</span>
+                  <span className="font-sans font-bold text-white tracking-tight">Peerlist</span>
+                  <span className="text-zinc-600">|</span>
+                  <span className="font-serif italic text-zinc-300">Launchpad</span>
+                </div>
 
-              {/* Text Content */}
-              <div className="flex flex-col items-center leading-none">
-                <span className="text-[10px] text-zinc-400 font-bold tracking-[0.3em] mb-1.5 uppercase">
-                  Live on
-                </span>
-                <span className="text-[15px] font-bold text-white flex items-center gap-1.5 leading-none">
-                  <span className="font-sans font-black tracking-tight">Peerlist</span>
-                  <span className="text-zinc-600 font-light">|</span>
-                  <span className="font-serif italic font-medium text-zinc-300">Launchpad</span>
-                </span>
+                {/* Laurel Right */}
+                <svg width="28" height="34" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: "scaleX(-1)" }}>
+                  <g fill="#00AA45">
+                    <path d="M30 42C22 40 14 32 12 20C10.5 12 12 6 14 2" stroke="#00AA45" strokeWidth="2" strokeLinecap="round" fill="none" />
+                    <path d="M12 38c-3-1-6-4-5.5-7.5 3 0.5 5.5 3.5 5.5 7.5z" />
+                    <path d="M10 32c-3.5-2-7-5.5-5.5-9 3.5 0.5 6 5 5.5 9z" />
+                    <path d="M8 25c-4-2.5-7-6.5-5-9.5 3.5 1 5.5 5.5 5 9.5z" />
+                    <path d="M7 18c-3.5-3-6-7.5-3.5-10 3 1.5 5 6 3.5 10z" />
+                    <path d="M8 11c-3-3-4.5-7.5-2-9.5 2.5 1.5 3.5 6 2 9.5z" />
+                    <path d="M28 38c1.5-2.5 1-6 4-7.5 2 2 0.5 5.5-4 7.5z" />
+                    <path d="M24 31c2-3 2-6.5 5-7.5 1.5 2.5 0 5.5-5 7.5z" />
+                    <path d="M20 24c2.5-3 2.5-6.5 5.5-7 1 2.5-0.5 5.5-5.5 7z" />
+                    <path d="M17 17c2.5-3 3-7 6-7 0.5 2.5-1 5.5-6 7z" />
+                    <path d="M14 10c2-3 3-6.5 5.5-6 0 2-1.5 4.5-5.5 6z" />
+                  </g>
+                </svg>
+              </a>
+            </div>
+
+            {/* Main Headline */}
+            <h1 className="font-bold tracking-tight text-white leading-[1.08] text-4xl sm:text-5xl lg:text-6xl xl:text-7xl">
+              <span>Know your traffic.</span><br />
+              <span className="text-[#DEDBC8]">In real time.</span>
+            </h1>
+
+            {/* Subtitle */}
+            <p className="mt-4 max-w-xl text-center text-sm sm:text-base md:text-xl text-neutral-300 font-normal leading-relaxed text-shadow-black/10 text-shadow-md">
+              Drop one script tag. Watch your visitors appear live — no cookies, no config.
+            </p>
+
+            {/* Aceternity Style Action Buttons */}
+            <div className="my-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                href="/auth"
+                className="cursor-pointer rounded-full bg-blue-500 p-1 text-base text-white transition duration-200 hover:scale-[1.02] active:scale-98 shadow-[0_4px_20px_rgba(59,130,246,0.4)]"
+              >
+                <div className="flex items-center gap-2 rounded-full bg-blue-500 px-5 py-2.5 text-sm font-medium text-white shadow-sm ring-1 shadow-black/10 ring-black/10">
+                  <span>Start Tracking Free</span>
+                  <ArrowRight className="h-4 w-4" />
+                </div>
+              </Link>
+
+              <a
+                href="#how-it-works"
+                className="cursor-pointer rounded-full bg-neutral-100 p-1 text-base text-black transition duration-200 hover:scale-[1.02] active:scale-98"
+              >
+                <div className="flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-black shadow-sm ring-1 shadow-black/10 ring-black/10">
+                  <Code2 className="h-4 w-4" />
+                  <span>See How It Works</span>
+                </div>
+              </a>
+            </div>
+
+          </div>
+
+          {/* ── Aceternity Live UI Frame / Grand Mockup Display ── */}
+          <div className="relative z-20 w-full max-w-7xl px-2 sm:px-4 mt-6">
+            <div className="w-full rounded-2xl sm:rounded-[32px] bg-neutral-500/10 p-1.5 sm:p-3 backdrop-blur-md shadow-[0_25px_70px_-15px_rgba(0,0,0,0.9)] border border-white/10">
+              <div className="w-full rounded-xl sm:rounded-[24px] bg-neutral-950/90 p-1 sm:p-2 ring-1 ring-white/10 shadow-2xl overflow-hidden">
+                <Image
+                  src="/mock img.png"
+                  alt="Spectr Dashboard Preview"
+                  width={2400}
+                  height={1350}
+                  priority
+                  className="w-full h-auto object-cover rounded-lg sm:rounded-[20px] shadow-2xl"
+                />
               </div>
+            </div>
+          </div>
 
-              {/* Laurel Right */}
-              <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'scaleX(-1)' }}>
-                <g fill="#00AA45">
-                  <path d="M30 42C22 40 14 32 12 20C10.5 12 12 6 14 2" stroke="#00AA45" strokeWidth="2" strokeLinecap="round" fill="none" />
-                  <path d="M12 38c-3-1-6-4-5.5-7.5 3 0.5 5.5 3.5 5.5 7.5z" />
-                  <path d="M10 32c-3.5-2-7-5.5-5.5-9 3.5 0.5 6 5 5.5 9z" />
-                  <path d="M8 25c-4-2.5-7-6.5-5-9.5 3.5 1 5.5 5.5 5 9.5z" />
-                  <path d="M7 18c-3.5-3-6-7.5-3.5-10 3 1.5 5 6 3.5 10z" />
-                  <path d="M8 11c-3-3-4.5-7.5-2-9.5 2.5 1.5 3.5 6 2 9.5z" />
-                  <path d="M28 38c1.5-2.5 1-6 4-7.5 2 2 0.5 5.5-4 7.5z" />
-                  <path d="M24 31c2-3 2-6.5 5-7.5 1.5 2.5 0 5.5-5 7.5z" />
-                  <path d="M20 24c2.5-3 2.5-6.5 5.5-7 1 2.5-0.5 5.5-5.5 7z" />
-                  <path d="M17 17c2.5-3 3-7 6-7 0.5 2.5-1 5.5-6 7z" />
-                  <path d="M14 10c2-3 3-6.5 5.5-6 0 2-1.5 4.5-5.5 6z" />
-                </g>
-              </svg>
-            </a>
-          </motion.div>
-
-          <motion.h1
-            variants={fadeUp}
-            custom={1}
-            className="font-bold tracking-tight text-white leading-[1.05] text-4xl sm:text-5xl lg:text-6xl xl:text-7xl"
-          >
-            <span className="inline-block sm:whitespace-nowrap">Know your traffic.</span><br />
-            <span className="text-[#DEDBC8] inline-block sm:whitespace-nowrap">In real time.</span>
-          </motion.h1>
-
-          <motion.p
-            variants={fadeUp}
-            custom={2}
-            className="text-zinc-300 text-base sm:text-lg leading-relaxed max-w-2xl font-medium mx-auto lg:mx-0"
-          >
-            Drop one script tag. Watch your visitors appear live — no cookies, no config.
-          </motion.p>
-
-          <motion.div
-            variants={fadeUp}
-            custom={3}
-            className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto mt-2"
-          >
-            <Link href="/auth" className="w-full sm:w-auto">
-              <motion.button
-                whileHover={{ scale: 1.03, boxShadow: "0 20px 40px rgba(255,255,255,0.1)" }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full sm:w-auto h-12 px-6 rounded-full bg-white hover:bg-zinc-100 text-zinc-950 font-semibold text-sm flex items-center justify-center gap-2 group transition-all cursor-pointer whitespace-nowrap shadow-[0_4px_12px_rgba(255,255,255,0.1)]"
-              >
-                <span>Start Tracking Free</span>
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </motion.button>
-            </Link>
-            <Link href="#how-it-works" className="w-full sm:w-auto">
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full sm:w-auto h-12 px-6 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-white/20 hover:border-white/30 transition-all cursor-pointer whitespace-nowrap"
-              >
-                <Code2 className="h-4 w-4 text-white" /> See How It Works
-              </motion.button>
-            </Link>
-          </motion.div>
-        </div>
-
-        {/* RIGHT — Live Feed */}
-        <div className="flex justify-center lg:justify-end w-full">
-          <LiveVisitorFeed />
-        </div>
-      </motion.div>
-    </section>
+        </section>
+      </div>
+    </div>
   );
 }
+
+export default Hero;

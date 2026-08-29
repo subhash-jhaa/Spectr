@@ -225,11 +225,11 @@ const DashboardClient = ({ initialProjectId }: DashboardClientProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 flex selection:bg-zinc-800 selection:text-white">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-zinc-950/90 border-r border-zinc-900/80 backdrop-blur-xl transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col justify-between`}>
-        <div className="p-5">
-          <div className="flex items-center justify-between gap-2 mb-6">
+    <div className="h-screen w-full bg-black text-zinc-100 flex overflow-hidden selection:bg-zinc-800 selection:text-white">
+      {/* Sidebar - Fixed to screen height, fits viewport */}
+      <aside className={`fixed inset-y-0 left-0 z-40 w-64 h-full shrink-0 bg-zinc-950/90 border-r border-zinc-900/80 backdrop-blur-xl transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col justify-between overflow-hidden`}>
+        <div className="p-5 flex-1 flex flex-col min-h-0">
+          <div className="flex items-center justify-between gap-2 mb-6 shrink-0">
             <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
               <LogoMark size={26} />
               <span className="font-bold text-base text-white font-mono tracking-tight">spectr</span>
@@ -314,12 +314,12 @@ const DashboardClient = ({ initialProjectId }: DashboardClientProps) => {
             Sign Out
           </button>
         </div>
-      </div>
+      </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Bar */}
-        <header className="sticky top-0 z-30 bg-zinc-950/80 border-b border-zinc-900/80 px-4 sm:px-6 py-3.5 backdrop-blur-xl">
+      {/* Main Content Area - Center dashboard scrolls independently */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* Top Bar - Stays fixed at top */}
+        <header className="shrink-0 z-30 bg-zinc-950/80 border-b border-zinc-900/80 px-4 sm:px-6 py-3.5 backdrop-blur-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
@@ -383,8 +383,8 @@ const DashboardClient = ({ initialProjectId }: DashboardClientProps) => {
           </div>
         </header>
 
-        {/* Content Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+        {/* Content Area - Smooth scrollable middle tracking area */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
           {loading && (
             <div className="flex items-center gap-2.5 mb-6 p-3 bg-zinc-950/80 border border-zinc-800/80 rounded-xl w-fit mx-auto shadow-lg backdrop-blur-md">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-zinc-600 border-t-white"></div>

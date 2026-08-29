@@ -24,9 +24,7 @@ export default function Landing({ session }: LandingProps) {
       <Navbar session={session} />
 
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
-      <ScrollReveal>
-        <Hero />
-      </ScrollReveal>
+      <Hero />
 
       {/* ── How It Works ───────────────────────────────────────────────────── */}
       <ScrollReveal>
