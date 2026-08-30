@@ -3,12 +3,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import type { NextAuthOptions } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 
-// Extend the AdapterUser type to include plan
-declare module "next-auth/adapters" {
-  interface AdapterUser {
-    plan?: string;
-  }
-}
+
 
 interface SessionUser {
   id: string;
@@ -24,7 +19,7 @@ export const authConfig: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
-  debug: true, // TODO: remove after fixing OAuth callback error
+  debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: 'database',

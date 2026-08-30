@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { 
   DatabaseUser, 
   UserWithProjects, 
@@ -63,7 +64,7 @@ export class UserQueries {
     options: QueryOptions = {}
   ): Promise<QueryResult<DatabaseUser[]>> {
     try {
-      const where: any = {};
+      const where: Prisma.UserWhereInput = {};
       
       if (filters.id) where.id = filters.id;
       if (filters.email) where.email = filters.email;
@@ -124,6 +125,7 @@ export class UserQueries {
   static async create(userData: Partial<DatabaseUser>): Promise<CreateResult<DatabaseUser>> {
     try {
       const user = await prisma.user.create({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         data: userData as any
       });
 
@@ -237,7 +239,7 @@ export class UserQueries {
    */
   static async count(filters: UserFilters = {}): Promise<number> {
     try {
-      const where: any = {};
+      const where: Prisma.UserWhereInput = {};
       
       if (filters.id) where.id = filters.id;
       if (filters.email) where.email = filters.email;

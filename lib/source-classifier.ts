@@ -100,8 +100,7 @@ export function classifySource(referrer?: string | null, pageUrl?: string | null
       const url = new URL(pageUrl.startsWith('http') ? pageUrl : `https://${pageUrl}`);
       const utmSource = url.searchParams.get('utm_source') || 
                         url.searchParams.get('ref') || 
-                        url.searchParams.get('source') ||
-                        url.searchParams.get('utm_medium');
+                        url.searchParams.get('source');
       
       if (utmSource && utmSource.trim()) {
         const rawSource = utmSource.trim().toLowerCase();

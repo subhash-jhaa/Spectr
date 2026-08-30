@@ -77,8 +77,8 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       return createSuccessResponse({ success: true, eventId: 'bot' });
     }
 
-    // Verify project exists (by ID or fallback by name)
-    const projectResult = await ProjectQueries.findByIdOrName(projectId);
+    // Verify project exists by UUID only (name-lookup removed — was cross-user attack surface)
+    const projectResult = await ProjectQueries.findById(projectId);
     if (!projectResult.success || !projectResult.data) {
       return createErrorResponse('Project not found', 404);
     }

@@ -5,7 +5,6 @@ import { classifySource } from '@/lib/source-classifier';
 import { classifyChannel } from '@/lib/channel-classifier';
 import { 
   DatabaseEvent, 
-  EventWithProject, 
   EventFilters, 
   QueryOptions, 
   CreateResult, 
@@ -20,7 +19,6 @@ import {
   PageStats,
   BrowserStats,
   DeviceStats,
-  VisitorStats,
   SourceStats
 } from '../interfaces/database';
 
@@ -229,7 +227,7 @@ export class EventQueries {
         success: true,
         data: event
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Standard create event failed, trying resilient schema fallbacks:', error);
 
       // Resilient fallback: Raw SQL insert with all fields, or fallback to core fields
@@ -309,6 +307,7 @@ export class EventQueries {
           UPDATE "Event"
           SET "timestamp" = ${new Date()},
               "referrer" = ${eventData.referrer || ''},
+              "source" = ${eventData.source || 'Direct'},
               "userAgent" = ${eventData.userAgent || ''},
               "ip" = ${eventData.ip || 'Unknown'}
           WHERE "id" = ${id}
@@ -377,7 +376,7 @@ export class EventQueries {
             id: event.id,
             pageUrl: event.pageUrl,
             referrer: event.referrer,
-            source: (event as any).source || 'Direct',
+            source: event.source || 'Direct',
             country: event.country,
             city: event.city,
             userAgent: event.userAgent,
@@ -411,6 +410,7 @@ export class EventQueries {
     try {
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
       
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const stats = await prisma.$queryRaw<any[]>`
         SELECT 
           TO_CHAR(DATE_TRUNC('day', "timestamp"), 'YYYY-MM-DD') AS "date",
@@ -436,6 +436,7 @@ export class EventQueries {
       }
 
       // Merge query results
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       stats.forEach((row: any) => {
         if (dailyStatsMap[row.date]) {
           dailyStatsMap[row.date].visitors = row.visitors;
@@ -719,7 +720,7 @@ export class EventQueries {
    */
   static async count(filters: EventFilters = {}): Promise<number> {
     try {
-      const where: any = {};
+      const where: Prisma.EventWhereInput = {};
       
       if (filters.id) where.id = filters.id;
       if (filters.projectId) where.projectId = filters.projectId;
@@ -761,6 +762,7 @@ export class EventQueries {
 
       // Strategy 1: Try Prisma groupBy if schema client is up to date
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const groups = await (prisma.event as any).groupBy({
           by: ['source'],
           where: {
@@ -776,8 +778,9 @@ export class EventQueries {
         });
 
         if (Array.isArray(groups) && groups.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const totalVisitors = groups.reduce((sum: number, g: any) => sum + (g._count?._all || 0), 0);
-
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const chartData: SourceStats[] = groups.map((g: any) => ({
             source: g.source || 'Direct',
             visitors: g._count?._all || 0,
@@ -882,6 +885,7 @@ export class EventQueries {
       const endDate = new Date();
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let events: any[] = [];
       try {
         events = await prisma.event.findMany({
