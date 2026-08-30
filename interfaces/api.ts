@@ -32,6 +32,7 @@ export type PagesStatsResponse = NextResponse<PageStats[] | ApiErrorResponse>;
 export type BrowserStatsResponse = NextResponse<BrowserStats[] | ApiErrorResponse>;
 export type DevicesStatsResponse = NextResponse<DeviceStats[] | ApiErrorResponse>;
 export type SourcesStatsResponse = NextResponse<SourceStats[] | ApiErrorResponse>;
+export type AudienceStatsResponse = NextResponse<AudienceMixStats | ApiErrorResponse>;
 export type StripeCheckoutResponse = NextResponse<{
   url: string;
   sessionId: string;
@@ -157,6 +158,13 @@ export interface SourceStats {
   source: string;
   visitors: number;
   percentage: number;
+}
+
+export interface AudienceMixStats {
+  newVisitors: number;
+  returningVisitors: number;
+  newShare: number;
+  returningShare: number;
 }
 
 export interface ReferrerBreakdownItem {

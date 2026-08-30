@@ -21,6 +21,23 @@ import { DatabaseEvent } from '../../../interfaces/database';
 import { ProjectQueries, EventQueries } from '../../../queries';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { createHash } from 'crypto';
+
+function resolveSessionId(clientSessionId: string | undefined, projectId: string, ip: string, userAgent: string): string {
+  if (
+    clientSessionId &&
+    typeof clientSessionId === 'string' &&
+    clientSessionId.length >= 6 &&
+    clientSessionId.length <= 128 &&
+    /^[a-zA-Z0-9_\-.:]+$/.test(clientSessionId)
+  ) {
+    return clientSessionId;
+  }
+  // Server-side deterministic session fallback (30-minute time bucket per IP + UA + project)
+  const bucket = Math.floor(Date.now() / (30 * 60 * 1000));
+  const hash = createHash('sha256').update(`${projectId}:${ip}:${userAgent || ''}:${bucket}`).digest('hex').slice(0, 20);
+  return `srv_${hash}`;
+}
 
 const hasRedisConfig = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 
@@ -139,83 +156,84 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
     // Classify traffic source from referrer and URL params
     const source = classifySource(referrer, pageUrl);
 
+    // Resolve trustworthy session ID
+    const resolvedSessionId = resolveSessionId(sessionId, resolvedProjectId, ip, userAgent || '');
+
     // Check for recent events from the same session
-    if (sessionId) {
-      const existingEventResult = await EventQueries.findRecentBySession(resolvedProjectId, sessionId, 3);
+    const existingEventResult = await EventQueries.findRecentBySession(resolvedProjectId, resolvedSessionId, 3);
 
-      if (existingEventResult.success && existingEventResult.data) {
-        const existingEvent = existingEventResult.data as DatabaseEvent;
-        
-        // Check if this is a page change (different URL)
-        if (existingEvent.pageUrl === pageUrl) {
-          // Same page, update the existing event
-          const updateResult = await EventQueries.update(existingEvent.id, {
-            referrer: referrer || '',
-            source,
-            userAgent: userAgent || '',
-            ip: ip || 'Unknown',
-            timestamp: new Date(), // Update timestamp to show recent activity
-          });
+    if (existingEventResult.success && existingEventResult.data) {
+      const existingEvent = existingEventResult.data as DatabaseEvent;
+      
+      // Check if this is a page change (different URL)
+      if (existingEvent.pageUrl === pageUrl) {
+        // Same page, update the existing event
+        const updateResult = await EventQueries.update(existingEvent.id, {
+          referrer: referrer || '',
+          source,
+          userAgent: userAgent || '',
+          ip: ip || 'Unknown',
+          timestamp: new Date(), // Update timestamp to show recent activity
+        });
 
-          if (!updateResult.success || !updateResult.data) {
-            return createErrorResponse('Failed to update event', 500);
-          }
-
-          // Broadcast update for real-time updates
-          try {
-            await broadcastUpdate(resolvedProjectId);
-          } catch (error) {
-            console.debug('Failed to broadcast update:', error);
-          }
-
-          return createSuccessResponse({ 
-            success: true, 
-            eventId: (updateResult.data as DatabaseEvent).id, 
-            updated: true 
-          });
-        } else {
-          // Different page, create a new event to show navigation
-          const createResult = await EventQueries.create({
-            projectId: resolvedProjectId,
-            sessionId: sessionId || '',
-            pageUrl,
-            referrer: referrer || '',
-            source,
-            utmMedium,
-            utmCampaign,
-            utmTerm,
-            utmContent,
-            userAgent: userAgent || '',
-            ip: ip || 'Unknown',
-            country: country,
-            city: city,
-          });
-
-          if (!createResult.success || !createResult.data) {
-            return createErrorResponse('Failed to create event', 500);
-          }
-
-          // Broadcast update for real-time updates
-          try {
-            await broadcastUpdate(resolvedProjectId);
-          } catch (error) {
-            console.debug('Failed to broadcast update:', error);
-          }
-
-          return createSuccessResponse({ 
-            success: true, 
-            eventId: (createResult.data as DatabaseEvent).id, 
-            updated: false, 
-            pageChange: true 
-          });
+        if (!updateResult.success || !updateResult.data) {
+          return createErrorResponse('Failed to update event', 500);
         }
+
+        // Broadcast update for real-time updates
+        try {
+          await broadcastUpdate(resolvedProjectId);
+        } catch (error) {
+          console.debug('Failed to broadcast update:', error);
+        }
+
+        return createSuccessResponse({ 
+          success: true, 
+          eventId: (updateResult.data as DatabaseEvent).id, 
+          updated: true 
+        });
+      } else {
+        // Different page, create a new event to show navigation
+        const createResult = await EventQueries.create({
+          projectId: resolvedProjectId,
+          sessionId: resolvedSessionId,
+          pageUrl,
+          referrer: referrer || '',
+          source,
+          utmMedium,
+          utmCampaign,
+          utmTerm,
+          utmContent,
+          userAgent: userAgent || '',
+          ip: ip || 'Unknown',
+          country: country,
+          city: city,
+        });
+
+        if (!createResult.success || !createResult.data) {
+          return createErrorResponse('Failed to create event', 500);
+        }
+
+        // Broadcast update for real-time updates
+        try {
+          await broadcastUpdate(resolvedProjectId);
+        } catch (error) {
+          console.debug('Failed to broadcast update:', error);
+        }
+
+        return createSuccessResponse({ 
+          success: true, 
+          eventId: (createResult.data as DatabaseEvent).id, 
+          updated: false, 
+          pageChange: true 
+        });
       }
     }
 
-    // Create new event (first visit or no session)
+    // Create new event (first visit or new session)
     const createResult = await EventQueries.create({
       projectId: resolvedProjectId,
-      sessionId: sessionId || '',
+      sessionId: resolvedSessionId,
       pageUrl,
       referrer: referrer || '',
       source,

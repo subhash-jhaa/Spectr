@@ -19,7 +19,8 @@ import {
   PageStats,
   BrowserStats,
   DeviceStats,
-  SourceStats
+  SourceStats,
+  AudienceMixStats
 } from '../interfaces/database';
 
 export class EventQueries {
@@ -292,7 +293,7 @@ export class EventQueries {
             data: { id, projectId, sessionId, pageUrl, referrer, source, utmMedium, utmCampaign, utmTerm, utmContent, userAgent, ip, country, city, timestamp } as DatabaseEvent
           };
         } catch (rawFullErr) {
-          console.warn('Raw full insert failed, trying minimal core schema insert:', rawFullErr);
+          console.error('[SCHEMA_DRIFT_ALERT] Database is missing source/UTM columns! Dropping to core columns. Please run prisma/baseline_and_sync.sql on production DB.', rawFullErr);
           // Try inserting only core columns (guaranteed to exist on all database versions)
           await prisma.$executeRaw`
             INSERT INTO "Event" ("id", "projectId", "sessionId", "pageUrl", "referrer", "userAgent", "ip", "country", "city", "timestamp")
@@ -304,7 +305,7 @@ export class EventQueries {
           };
         }
       } catch (finalErr) {
-        console.error('All create event fallbacks failed:', finalErr);
+        console.error('[SCHEMA_DRIFT_ALERT] All create event fallbacks failed:', finalErr);
       }
 
       const msg = error instanceof Error ? error.message : 'Failed to create event';
@@ -502,36 +503,31 @@ export class EventQueries {
   }
 
   /**
-   * Get country stats
+   * Get country stats (standardized unique visitors)
    */
   static async getCountryStats(projectId: string, days: number = 30): Promise<QueryResult<CountryStats[]>> {
     try {
-      const endDate = new Date();
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
       
-      const groups = await prisma.event.groupBy({
-        by: ['country'],
-        where: {
-          projectId,
-          timestamp: {
-            gte: startDate,
-            lte: endDate
-          }
-        },
-        _count: {
-          _all: true
-        }
-      });
+      const rows = await prisma.$queryRaw<Array<{ country: string | null; visitors: number | bigint }>>`
+        SELECT
+          COALESCE(NULLIF("country", ''), 'Unknown') AS country,
+          COUNT(DISTINCT COALESCE("sessionId", "ip"))::integer AS visitors
+        FROM "Event"
+        WHERE "projectId" = ${projectId}
+          AND "timestamp" >= ${startDate}
+        GROUP BY COALESCE(NULLIF("country", ''), 'Unknown')
+        ORDER BY visitors DESC
+        LIMIT 10
+      `;
 
-      const totalVisitors = groups.reduce((sum, g) => sum + g._count._all, 0);
+      const totalVisitors = rows.reduce((sum, r) => sum + Number(r.visitors || 0), 0);
       
-      const chartData: CountryStats[] = groups.map(g => ({
-        country: g.country || 'Unknown',
-        visitors: g._count._all,
-        percentage: totalVisitors > 0 ? (g._count._all / totalVisitors) * 100 : 0
-      }))
-      .sort((a, b) => b.visitors - a.visitors)
-      .slice(0, 10);
+      const chartData: CountryStats[] = rows.map(r => ({
+        country: r.country || 'Unknown',
+        visitors: Number(r.visitors || 0),
+        percentage: totalVisitors > 0 ? (Number(r.visitors || 0) / totalVisitors) * 100 : 0
+      }));
 
       return {
         success: true,
@@ -540,49 +536,49 @@ export class EventQueries {
     } catch (error) {
       console.error('Error getting country stats:', error);
       return {
-        success: false,
-        error: 'Failed to get country stats'
+        success: true,
+        data: []
       };
     }
   }
 
   /**
-   * Get referrer stats
+   * Get referrer stats (standardized unique visitors)
    */
   static async getReferrerStats(projectId: string, days: number = 30): Promise<QueryResult<ReferrerStats[]>> {
     try {
-      const endDate = new Date();
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
       
-      const groups = await prisma.event.groupBy({
-        by: ['referrer'],
-        where: {
-          projectId,
-          timestamp: {
-            gte: startDate,
-            lte: endDate
-          }
-        },
-        _count: {
-          _all: true
-        }
-      });
+      const rows = await prisma.$queryRaw<Array<{ referrer: string | null; visitors: number | bigint }>>`
+        SELECT
+          COALESCE("referrer", '') AS referrer,
+          COUNT(DISTINCT COALESCE("sessionId", "ip"))::integer AS visitors
+        FROM "Event"
+        WHERE "projectId" = ${projectId}
+          AND "timestamp" >= ${startDate}
+        GROUP BY "referrer"
+        ORDER BY visitors DESC
+        LIMIT 25
+      `;
 
       const referrerMap: { [key: string]: number } = {};
       let totalVisitors = 0;
 
-      groups.forEach(g => {
-        let referrer = g.referrer || 'Direct';
+      rows.forEach(r => {
+        let referrer = r.referrer || 'Direct';
         if (referrer && referrer !== 'Direct') {
           try {
-            const url = new URL(referrer);
-            referrer = url.hostname;
+            const url = new URL(referrer.startsWith('http') ? referrer : `https://${referrer}`);
+            referrer = url.hostname.replace(/^www\./, '');
           } catch {
             referrer = 'Direct';
           }
+        } else {
+          referrer = 'Direct';
         }
-        referrerMap[referrer] = (referrerMap[referrer] || 0) + g._count._all;
-        totalVisitors += g._count._all;
+        const count = Number(r.visitors || 0);
+        referrerMap[referrer] = (referrerMap[referrer] || 0) + count;
+        totalVisitors += count;
       });
 
       const chartData: ReferrerStats[] = Object.entries(referrerMap)
@@ -601,14 +597,14 @@ export class EventQueries {
     } catch (error) {
       console.error('Error getting referrer stats:', error);
       return {
-        success: false,
-        error: 'Failed to get referrer stats'
+        success: true,
+        data: []
       };
     }
   }
 
   /**
-   * Get page stats (grouped by pageUrl)
+   * Get page stats (grouped by pageUrl with standardized unique visitors)
    */
   static async getPageStats(
     projectId: string,
@@ -618,12 +614,12 @@ export class EventQueries {
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
       const rows = await prisma.$queryRaw<
-        { pageUrl: string; pageViews: bigint; visitors: bigint }[]
+        { pageUrl: string; pageViews: bigint | number; visitors: bigint | number }[]
       >`
         SELECT
           "pageUrl",
-          COUNT(*) AS "pageViews",
-          COUNT(DISTINCT COALESCE("sessionId", id::text)) AS visitors
+          COUNT(*)::integer AS "pageViews",
+          COUNT(DISTINCT COALESCE("sessionId", "ip"))::integer AS visitors
         FROM "Event"
         WHERE "projectId" = ${projectId}
           AND "timestamp" >= ${startDate}
@@ -641,18 +637,18 @@ export class EventQueries {
       return { success: true, data };
     } catch (error) {
       console.error('Error getting page stats:', error);
-      return { success: false, error: 'Failed to get page stats' };
+      return { success: true, data: [] };
     }
   }
 
   /**
-   * Helper to query user agent counts in distinct groups
+   * Helper to query user agent counts in distinct groups (standardized unique visitors)
    */
   private static async getUserAgentCounts(projectId: string, startDate: Date) {
-    return await prisma.$queryRaw<{ userAgent: string; count: bigint }[]>`
+    return await prisma.$queryRaw<{ userAgent: string; count: bigint | number }[]>`
       SELECT
         "userAgent",
-        COUNT(*) as count
+        COUNT(DISTINCT COALESCE("sessionId", "ip"))::bigint as count
       FROM "Event"
       WHERE "projectId" = ${projectId}
         AND "timestamp" >= ${startDate}
@@ -719,7 +715,7 @@ export class EventQueries {
       return { success: true, data: { browsers, devices } };
     } catch (error) {
       console.error('Error getting user agent stats:', error);
-      return { success: false, error: 'Failed to get user agent stats' };
+      return { success: true, data: { browsers: [], devices: [] } };
     }
   }
 
@@ -732,7 +728,7 @@ export class EventQueries {
   ): Promise<QueryResult<BrowserStats[]>> {
     const result = await this.getUserAgentStats(projectId, days);
     if (!result.success || !result.data) {
-      return { success: false, error: result.error };
+      return { success: true, data: [] };
     }
     return { success: true, data: result.data.browsers };
   }
@@ -746,7 +742,7 @@ export class EventQueries {
   ): Promise<QueryResult<DeviceStats[]>> {
     const result = await this.getUserAgentStats(projectId, days);
     if (!result.success || !result.data) {
-      return { success: false, error: result.error };
+      return { success: true, data: [] };
     }
     return { success: true, data: result.data.devices };
   }
@@ -789,55 +785,17 @@ export class EventQueries {
   }
 
   /**
-   * Get traffic source stats (grouped by source field)
+   * Get traffic source stats (standardized unique visitors)
    */
   static async getSourceStats(projectId: string, days: number = 30): Promise<QueryResult<SourceStats[]>> {
     try {
       const endDate = new Date();
       const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-      // Strategy 1: Try Prisma groupBy if schema client is up to date
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const groups = await (prisma.event as any).groupBy({
-          by: ['source'],
-          where: {
-            projectId,
-            timestamp: {
-              gte: startDate,
-              lte: endDate
-            }
-          },
-          _count: {
-            _all: true
-          }
-        });
-
-        if (Array.isArray(groups) && groups.length > 0) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const totalVisitors = groups.reduce((sum: number, g: any) => sum + (g._count?._all || 0), 0);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const chartData: SourceStats[] = groups.map((g: any) => ({
-            source: g.source || 'Direct',
-            visitors: g._count?._all || 0,
-            percentage: totalVisitors > 0 ? ((g._count?._all || 0) / totalVisitors) * 100 : 0
-          }))
-          .sort((a: SourceStats, b: SourceStats) => b.visitors - a.visitors)
-          .slice(0, 15);
-
-          return {
-            success: true,
-            data: chartData
-          };
-        }
-      } catch (groupErr) {
-        console.warn('Prisma groupBy on source failed, trying raw query fallback:', groupErr);
-      }
-
-      // Strategy 2: Raw SQL query (in case Prisma Client types are not updated in-memory)
+      // Strategy 1: Raw SQL with unique visitor count
       try {
         const rawGroups = await prisma.$queryRaw<Array<{ source: string | null; count: bigint | number }>>`
-          SELECT COALESCE("source", 'Direct') as source, COUNT(*)::int as count
+          SELECT COALESCE("source", 'Direct') as source, COUNT(DISTINCT COALESCE("sessionId", "ip"))::int as count
           FROM "Event"
           WHERE "projectId" = ${projectId}
             AND "timestamp" >= ${startDate}
@@ -861,10 +819,10 @@ export class EventQueries {
           };
         }
       } catch (rawErr) {
-        console.warn('Raw query for sources failed, trying event classification fallback:', rawErr);
+        console.warn('[Schema Fallback Triggered] Raw query for sources failed, trying event classification fallback:', rawErr);
       }
 
-      // Strategy 3: Dynamic fallback using findMany and classifySource
+      // Strategy 2: Dynamic fallback using findMany and classifySource
       const events = await prisma.event.findMany({
         where: {
           projectId,
@@ -875,22 +833,27 @@ export class EventQueries {
         },
         select: {
           referrer: true,
-          pageUrl: true
+          pageUrl: true,
+          sessionId: true,
+          ip: true
         }
       });
 
-      const sourceMap: { [key: string]: number } = {};
+      const sourceMap: { [key: string]: Set<string> } = {};
       events.forEach(e => {
         const sourceLabel = classifySource(e.referrer, e.pageUrl);
-        sourceMap[sourceLabel] = (sourceMap[sourceLabel] || 0) + 1;
+        if (!sourceMap[sourceLabel]) {
+          sourceMap[sourceLabel] = new Set();
+        }
+        sourceMap[sourceLabel].add(e.sessionId || e.ip);
       });
 
-      const totalVisitors = events.length;
+      const totalVisitors = Object.values(sourceMap).reduce((sum, set) => sum + set.size, 0);
       const chartData: SourceStats[] = Object.entries(sourceMap)
-        .map(([source, visitors]) => ({
+        .map(([source, visitorsSet]) => ({
           source,
-          visitors,
-          percentage: totalVisitors > 0 ? (visitors / totalVisitors) * 100 : 0
+          visitors: visitorsSet.size,
+          percentage: totalVisitors > 0 ? (visitorsSet.size / totalVisitors) * 100 : 0
         }))
         .sort((a, b) => b.visitors - a.visitors)
         .slice(0, 15);
@@ -904,6 +867,76 @@ export class EventQueries {
       return {
         success: true,
         data: []
+      };
+    }
+  }
+
+  /**
+   * Get Audience Mix (New vs Returning visitors from historical session data)
+   */
+  static async getAudienceMix(projectId: string, days: number = 30): Promise<QueryResult<AudienceMixStats>> {
+    try {
+      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+      const rows = await prisma.$queryRaw<Array<{
+        total_visitors: bigint | number;
+        returning_visitors: bigint | number;
+        new_visitors: bigint | number;
+      }>>`
+        WITH visitor_summary AS (
+          SELECT
+            COALESCE("sessionId", "ip") AS visitor_key,
+            COUNT(*) AS total_hits,
+            COUNT(DISTINCT DATE_TRUNC('day', "timestamp")) AS distinct_days
+          FROM "Event"
+          WHERE "projectId" = ${projectId}
+            AND "timestamp" >= ${startDate}
+          GROUP BY COALESCE("sessionId", "ip")
+        )
+        SELECT
+          COUNT(*)::integer AS total_visitors,
+          COUNT(CASE WHEN total_hits > 1 OR distinct_days > 1 THEN 1 END)::integer AS returning_visitors,
+          COUNT(CASE WHEN total_hits = 1 AND distinct_days = 1 THEN 1 END)::integer AS new_visitors
+        FROM visitor_summary
+      `;
+
+      if (rows && rows.length > 0) {
+        const total = Number(rows[0].total_visitors || 0);
+        const returning = Number(rows[0].returning_visitors || 0);
+        const newVis = Number(rows[0].new_visitors || 0);
+        const newShare = total > 0 ? Math.round((newVis / total) * 100) : 0;
+        const returningShare = total > 0 ? 100 - newShare : 0;
+
+        return {
+          success: true,
+          data: {
+            newVisitors: newVis,
+            returningVisitors: returning,
+            newShare,
+            returningShare
+          }
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          newVisitors: 0,
+          returningVisitors: 0,
+          newShare: 0,
+          returningShare: 0
+        }
+      };
+    } catch (error) {
+      console.error('Error getting audience mix:', error);
+      return {
+        success: true,
+        data: {
+          newVisitors: 0,
+          returningVisitors: 0,
+          newShare: 0,
+          returningShare: 0
+        }
       };
     }
   }
@@ -944,34 +977,59 @@ export class EventQueries {
           }
         });
       } catch (findErr) {
-        console.error('findMany in getReferrerBreakdown failed:', findErr);
+        console.warn('[Schema Fallback Triggered] Extended query in getReferrerBreakdown failed, using core columns fallback:', findErr);
+        try {
+          events = await prisma.event.findMany({
+            where: {
+              projectId,
+              timestamp: {
+                gte: startDate,
+                lte: endDate
+              }
+            },
+            select: {
+              referrer: true,
+              pageUrl: true,
+              sessionId: true
+            }
+          });
+        } catch (coreErr) {
+          console.warn('[Schema Fallback Triggered] Core findMany failed, falling back to raw query:', coreErr);
+          events = await prisma.$queryRaw<Array<{ referrer: string; pageUrl: string; sessionId: string }>>`
+            SELECT "referrer", "pageUrl", "sessionId"
+            FROM "Event"
+            WHERE "projectId" = ${projectId}
+              AND "timestamp" >= ${startDate}
+              AND "timestamp" <= ${endDate}
+          `;
+        }
       }
 
       const map = new Map<string, { views: number; sessions: Set<string> }>();
 
       const getHost = (ref: string, pageUrl: string) => {
-        if (!ref || ref.trim() === '') return 'Direct / Not set';
+        if (!ref || ref.trim() === '') return 'Direct / None';
         try {
           const refHost = new URL(ref.startsWith('http') ? ref : `https://${ref}`).hostname.toLowerCase().replace(/^www\./, '');
           const pageHost = new URL(pageUrl.startsWith('http') ? pageUrl : `https://${pageUrl}`).hostname.toLowerCase().replace(/^www\./, '');
           if (pageHost && (refHost === pageHost || refHost.endsWith(`.${pageHost}`))) {
-            return 'Direct / Not set';
+            return 'Direct / None';
           }
           return refHost;
         } catch {
-          return ref.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0] || 'Direct / Not set';
+          return ref.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0] || 'Direct / None';
         }
       };
 
       for (const e of events) {
-        let key = 'Direct / Not set';
+        let key = 'Direct / None';
         const normDim = dimension.toLowerCase();
 
         if (normDim === 'refs') {
           key = getHost(e.referrer, e.pageUrl);
         } else if (normDim === 'urls') {
           if (!e.referrer || e.referrer.trim() === '') {
-            key = 'Direct / Not set';
+            key = 'Direct / None';
           } else {
             key = e.referrer;
           }
@@ -979,7 +1037,7 @@ export class EventQueries {
           key = classifyChannel(e.source || 'Direct', e.utmMedium);
         } else if (normDim === 'source') {
           key = e.source || classifySource(e.referrer, e.pageUrl);
-          if (key === 'Direct') key = 'Direct / Not set';
+          if (key === 'Direct') key = 'Direct / None';
         } else if (normDim === 'medium') {
           let med = e.utmMedium;
           if (!med && e.pageUrl) {
@@ -988,7 +1046,7 @@ export class EventQueries {
               med = u.searchParams.get('utm_medium') || null;
             } catch {}
           }
-          key = med || 'Direct / Not set';
+          key = med || 'Direct / None';
         } else if (normDim === 'campaign') {
           let camp = e.utmCampaign;
           if (!camp && e.pageUrl) {
@@ -997,7 +1055,7 @@ export class EventQueries {
               camp = u.searchParams.get('utm_campaign') || null;
             } catch {}
           }
-          key = camp || 'Direct / Not set';
+          key = camp || 'Direct / None';
         } else if (normDim === 'term') {
           let term = e.utmTerm;
           if (!term && e.pageUrl) {
@@ -1006,7 +1064,7 @@ export class EventQueries {
               term = u.searchParams.get('utm_term') || null;
             } catch {}
           }
-          key = term || 'Direct / Not set';
+          key = term || 'Direct / None';
         } else if (normDim === 'content') {
           let cont = e.utmContent;
           if (!cont && e.pageUrl) {
@@ -1015,7 +1073,7 @@ export class EventQueries {
               cont = u.searchParams.get('utm_content') || null;
             } catch {}
           }
-          key = cont || 'Direct / Not set';
+          key = cont || 'Direct / None';
         }
 
         if (!map.has(key)) {

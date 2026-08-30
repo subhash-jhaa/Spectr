@@ -91,24 +91,35 @@ export function validateProjectId(projectId: string): boolean {
   return Boolean(projectId && projectId.length > 0);
 }
 
-// Geolocation utilities
+// Geolocation utilities — secure reverse-proxy precedence
 export function getClientIP(request: NextRequest): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  const realIP = request.headers.get('x-real-ip');
+  // 1. Cloudflare header (tamper-proof when behind Cloudflare proxy)
   const cfConnectingIP = request.headers.get('cf-connecting-ip');
-  const xClientIP = request.headers.get('x-client-ip');
+  if (cfConnectingIP) {
+    return cfConnectingIP.trim();
+  }
 
+  // 2. Vercel trusted client IP header
+  const vercelIP = request.headers.get('x-vercel-forwarded-for');
+  if (vercelIP) {
+    return vercelIP.split(',')[0].trim();
+  }
+
+  // 3. Standard reverse proxy real IP
+  const realIP = request.headers.get('x-real-ip');
+  if (realIP) {
+    return realIP.trim();
+  }
+
+  // 4. Standard forwarded-for header
+  const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) {
     return forwarded.split(',')[0].trim();
   }
-  if (realIP) {
-    return realIP;
-  }
-  if (cfConnectingIP) {
-    return cfConnectingIP;
-  }
+
+  const xClientIP = request.headers.get('x-client-ip');
   if (xClientIP) {
-    return xClientIP;
+    return xClientIP.trim();
   }
 
   return 'Unknown';

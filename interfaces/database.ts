@@ -1,9 +1,9 @@
 import { User, Project, Event } from '@prisma/client';
 
-// Base database interfaces
-export interface DatabaseUser extends User {}
-export interface DatabaseProject extends Project {}
-export interface DatabaseEvent extends Event {}
+// Base database types
+export type DatabaseUser = User;
+export type DatabaseProject = Project;
+export type DatabaseEvent = Event;
 
 // Query result interfaces
 export interface UserWithProjects extends DatabaseUser {
@@ -123,6 +123,13 @@ export interface SourceStats {
   source: string;
   visitors: number;
   percentage: number;
+}
+
+export interface AudienceMixStats {
+  newVisitors: number;
+  returningVisitors: number;
+  newShare: number;
+  returningShare: number;
 }
 
 // Real-time interfaces

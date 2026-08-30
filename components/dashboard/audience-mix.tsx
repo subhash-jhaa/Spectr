@@ -17,14 +17,19 @@ import {
 } from "@/components/dashboard/share-bar-list";
 
 export interface AudienceMixProps {
-	visitors?: { id: string }[];
+	data?: {
+		newVisitors: number;
+		returningVisitors: number;
+		newShare: number;
+		returningShare: number;
+	};
 }
 
-export function AudienceMix({ visitors = [] }: AudienceMixProps) {
-	const total = visitors.length;
+export function AudienceMix({ data }: AudienceMixProps) {
+	const total = (data?.newVisitors || 0) + (data?.returningVisitors || 0);
 	const segments = total > 0 ? [
-		{ label: "New visitors", share: 100 },
-		{ label: "Returning visitors", share: 0 },
+		{ label: `New (${data?.newVisitors || 0})`, share: data?.newShare ?? 0 },
+		{ label: `Returning (${data?.returningVisitors || 0})`, share: data?.returningShare ?? 0 },
 	] : [];
 
 	return (
@@ -39,7 +44,7 @@ export function AudienceMix({ visitors = [] }: AudienceMixProps) {
 							</CardDescription>
 						</div>
 						<div className="text-[11px] font-mono text-zinc-500 bg-zinc-900/70 border border-zinc-800/60 px-2 py-0.5 rounded">
-							Realtime split
+							Last 30d
 						</div>
 					</div>
 				</CardHeader>

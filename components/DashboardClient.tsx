@@ -76,6 +76,13 @@ interface SourceStats {
   percentage?: number
 }
 
+interface AudienceMixStats {
+  newVisitors: number
+  returningVisitors: number
+  newShare: number
+  returningShare: number
+}
+
 const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientProps) => {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
@@ -86,6 +93,12 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
   const [browserStats, setBrowserStats] = useState<BrowserStats[]>([])
   const [deviceStats, setDeviceStats] = useState<DeviceStats[]>([])
   const [sourceStats, setSourceStats] = useState<SourceStats[]>([])
+  const [audienceMix, setAudienceMix] = useState<AudienceMixStats>({
+    newVisitors: 0,
+    returningVisitors: 0,
+    newShare: 0,
+    returningShare: 0
+  })
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [dataFetched, setDataFetched] = useState(false)
@@ -131,14 +144,20 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
         }
       }
 
-      const [dailyData, countriesData, referrersData, pagesData, browsersData, devicesData, sourcesData] = await Promise.all([
+      const [dailyData, countriesData, referrersData, pagesData, browsersData, devicesData, sourcesData, audienceData] = await Promise.all([
         fetchWithCheck(`/api/stats/project/${projectId}/7days`),
         fetchWithCheck(`/api/stats/project/${projectId}/countries`),
         fetchWithCheck(`/api/stats/project/${projectId}/referrers`),
         fetchWithCheck(`/api/stats/project/${projectId}/pages`),
         fetchWithCheck(`/api/stats/project/${projectId}/browsers`),
         fetchWithCheck(`/api/stats/project/${projectId}/devices`),
-        fetchWithCheck(`/api/stats/project/${projectId}/sources`)
+        fetchWithCheck(`/api/stats/project/${projectId}/sources`),
+        fetchWithCheck(`/api/stats/project/${projectId}/audience`).catch(() => ({
+          newVisitors: 0,
+          returningVisitors: 0,
+          newShare: 0,
+          returningShare: 0
+        }))
       ])
 
       setDailyStats(dailyData)
@@ -148,6 +167,7 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
       setBrowserStats(Array.isArray(browsersData) ? browsersData : [])
       setDeviceStats(Array.isArray(devicesData) ? devicesData : [])
       setSourceStats(Array.isArray(sourcesData) ? sourcesData : [])
+      if (audienceData) setAudienceMix(audienceData)
       setDataFetched(true)
       setLoading(false)
     } catch (error) {
@@ -404,6 +424,7 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
               pageStats={pageStats}
               browserStats={browserStats}
               deviceStats={deviceStats}
+              audienceMix={audienceMix}
             />
           )}
 

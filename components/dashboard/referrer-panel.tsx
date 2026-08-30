@@ -99,11 +99,12 @@ const SOURCE_ICONS: Record<string, { icon: string; color: string }> = {
   Email:            { icon: "✉️", color: "text-sky-400" },
   Referral:         { icon: "🔗", color: "text-zinc-300" },
   Direct:           { icon: "🌐", color: "text-zinc-400" },
+  "Direct / None":  { icon: "⛶", color: "text-zinc-500" },
   "Direct / Not set": { icon: "⛶", color: "text-zinc-500" },
 };
 
 function getItemIcon(name: string) {
-  if (name.toLowerCase().includes("direct") || name.toLowerCase().includes("not set")) {
+  if (name.toLowerCase().includes("direct") || name.toLowerCase().includes("not set") || name.toLowerCase().includes("none")) {
     return { icon: "⛶", color: "text-zinc-500" };
   }
   for (const [key, val] of Object.entries(SOURCE_ICONS)) {
@@ -119,19 +120,25 @@ export function ReferrerPanel({ projectId, initialData = [] }: ReferrerPanelProp
   const [searchQuery, setSearchQuery] = useState("");
   const [data, setData] = useState<BreakdownItem[]>(initialData);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
 
   const fetchBreakdown = useCallback(async (tab: AttributionTab) => {
     if (!projectId) return;
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`/api/stats/project/${projectId}/referrer-breakdown?dimension=${tab}&days=7`);
       if (res.ok) {
         const json = await res.json();
         setData(Array.isArray(json) ? json : []);
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setError(errJson.error || "Failed to load attribution data");
       }
     } catch (err) {
       console.error("Failed to fetch referrer breakdown:", err);
+      setError("Network error fetching attribution data");
     } finally {
       setLoading(false);
     }
@@ -270,6 +277,18 @@ export function ReferrerPanel({ projectId, initialData = [] }: ReferrerPanelProp
                       </TableRow>
                     );
                   })
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-10 font-mono text-xs">
+                      <div className="text-red-400 mb-2">{error}</div>
+                      <button
+                        onClick={() => fetchBreakdown(activeTab)}
+                        className="px-3 py-1 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 rounded text-xs transition cursor-pointer"
+                      >
+                        Retry
+                      </button>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center py-12 text-zinc-500 font-mono text-xs">
