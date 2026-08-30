@@ -6,25 +6,40 @@ export interface Project {
   createdAt: string
 }
 
-export const useProjects = (initialProjectId?: string) => {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
-  const [loading, setLoading] = useState(true)
+export const useProjects = (initialProjectId?: string, initialProjects?: Project[]) => {
+  const [projects, setProjects] = useState<Project[]>(initialProjects || [])
+  const [selectedProject, setSelectedProject] = useState<Project | null>(() => {
+    if (initialProjects && initialProjects.length > 0) {
+      if (initialProjectId) {
+        return initialProjects.find((p) => p.id === initialProjectId) || initialProjects[0]
+      }
+      return initialProjects[0]
+    }
+    return null
+  })
+  const [loading, setLoading] = useState(!initialProjects || initialProjects.length === 0)
   const [isCreatingProject, setIsCreatingProject] = useState(false)
   const [isDeletingProject, setIsDeletingProject] = useState(false)
 
   const fetchProjects = useCallback(async () => {
     try {
-      const response = await fetch('/api/project')
-      const data: Project[] = await response.json()
-      setProjects(data)
-      if (data.length > 0) {
-        setSelectedProject((prev) => {
-          if (initialProjectId) {
-            return data.find((p) => p.id === initialProjectId) || data[0]
+      const response = await fetch('/api/project', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        if (Array.isArray(data)) {
+          setProjects(data)
+          if (data.length > 0) {
+            setSelectedProject((prev) => {
+              if (initialProjectId) {
+                return data.find((p) => p.id === initialProjectId) || data[0]
+              }
+              return prev || data[0]
+            })
           }
-          return prev || data[0]
-        })
+        }
       }
       setLoading(false)
     } catch (error) {

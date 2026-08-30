@@ -27,8 +27,13 @@ export const SnippetGenerator = ({
 }: SnippetGeneratorProps) => {
   const [activeTab, setActiveTab] = useState<FrameworkKey>('html')
   const [hasCopied, setHasCopied] = useState(false)
+  const [baseUrl, setBaseUrl] = useState('https://spectr.subhashjha.me')
 
-  const baseUrl = 'https://spectr.subhashjha.me'
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.origin) {
+      setBaseUrl(window.location.origin)
+    }
+  }, [])
 
   const snippets: Record<FrameworkKey, { title: string; filename: string; code: string; note: string }> = {
     html: {

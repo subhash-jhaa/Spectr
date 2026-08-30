@@ -20,25 +20,22 @@
 
   // 2. Determine API tracking endpoint URL
   let apiUrl = customApi;
-  if (!apiUrl) {
-    if (script?.src) {
-      try {
-        const scriptOrigin = new URL(script.src, window.location.href).origin;
-        // Only use script origin if hosted on Spectr domain or local development server
-        if (scriptOrigin.includes('spectr') || scriptOrigin.includes('localhost') || scriptOrigin.includes('127.0.0.1')) {
-          apiUrl = `${scriptOrigin}/api/track`;
-        }
-      } catch (e) {}
-    }
+  if (!apiUrl && script?.src) {
+    try {
+      const parsedUrl = new URL(script.src, window.location.href);
+      if (parsedUrl.origin && parsedUrl.origin !== 'null') {
+        apiUrl = `${parsedUrl.origin}/api/track`;
+      }
+    } catch (e) {}
   }
   if (!apiUrl) {
     apiUrl = 'https://spectr.subhashjha.me/api/track';
   }
 
   // 3. Safe Storage Helpers (protects against incognito/iframe restrictions)
-  const SESSION_KEY = `wvm_session_${siteId}`;
-  const LAST_TRACK_KEY = `wvm_last_track_${siteId}`;
-  const LAST_PAGE_KEY = `wvm_last_page_${siteId}`;
+  const SESSION_KEY = `spectr_session_${siteId}`;
+  const LAST_TRACK_KEY = `spectr_last_track_${siteId}`;
+  const LAST_PAGE_KEY = `spectr_last_page_${siteId}`;
 
   function safeGetItem(key) {
     try {
@@ -77,9 +74,9 @@
     const pageChanged = lastPage !== currentPage;
     const isNewSessionOrExpired = !safeGetItem(SESSION_KEY) || (now - lastTrack) > 30 * 60 * 1000;
     
-    // Heartbeat pings every 30s
+    // Heartbeat pings every 30s; minimum 20s gap ensures we stay within the 3-min active window
     if (isHeartbeat) {
-      if (now - lastTrack >= 25 * 1000) {
+      if (now - lastTrack >= 20 * 1000) {
         safeSetItem(LAST_TRACK_KEY, now.toString());
         return true;
       }

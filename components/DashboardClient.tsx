@@ -34,6 +34,7 @@ import { SnippetGenerator } from './dashboard/snippet-generator'
 interface DashboardClientProps {
   session?: Session
   initialProjectId?: string
+  initialProjects?: Array<{ id: string; name: string; createdAt: string }>
 }
 
 interface DailyStats {
@@ -75,7 +76,7 @@ interface SourceStats {
   percentage?: number
 }
 
-const DashboardClient = ({ initialProjectId }: DashboardClientProps) => {
+const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientProps) => {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([])
@@ -97,7 +98,7 @@ const DashboardClient = ({ initialProjectId }: DashboardClientProps) => {
     loading: projectsLoading,
     isDeletingProject,
     deleteProject
-  } = useProjects(initialProjectId)
+  } = useProjects(initialProjectId, initialProjects)
 
   const {
     realtimeStats,

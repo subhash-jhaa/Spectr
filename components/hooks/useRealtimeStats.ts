@@ -21,17 +21,22 @@ export const useRealtimeStats = (selectedProjectId: string | undefined) => {
   const [isConnecting, setIsConnecting] = useState(false)
   const [realtimeConnected, setRealtimeConnected] = useState(false)
   const [isFallbackPolling, setIsFallbackPolling] = useState(false)
-  const [reconnectionAttempts, setReconnectionAttempts] = useState(0)
+  const reconnectionAttempts = 0
   const maxReconnectionAttempts = 3
 
-  const reconnectionTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const eventSourceRef = useRef<EventSource | null>(null)
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const isFetchingRef = useRef(false)
 
-  // Fallback REST fetcher
-  const fetchFallbackStats = useCallback(async (projectId: string) => {
+  // Direct DB-backed REST fetcher for live visitor telemetry
+  const fetchLiveStats = useCallback(async (projectId: string) => {
+    if (isFetchingRef.current) return
+    isFetchingRef.current = true
+
     try {
-      const res = await fetch(`/api/stats/project/${projectId}/realtime`)
+      const res = await fetch(`/api/stats/project/${projectId}/realtime`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      })
       if (res.ok) {
         const json = await res.json()
         if (json && typeof json.count === 'number') {
@@ -39,143 +44,68 @@ export const useRealtimeStats = (selectedProjectId: string | undefined) => {
             count: json.count,
             visitors: json.visitors || []
           })
+          setRealtimeConnected(true)
           setIsFallbackPolling(true)
         }
       }
     } catch (e) {
-      console.debug('Polling fallback error:', e)
+      console.debug('Live stats sync error:', e)
+    } finally {
+      isFetchingRef.current = false
+      setIsConnecting(false)
     }
   }, [])
-
-  // Start HTTP polling fallback if SSE fails or disconnects
-  const startFallbackPolling = useCallback((projectId: string) => {
-    if (pollingIntervalRef.current) return
-    setIsFallbackPolling(true)
-    fetchFallbackStats(projectId)
-    pollingIntervalRef.current = setInterval(() => {
-      fetchFallbackStats(projectId)
-    }, 5000)
-  }, [fetchFallbackStats])
-
-  const stopFallbackPolling = useCallback(() => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current)
-      pollingIntervalRef.current = null
-    }
-    setIsFallbackPolling(false)
-  }, [])
-
-  const connect = useCallback((projectId: string, attempt: number) => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close()
-      eventSourceRef.current = null
-    }
-    if (reconnectionTimeoutRef.current) {
-      clearTimeout(reconnectionTimeoutRef.current)
-      reconnectionTimeoutRef.current = null
-    }
-
-    if (attempt >= maxReconnectionAttempts) {
-      console.log('Max SSE reconnection attempts reached, switching to polling fallback.')
-      setIsConnecting(false)
-      setRealtimeConnected(false)
-      startFallbackPolling(projectId)
-      return
-    }
-
-    setIsConnecting(true)
-    setRealtimeConnected(false)
-
-    try {
-      const eventSource = new EventSource(`/api/realtime?projectId=${projectId}`)
-      eventSourceRef.current = eventSource
-
-      eventSource.onopen = () => {
-        setIsConnecting(false)
-        setRealtimeConnected(true)
-        setReconnectionAttempts(0)
-        stopFallbackPolling()
-      }
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data)
-          if (data.type === 'error') {
-            console.warn('SSE server error:', data.message)
-            eventSource.close()
-            setIsConnecting(false)
-            setRealtimeConnected(false)
-            startFallbackPolling(projectId)
-            return
-          }
-          if (data.type === 'stats') {
-            setRealtimeStats(data)
-          }
-        } catch (error) {
-          console.error('Error parsing SSE data:', error)
-        }
-      }
-
-      eventSource.onerror = () => {
-        eventSource.close()
-        eventSourceRef.current = null
-        setIsConnecting(false)
-        setRealtimeConnected(false)
-
-        // Switch to polling immediately while retrying in background
-        startFallbackPolling(projectId)
-
-        const nextAttempt = attempt + 1
-        setReconnectionAttempts(nextAttempt)
-
-        if (nextAttempt < maxReconnectionAttempts) {
-          const delay = Math.min(1000 * Math.pow(2, nextAttempt), 10000)
-          reconnectionTimeoutRef.current = setTimeout(() => {
-            connect(projectId, nextAttempt)
-          }, delay)
-        }
-      }
-    } catch (e) {
-      console.error('Failed to create EventSource:', e)
-      setIsConnecting(false)
-      setRealtimeConnected(false)
-      startFallbackPolling(projectId)
-    }
-  }, [maxReconnectionAttempts, startFallbackPolling, stopFallbackPolling])
 
   useEffect(() => {
     if (!selectedProjectId) {
       setRealtimeStats({ count: 0, visitors: [] })
       setIsConnecting(false)
       setRealtimeConnected(false)
-      stopFallbackPolling()
-      return
-    }
-
-    setReconnectionAttempts(0)
-    connect(selectedProjectId, 0)
-
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close()
-        eventSourceRef.current = null
-      }
-      if (reconnectionTimeoutRef.current) {
-        clearTimeout(reconnectionTimeoutRef.current)
-        reconnectionTimeoutRef.current = null
-      }
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current)
         pollingIntervalRef.current = null
       }
+      return
     }
-  }, [selectedProjectId, connect, stopFallbackPolling])
+
+    setIsConnecting(true)
+
+    // 1. Fetch immediately on mount / project change
+    fetchLiveStats(selectedProjectId)
+
+    // 2. Poll every 3 seconds for continuous, serverless-safe real-time telemetry
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+    }
+
+    pollingIntervalRef.current = setInterval(() => {
+      if (!document.hidden) {
+        fetchLiveStats(selectedProjectId)
+      }
+    }, 3000)
+
+    // 3. Immediately re-fetch when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (!document.hidden && selectedProjectId) {
+        fetchLiveStats(selectedProjectId)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+        pollingIntervalRef.current = null
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [selectedProjectId, fetchLiveStats])
 
   const retryConnection = useCallback(() => {
     if (!selectedProjectId) return
-    setReconnectionAttempts(0)
-    connect(selectedProjectId, 0)
-  }, [selectedProjectId, connect])
+    setIsConnecting(true)
+    fetchLiveStats(selectedProjectId)
+  }, [selectedProjectId, fetchLiveStats])
 
   return {
     realtimeStats,

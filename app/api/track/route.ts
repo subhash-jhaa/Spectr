@@ -141,7 +141,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
 
     // Check for recent events from the same session
     if (sessionId) {
-      const existingEventResult = await EventQueries.findRecentBySession(resolvedProjectId, sessionId, 5);
+      const existingEventResult = await EventQueries.findRecentBySession(resolvedProjectId, sessionId, 3);
 
       if (existingEventResult.success && existingEventResult.data) {
         const existingEvent = existingEventResult.data as DatabaseEvent;

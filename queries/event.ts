@@ -353,7 +353,7 @@ export class EventQueries {
   /**
    * Get real-time visitor stats
    */
-  static async getRealtimeStats(projectId: string, minutesAgo: number = 1): Promise<QueryResult<RealtimeStats>> {
+  static async getRealtimeStats(projectId: string, minutesAgo: number = 3): Promise<QueryResult<RealtimeStats>> {
     try {
       const result = await this.findRecentEvents(projectId, minutesAgo);
       if (!result.success || !result.data) {

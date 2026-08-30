@@ -26,6 +26,14 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
     redirect('/dashboard')
   }
 
+  // Fetch all user projects for the project switcher sidebar
+  const userProjectsResult = await ProjectQueries.findByUserId(user.id)
+  const initialProjects = (userProjectsResult.success && userProjectsResult.data ? userProjectsResult.data : []).map(p => ({
+    id: p.id,
+    name: p.name,
+    createdAt: p.createdAt ? p.createdAt.toISOString() : new Date().toISOString(),
+  }))
+
   const session = {
     user: { id: user.id, email: user.email, name: user.name, image: user.image },
     expires: '',
@@ -35,6 +43,7 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
     <DashboardClient
       session={session as unknown as Session}
       initialProjectId={projectId}
+      initialProjects={initialProjects}
     />
   )
 }

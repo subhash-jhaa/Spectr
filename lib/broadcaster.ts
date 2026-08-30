@@ -46,8 +46,8 @@ export async function sendStats(projectId: string, controller: ReadableStreamDef
   if (closedControllers.has(controller)) return;
 
   try {
-    // 5-minute active window for live visitor telemetry
-    const liveWindow = new Date(Date.now() - 5 * 60 * 1000);
+    // 3-minute active window for live visitor telemetry
+    const liveWindow = new Date(Date.now() - 3 * 60 * 1000);
     
     const realtimeEvents = await prisma.event.findMany({
       where: {

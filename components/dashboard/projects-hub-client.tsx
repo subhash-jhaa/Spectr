@@ -20,9 +20,10 @@ import {
 
 interface ProjectsHubClientProps {
   session: Session
+  initialProjects?: Project[]
 }
 
-export default function ProjectsHubClient({ session }: ProjectsHubClientProps) {
+export default function ProjectsHubClient({ session, initialProjects }: ProjectsHubClientProps) {
   const {
     projects,
     loading,
@@ -30,7 +31,7 @@ export default function ProjectsHubClient({ session }: ProjectsHubClientProps) {
     isDeletingProject,
     createProject,
     deleteProjectById
-  } = useProjects()
+  } = useProjects(undefined, initialProjects)
 
   const [searchQuery, setSearchQuery] = useState('')
   const [showNewProjectModal, setShowNewProjectModal] = useState(false)
