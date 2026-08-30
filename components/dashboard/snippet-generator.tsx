@@ -103,32 +103,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <div className="space-y-6">
-      {/* Live Verification Banner */}
-      <div className="bg-zinc-950/70 border border-zinc-900/80 rounded-xl p-5 backdrop-blur-md shadow-sm">
+    <div className="space-y-4">
+      {/* Live Status Header Banner */}
+      <div className="bg-white dark:bg-zinc-950/70 border border-[#e8e6e5] dark:border-zinc-900/80 rounded-2xl p-5 backdrop-blur-md shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center border ${
-              activeVisitorsCount > 0
-                ? 'bg-emerald-950/50 border-emerald-500/30 text-emerald-400'
-                : isConnected
-                  ? 'bg-blue-950/40 border-blue-500/30 text-blue-400'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-400'
-            }`}>
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-[#f5f5f4] dark:bg-zinc-900 border border-[#e8e6e5] dark:border-zinc-800 flex items-center justify-center text-[#3ba6f1] dark:text-zinc-300">
               <SignalIcon className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold font-mono text-white uppercase tracking-wider">Telemetry Status:</span>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-mono">
-                  <span className={`w-1.5 h-1.5 rounded-full ${
+                <h3 className="text-sm font-bold text-[#0c0a09] dark:text-white font-mono">Telemetry Status:</h3>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#f5f5f4] dark:bg-zinc-900 border border-[#e8e6e5] dark:border-zinc-800 text-xs font-mono font-semibold">
+                  <span className={`w-2 h-2 rounded-full ${
                     activeVisitorsCount > 0
-                      ? 'bg-emerald-400 animate-pulse'
+                      ? 'bg-emerald-500 animate-pulse'
                       : isConnected
-                        ? 'bg-blue-400 animate-pulse'
-                        : 'bg-amber-400 animate-pulse'
+                        ? 'bg-blue-500'
+                        : 'bg-amber-500'
                   }`}></span>
-                  <span className={activeVisitorsCount > 0 ? 'text-emerald-400' : isConnected ? 'text-blue-400' : 'text-amber-400'}>
+                  <span className={activeVisitorsCount > 0 ? 'text-emerald-600 dark:text-emerald-400' : isConnected ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'}>
                     {activeVisitorsCount > 0
                       ? `${activeVisitorsCount} Active Visitor${activeVisitorsCount > 1 ? 's' : ''}`
                       : isConnected
@@ -137,7 +131,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </span>
                 </div>
               </div>
-              <p className="text-xs text-zinc-400 font-mono mt-0.5">
+              <p className="text-xs text-[#78716c] dark:text-zinc-400 font-mono mt-0.5">
                 {activeVisitorsCount > 0
                   ? `Spectr is actively tracking live visitors for "${projectName}".`
                   : 'Embed the snippet below and open your website in a new tab to verify telemetry.'}
@@ -149,7 +143,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             href={baseUrl + '/track.js'}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-lg transition-colors w-fit"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-[#78716c] dark:text-zinc-400 hover:text-[#0c0a09] dark:hover:text-white bg-[#f5f5f4] dark:bg-zinc-900 border border-[#e8e6e5] dark:border-zinc-800 hover:border-[#3ba6f1]/50 dark:hover:border-zinc-700 rounded-xl transition-colors w-fit"
           >
             <GlobeAltIcon className="w-3.5 h-3.5" />
             Inspect track.js
@@ -158,9 +152,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       {/* Snippet Code Generator */}
-      <div className="bg-zinc-950/70 border border-zinc-900/80 rounded-xl overflow-hidden backdrop-blur-md shadow-sm">
+      <div className="bg-white dark:bg-zinc-950/70 border border-[#e8e6e5] dark:border-zinc-900/80 rounded-2xl overflow-hidden backdrop-blur-md shadow-sm">
         {/* Framework Selector Tabs */}
-        <div className="flex items-center justify-between border-b border-zinc-900/80 px-4 pt-3 pb-2.5 bg-zinc-950/40">
+        <div className="flex items-center justify-between border-b border-[#e8e6e5] dark:border-zinc-900/80 px-4 pt-3 pb-2.5 bg-[#fafaf9] dark:bg-zinc-950/40">
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
             {(Object.keys(snippets) as FrameworkKey[]).map((key) => {
               const tab = snippets[key]
@@ -172,10 +166,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     setActiveTab(key)
                     setHasCopied(false)
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                     isActive
-                      ? 'bg-zinc-800 text-white font-semibold border border-zinc-700/60 shadow-sm'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-900/60'
+                      ? 'bg-[#3ba6f1] text-white dark:bg-zinc-800 dark:text-white font-semibold shadow-sm'
+                      : 'text-[#78716c] dark:text-zinc-400 hover:text-[#0c0a09] dark:hover:text-white hover:bg-[#f5f5f4] dark:hover:bg-zinc-900/60'
                   }`}
                 >
                   <CodeBracketIcon className="w-3.5 h-3.5" />
@@ -188,15 +182,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <button
             onClick={handleCopy}
             disabled={hasCopied}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded-lg border transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded-xl border transition-colors cursor-pointer ${
               hasCopied
-                ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400'
-                : 'bg-zinc-900 border-zinc-700/80 text-zinc-200 hover:bg-zinc-800 hover:text-white'
+                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                : 'bg-[#f5f5f4] dark:bg-zinc-900 border-[#e8e6e5] dark:border-zinc-700/80 text-[#0c0a09] dark:text-zinc-200 hover:bg-[#ebeae8] dark:hover:bg-zinc-800'
             }`}
           >
             {hasCopied ? (
               <>
-                <CheckIcon className="w-3.5 h-3.5 text-emerald-400" />
+                <CheckIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 Copied!
               </>
             ) : (
@@ -210,19 +204,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* Code Content Area */}
         <div className="p-5">
-          <div className="flex items-center justify-between text-xs font-mono text-zinc-500 mb-2">
+          <div className="flex items-center justify-between text-xs font-mono text-[#78716c] dark:text-zinc-500 mb-2">
             <span>File: {currentSnippet.filename}</span>
-            <span className="text-[11px] text-zinc-600">Site ID: {projectId}</span>
+            <span className="text-[11px] text-[#a8a29e] dark:text-zinc-600">Site ID: {projectId}</span>
           </div>
 
-          <div className="relative bg-black/90 rounded-xl border border-zinc-900 p-4 overflow-x-auto font-mono text-xs text-zinc-200 selection:bg-zinc-800">
+          <div className="relative bg-[#f5f5f4] dark:bg-black/90 rounded-xl border border-[#e8e6e5] dark:border-zinc-900 p-4 overflow-x-auto font-mono text-xs text-[#0c0a09] dark:text-zinc-200 selection:bg-[#3ba6f1]/20 dark:selection:bg-zinc-800">
             <pre className="leading-relaxed">
               <code>{currentSnippet.code}</code>
             </pre>
           </div>
 
-          <div className="mt-3.5 flex items-start gap-2 text-xs font-mono text-zinc-400">
-            <SparklesIcon className="w-4 h-4 text-zinc-500 mt-0.5 shrink-0" />
+          <div className="mt-3.5 flex items-start gap-2 text-xs font-mono text-[#78716c] dark:text-zinc-400">
+            <SparklesIcon className="w-4 h-4 text-[#3ba6f1] dark:text-zinc-500 mt-0.5 shrink-0" />
             <p>{currentSnippet.note}</p>
           </div>
         </div>

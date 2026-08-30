@@ -51,20 +51,20 @@ export function OnlineNow({ count = 0, visitors = [], deviceStats = [] }: Online
 				];
 
 	return (
-		<Card className="gap-0 pb-0 md:col-span-2 lg:col-span-1 bg-zinc-950/70 border border-zinc-900/80 rounded-xl backdrop-blur-md hover:border-zinc-800/80 transition-all duration-200 shadow-sm flex flex-col justify-between">
-			<CardHeader className="flex flex-row items-start justify-between pb-4 border-b border-zinc-900/80">
-				<div className="flex min-w-0 flex-col gap-1">
+		<Card className="gap-0 pb-0 md:col-span-2 lg:col-span-1 bg-white dark:bg-zinc-950/70 border border-[#e8e6e5] dark:border-zinc-900/80 rounded-2xl backdrop-blur-md hover:border-[#3ba6f1]/40 dark:hover:border-zinc-800/80 transition-all duration-200 shadow-sm flex flex-col justify-between">
+			<CardHeader className="flex flex-row items-start justify-between pb-4 border-b border-[#e8e6e5] dark:border-zinc-900/80">
+				<div className="flex min-w-0 flex-col gap-1.5">
 					<div className="flex items-center gap-1.5">
-						<span className="text-xs font-mono font-medium text-zinc-400 uppercase tracking-wider">Active Now</span>
+						<span className="text-xs sm:text-sm font-semibold text-[#78716c] dark:text-zinc-400 uppercase tracking-wider">Active Now</span>
 					</div>
-					<div className="flex items-center gap-2.5">
-						<CardTitle className="font-mono text-3xl font-bold tracking-tight text-white tabular-nums">{totalOnline}</CardTitle>
-						<span className="relative flex h-2.5 w-2.5">
+					<div className="flex items-center gap-3">
+						<CardTitle className="font-roobert text-4xl sm:text-5xl font-bold tracking-tight text-[#0c0a09] dark:text-white tabular-nums">{totalOnline}</CardTitle>
+						<span className="relative flex h-3 w-3">
 							<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-							<span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+							<span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
 						</span>
 					</div>
-					<CardDescription className="text-xs font-mono text-zinc-500">
+					<CardDescription className="text-xs sm:text-sm text-[#78716c] dark:text-zinc-400">
 						Live visitors on site
 					</CardDescription>
 				</div>
@@ -73,14 +73,14 @@ export function OnlineNow({ count = 0, visitors = [], deviceStats = [] }: Online
 					<DeltaValue suffix="%" />
 				</Delta>
 			</CardHeader>
-			<CardContent className="px-4 py-4">
-				<div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-2.5">Device Distribution</div>
+			<CardContent className="px-5 py-4">
+				<div className="text-xs font-semibold text-[#78716c] dark:text-zinc-400 uppercase tracking-wider mb-3">Device Distribution</div>
 				<ShareBarList>
 					{deviceShares.map((d) => (
 						<ShareBarListItem key={d.label} value={d.share}>
 							<ShareBarListContent>
-								<ShareBarListLabel className="text-xs font-mono text-zinc-300">{d.label}</ShareBarListLabel>
-								<ShareBarListValue className="text-xs font-mono text-zinc-400">{d.share}%</ShareBarListValue>
+								<ShareBarListLabel className="text-xs sm:text-sm font-medium text-[#0c0a09] dark:text-zinc-200">{d.label}</ShareBarListLabel>
+								<ShareBarListValue className="text-xs sm:text-sm font-medium text-[#78716c] dark:text-zinc-400">{d.share}%</ShareBarListValue>
 							</ShareBarListContent>
 							<ShareBarListFill data-online-bar />
 						</ShareBarListItem>

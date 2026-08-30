@@ -54,16 +54,16 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
   const total = chartDataFormatted.reduce((sum, row) => sum + row.visitors, 0);
 
 	return (
-		<Card className="md:col-span-2 lg:col-span-3 bg-zinc-950/70 border border-zinc-900/80 rounded-xl backdrop-blur-md hover:border-zinc-800/80 transition-all duration-200 shadow-sm">
-			<CardHeader className="flex flex-row items-start justify-between pb-4 border-b border-zinc-900/80">
-				<div className="flex flex-col gap-1">
+		<Card className="md:col-span-2 lg:col-span-3 bg-white dark:bg-zinc-950/70 border border-[#e8e6e5] dark:border-zinc-900/80 rounded-2xl backdrop-blur-md hover:border-[#3ba6f1]/40 dark:hover:border-zinc-800/80 transition-all duration-200 shadow-sm">
+			<CardHeader className="flex flex-row items-start justify-between pb-4 border-b border-[#e8e6e5] dark:border-zinc-900/80">
+				<div className="flex flex-col gap-1.5">
 					<div className="flex items-center gap-2">
-						<span className="text-xs font-mono font-medium text-zinc-400 uppercase tracking-wider">Unique Visitors</span>
+						<span className="text-xs sm:text-sm font-semibold text-[#78716c] dark:text-zinc-400 uppercase tracking-wider">Unique Visitors</span>
 					</div>
-					<CardTitle className="font-mono text-3xl font-bold tracking-tight text-white tabular-nums">
+					<CardTitle className="font-roobert text-4xl sm:text-5xl font-bold tracking-tight text-[#0c0a09] dark:text-white tabular-nums">
 						{formatInteger(total)}
 					</CardTitle>
-					<CardDescription className="text-xs font-mono text-zinc-500">
+					<CardDescription className="text-xs sm:text-sm text-[#78716c] dark:text-zinc-400">
 						Total visitors in the last 7 days
 					</CardDescription>
 				</div>
@@ -71,7 +71,7 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
 					<Delta value={0.0} variant="badge">
 						<DeltaIcon variant="trend" />
 						<DeltaValue suffix="%" />
-						<span className="text-zinc-500">vs prior</span>
+						<span className="text-[#78716c] dark:text-zinc-400 text-xs font-medium">vs prior</span>
 					</Delta>
 				</div>
 			</CardHeader>
@@ -95,31 +95,31 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
 							<linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
 								<stop
 									offset="0%"
-									stopColor="#0062ff"
+									stopColor="#3ba6f1"
 									stopOpacity={0.35}
 								/>
 								<stop
 									offset="100%"
-									stopColor="#0062ff"
+									stopColor="#3ba6f1"
 									stopOpacity={0}
 								/>
 							</linearGradient>
 						</defs>
-						<CartesianGrid vertical={false} stroke="rgba(255,255,255,0.05)" />
+						<CartesianGrid vertical={false} stroke="currentColor" className="text-zinc-200 dark:text-zinc-850 opacity-40" />
 						<XAxis
 							axisLine={false}
 							dataKey="month"
 							tickFormatter={(value) => String(value).slice(0, 6)}
 							tickLine={false}
 							tickMargin={10}
-							stroke="rgba(255,255,255,0.4)"
-							fontSize={11}
-							fontFamily="monospace"
+							stroke="currentColor"
+							className="text-[#78716c] dark:text-zinc-300 font-mono font-medium"
+							fontSize={13}
 						/>
 						<ChartTooltip
 							content={<ChartTooltipContent indicator="line" />}
 							cursor={{
-								stroke: "#0062ff",
+								stroke: "#3ba6f1",
 								strokeDasharray: "3 3",
 								strokeLinecap: "round",
 							}}
@@ -128,21 +128,21 @@ export function VisitorsChart({ data }: VisitorsChartProps) {
 						<Area
 							dataKey="visitors"
 							dot={{
-								fill: "#0062ff",
+								fill: "#3ba6f1",
 								r: 3,
 								strokeWidth: 2,
-								stroke: "#09090b",
+								stroke: "#ffffff",
 							}}
 							activeDot={{
 								fill: "#ffffff",
 								r: 5,
 								strokeWidth: 2,
-								stroke: "#0062ff",
+								stroke: "#3ba6f1",
 							}}
 							fill={`url(#${gradientId})`}
 							isAnimationActive={true}
 							name={chartConfig.visitors.label}
-							stroke="#0062ff"
+							stroke="#3ba6f1"
 							strokeWidth={2}
 							type="linear"
 						/>

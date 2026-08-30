@@ -85,33 +85,36 @@ export function HeroScript() {
   };
 
   const lines = [
-    { tokens: [{ t: '<', c: 'text-zinc-500' }, { t: 'script', c: 'text-sky-400' }] },
-    { tokens: [{ t: '  src', c: 'text-violet-400' }, { t: '=', c: 'text-zinc-500' }, { t: '"https://spectr.subhashjha.me/track.js"', c: 'text-emerald-400' }] },
-    { tokens: [{ t: '  data-site', c: 'text-violet-400' }, { t: '=', c: 'text-zinc-500' }, { t: '"YOUR_SITE_ID"', c: 'text-amber-400' }] },
-    { tokens: [{ t: '  defer', c: 'text-violet-400' }] },
-    { tokens: [{ t: '>', c: 'text-zinc-500' }, { t: '</', c: 'text-zinc-500' }, { t: 'script', c: 'text-sky-400' }, { t: '>', c: 'text-zinc-500' }] },
+    { tokens: [{ t: '<', c: 'text-[#78716c] dark:text-zinc-500' }, { t: 'script', c: 'text-[#0284c7] dark:text-sky-400 font-semibold' }] },
+    { tokens: [{ t: '  src', c: 'text-[#7c3aed] dark:text-violet-400' }, { t: '=', c: 'text-[#78716c] dark:text-zinc-500' }, { t: '"https://spectr.subhashjha.me/track.js"', c: 'text-[#059669] dark:text-emerald-400' }] },
+    { tokens: [{ t: '  data-site', c: 'text-[#7c3aed] dark:text-violet-400' }, { t: '=', c: 'text-[#78716c] dark:text-zinc-500' }, { t: '"YOUR_SITE_ID"', c: 'text-[#d97706] dark:text-amber-400 font-semibold' }] },
+    { tokens: [{ t: '  defer', c: 'text-[#7c3aed] dark:text-violet-400' }] },
+    { tokens: [{ t: '>', c: 'text-[#78716c] dark:text-zinc-500' }, { t: '</', c: 'text-[#78716c] dark:text-zinc-500' }, { t: 'script', c: 'text-[#0284c7] dark:text-sky-400 font-semibold' }, { t: '>', c: 'text-[#78716c] dark:text-zinc-500' }] },
   ];
 
   return (
-    <motion.div variants={scaleIn} className={cn(CARD, "w-full max-w-lg mx-auto overflow-hidden shadow-2xl bg-zinc-950/40 code-section")}>
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800 bg-zinc-950/20">
+    <motion.div variants={scaleIn} className="w-full max-w-lg mx-auto overflow-hidden rounded-2xl border border-[#e8e6e5] dark:border-zinc-800/80 bg-white dark:bg-zinc-950 shadow-xl dark:shadow-2xl">
+      {/* Window Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#e8e6e5] dark:border-zinc-800/80 bg-[#fafaf9] dark:bg-zinc-900/60">
         <div className="flex items-center gap-1.5">
-          <div className="h-2.5 w-2.5 rounded-full bg-zinc-800" />
-          <div className="h-2.5 w-2.5 rounded-full bg-zinc-800" />
-          <div className="h-2.5 w-2.5 rounded-full bg-zinc-800" />
-          <span className={cn(MONO, "ml-2 text-[11px] text-zinc-600")}>index.html</span>
+          <div className="h-2.5 w-2.5 rounded-full bg-[#d6d3d1] dark:bg-zinc-700" />
+          <div className="h-2.5 w-2.5 rounded-full bg-[#d6d3d1] dark:bg-zinc-700" />
+          <div className="h-2.5 w-2.5 rounded-full bg-[#d6d3d1] dark:bg-zinc-700" />
+          <span className="ml-2 text-xs font-mono font-semibold text-[#78716c] dark:text-zinc-400">index.html</span>
         </div>
         <button
           onClick={copy}
-          className="flex items-center gap-1.5 text-[11px] text-zinc-500 hover:text-zinc-200 transition-colors px-2 py-1 rounded border border-zinc-800/60 hover:border-zinc-700 bg-zinc-950/30"
+          className="flex items-center gap-1.5 text-xs font-mono text-[#78716c] dark:text-zinc-300 hover:text-[#0c0a09] dark:hover:text-white transition-colors px-2.5 py-1 rounded-lg border border-[#e8e6e5] dark:border-zinc-800 hover:border-[#d6d3d1] dark:hover:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm cursor-pointer"
         >
           {copied
-            ? <><Check className="h-3 w-3 text-emerald-400" /><span className="text-emerald-400">Copied!</span></>
-            : <><Copy className="h-3 w-3" /><span>Copy</span></>}
+            ? <><Check className="h-3.5 w-3.5 text-emerald-500" /><span className="text-emerald-600 dark:text-emerald-400 font-semibold">Copied!</span></>
+            : <><Copy className="h-3.5 w-3.5" /><span>Copy</span></>}
         </button>
       </div>
-      <div className="px-5 py-4 bg-zinc-950/50 overflow-x-auto">
-        <pre className={cn(MONO, "text-sm leading-relaxed whitespace-pre")}>
+
+      {/* Code Snippet */}
+      <div className="px-5 py-5 bg-[#fafaf9]/50 dark:bg-zinc-950 overflow-x-auto">
+        <pre className="text-sm sm:text-[15px] font-mono leading-relaxed whitespace-pre">
           {lines.map((line, i) => (
             <motion.div 
               key={i}
@@ -126,14 +129,16 @@ export function HeroScript() {
           ))}
         </pre>
       </div>
-      <div className="flex items-center gap-2 px-5 py-3 border-t border-zinc-800/80 bg-zinc-950/20 flex-wrap">
+
+      {/* Footer Tags */}
+      <div className="flex items-center gap-2 px-5 py-3.5 border-t border-[#e8e6e5] dark:border-zinc-800/80 bg-[#fafaf9] dark:bg-zinc-900/40 flex-wrap">
         {['< 2KB', 'No dependencies', 'Open source'].map((b, i) => (
           <motion.span 
             key={b} 
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 1.2 + (i * 0.1) }}
-            className={cn(MONO, "text-[10px] text-zinc-500 border border-zinc-800/40 rounded px-2 py-0.5 bg-zinc-950/30")}
+            className="text-xs font-mono text-[#78716c] dark:text-zinc-400 border border-[#e8e6e5] dark:border-zinc-800/60 rounded-md px-2.5 py-0.5 bg-white dark:bg-zinc-900/60 shadow-2xs font-medium"
           >
             {b}
           </motion.span>

@@ -19,14 +19,14 @@ export function Logo({ className = "" }: { className?: string }) {
       {/* Secondary line - monochrome gray/opacity */}
       <line x1="24" y1="36" x2="36" y2="16" stroke="white" strokeWidth="4" strokeLinecap="round" opacity="0.3" />
 
-      {/* Wordmark - monochrome variant */}
+      {/* Wordmark - adaptive fill for light and dark mode */}
       <text
         x="56"
         y="38"
         fontFamily="system-ui,-apple-system,sans-serif"
         fontSize="30"
         fontWeight="700"
-        fill={className.includes("text-zinc-950") ? "#09090b" : "white"}
+        className="fill-[#0c0a09] dark:fill-white"
         letterSpacing="-0.04em"
       >
         spectr

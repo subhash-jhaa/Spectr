@@ -1,8 +1,6 @@
-'use client';
-
 import React from 'react';
 import { Quote } from 'lucide-react';
-import { cn, CARD, CARD_HOVER } from './Primitives';
+import { cn } from './Primitives';
 
 // ─── Constants & Data ────────────────────────────────────────────────────────
 // ─── Constants & Data ────────────────────────────────────────────────────────
@@ -31,18 +29,22 @@ const MAIN_TESTIMONIALS = [
 
 export function Testimonials() {
   return (
-    <section id="testimonials" className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-20 sm:py-28 overflow-hidden bg-black text-zinc-100">
+    <section id="testimonials" className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-20 sm:py-28 overflow-hidden bg-[#fafaf9] dark:bg-black text-[#0c0a09] dark:text-zinc-100">
       
       {/* ─── Staggered Grid ───────────────── */}
-      <div className="flex flex-col lg:flex-row gap-12 lg:gap-8 pt-10 border-t border-zinc-900">
+      <div className="flex flex-col lg:flex-row gap-12 lg:gap-8 pt-10 border-t border-[#e8e6e5] dark:border-zinc-900">
         
         {/* Left-hand text column */}
         <div className="w-full lg:w-[40%] flex flex-col justify-start">
           <div className="sticky top-24">
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-bold bg-[radial-gradient(61.17%_178.53%_at_38.83%_-13.54%,#3B3B3B_0%,#888787_12.61%,#FFFFFF_50%,#888787_80%,#3B3B3B_100%)] bg-clip-text text-transparent tracking-tight leading-tight">
-              What they <br /> say about us
+            <span className="text-[11px] font-mono font-bold tracking-widest text-[#3ba6f1] uppercase">
+              Community Love
+            </span>
+            <h2 className="font-roobert text-4xl md:text-5xl lg:text-[48px] font-normal text-[#0c0a09] dark:text-white tracking-[-0.025em] leading-[1.15] mt-2">
+              <span>What builders say — </span>
+              <span className="highlight-span mt-2">simple & fast</span>
             </h2>
-            <p className="text-sm text-zinc-400 mt-6 max-w-sm leading-relaxed">
+            <p className="text-base sm:text-lg font-normal text-[#78716c] dark:text-zinc-300 mt-6 max-w-sm leading-[1.65]">
               Simplify site analytics, event tracking, and user flows with cutting-edge tools built to be lightweight, developer-friendly, and privacy-respecting.
             </p>
           </div>
@@ -58,30 +60,30 @@ export function Testimonials() {
               <div 
                 key={t.name}
                 className={cn(
-                  CARD, CARD_HOVER,
+                  "rounded-2xl border border-[#e8e6e5] dark:border-zinc-800/80 bg-white dark:bg-zinc-950/50 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-none hover:-translate-y-1 transition-all duration-300",
                   "flex flex-col min-h-[220px] p-8 relative isolate overflow-hidden",
                   staggeredClass
                 )}
               >
                 {/* Background Gradient Effect */}
-                <div className="absolute inset-px rounded-[11px] bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none -z-10" />
+                <div className="absolute inset-px rounded-[15px] bg-gradient-to-b from-black/[0.01] dark:from-white/[0.02] to-transparent pointer-events-none -z-10" />
                 
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-11 h-11 rounded-full border border-zinc-800 bg-zinc-950 flex items-center justify-center text-[#DEDBC8] font-mono text-sm font-bold shrink-0 shadow-inner">
+                  <div className="w-12 h-12 rounded-full border border-[#e8e6e5] dark:border-zinc-800 bg-[#f5f5f4] dark:bg-zinc-950 flex items-center justify-center text-[#3ba6f1] dark:text-[#DEDBC8] font-mono text-sm font-bold shrink-0 shadow-inner">
                     {t.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-white">{t.name}</h3>
-                    <p className="text-xs text-zinc-500">{t.role}</p>
+                    <h3 className="text-base font-semibold text-[#0c0a09] dark:text-white">{t.name}</h3>
+                    <p className="text-xs sm:text-sm text-[#78716c] dark:text-zinc-400">{t.role}</p>
                   </div>
-                  <span className="text-[9px] text-[#00AA45] bg-[#00AA45]/5 border border-[#00AA45]/20 rounded px-1.5 py-0.5 ml-auto font-mono uppercase tracking-wider font-semibold">
+                  <span className="text-[10px] text-[#00AA45] bg-[#00AA45]/10 border border-[#00AA45]/20 rounded px-2 py-0.5 ml-auto font-mono uppercase tracking-wider font-semibold">
                     Peerlist
                   </span>
                 </div>
 
                 <div className="relative flex-1">
-                  <Quote className="absolute -top-2 -left-2 h-6 w-6 text-zinc-800 opacity-30 rotate-180" />
-                  <p className="relative z-10 text-sm text-zinc-300 leading-relaxed font-normal italic">
+                  <Quote className="absolute -top-2 -left-2 h-7 w-7 text-[#d6d3d1] dark:text-zinc-800 opacity-40 rotate-180" />
+                  <p className="relative z-10 text-base text-[#0c0a09] dark:text-zinc-200 leading-[1.65] font-normal italic">
                     &quot;{t.content}&quot;
                   </p>
                 </div>
@@ -96,4 +98,5 @@ export function Testimonials() {
     </section>
   );
 }
+
 export default Testimonials;
