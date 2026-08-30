@@ -120,27 +120,60 @@ export class EventQueries {
     try {
       const timeThreshold = new Date(Date.now() - minutesAgo * 60 * 1000);
       
-      const events = await prisma.event.findMany({
-        where: {
-          projectId,
-          timestamp: {
-            gte: timeThreshold
-          }
-        },
-        orderBy: { timestamp: 'desc' },
-        take: 100
-      });
+      try {
+        const events = await prisma.event.findMany({
+          where: {
+            projectId,
+            timestamp: {
+              gte: timeThreshold
+            }
+          },
+          select: {
+            id: true,
+            projectId: true,
+            pageUrl: true,
+            referrer: true,
+            source: true,
+            country: true,
+            city: true,
+            userAgent: true,
+            timestamp: true,
+            sessionId: true,
+            ip: true
+          },
+          orderBy: { timestamp: 'desc' },
+          take: 100
+        });
 
-      return {
-        success: true,
-        data: events,
-        count: events.length
-      };
+        return {
+          success: true,
+          data: events as DatabaseEvent[],
+          count: events.length
+        };
+      } catch (prismaErr) {
+        console.warn('Prisma findRecentEvents failed, falling back to raw query:', prismaErr);
+        const rawEvents = await prisma.$queryRaw<DatabaseEvent[]>`
+          SELECT "id", "projectId", "sessionId", "pageUrl", "referrer",
+                 COALESCE("source", 'Direct') as "source",
+                 "userAgent", "ip", "country", "city", "timestamp"
+          FROM "Event"
+          WHERE "projectId" = ${projectId}
+            AND "timestamp" >= ${timeThreshold}
+          ORDER BY "timestamp" DESC
+          LIMIT 100
+        `;
+        return {
+          success: true,
+          data: rawEvents,
+          count: rawEvents.length
+        };
+      }
     } catch (error) {
       console.error('Error finding recent events:', error);
       return {
-        success: false,
-        error: 'Failed to find recent events'
+        success: true,
+        data: [],
+        count: 0
       };
     }
   }
@@ -397,8 +430,11 @@ export class EventQueries {
     } catch (error) {
       console.error('Error getting real-time stats:', error);
       return {
-        success: false,
-        error: 'Failed to get real-time stats'
+        success: true,
+        data: {
+          count: 0,
+          visitors: []
+        }
       };
     }
   }

@@ -262,11 +262,15 @@ export async function handleStatsRoute<T>(
   try {
     const user = await requireAuth();
 
-    // Rate limit authenticated API routes
+    // Rate limit authenticated API routes (fails open if Redis is unreachable)
     if (authRatelimit) {
-      const { success } = await authRatelimit.limit(user.id);
-      if (!success) {
-        return createErrorResponse('Too many requests', 429);
+      try {
+        const { success } = await authRatelimit.limit(user.id);
+        if (!success) {
+          return createErrorResponse('Too many requests', 429);
+        }
+      } catch (rateLimitErr) {
+        console.debug('Auth rate limit check skipped:', rateLimitErr);
       }
     }
 
