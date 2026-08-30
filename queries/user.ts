@@ -68,7 +68,10 @@ export class UserQueries {
       
       if (filters.id) where.id = filters.id;
       if (filters.email) where.email = filters.email;
-      if (filters.emailVerified !== undefined) where.emailVerified = filters.emailVerified;
+      if (filters.emailVerified !== undefined) {
+        // emailVerified is a nullable DateTime: true → { not: null }, false → null
+        where.emailVerified = filters.emailVerified ? { not: null } : null;
+      }
 
       const users = await prisma.user.findMany({
         where,
@@ -243,7 +246,9 @@ export class UserQueries {
       
       if (filters.id) where.id = filters.id;
       if (filters.email) where.email = filters.email;
-      if (filters.emailVerified !== undefined) where.emailVerified = filters.emailVerified;
+      if (filters.emailVerified !== undefined) {
+        where.emailVerified = filters.emailVerified ? { not: null } : null;
+      }
 
       return await prisma.user.count({ where });
     } catch (error) {
