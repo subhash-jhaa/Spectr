@@ -119,6 +119,8 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
     realtimeStats,
     isConnecting,
     realtimeConnected,
+    hasError,
+    errorMessage,
     isFallbackPolling,
     reconnectionAttempts,
     maxReconnectionAttempts,
@@ -369,7 +371,9 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
             {/* Real-time connection indicator */}
             <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-zinc-900/60 border border-zinc-800/80">
               <span className="relative flex h-2 w-2">
-                {realtimeConnected || isFallbackPolling ? (
+                {hasError ? (
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                ) : realtimeConnected || isFallbackPolling ? (
                   <>
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -377,25 +381,28 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
                 ) : isConnecting ? (
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400 animate-pulse"></span>
                 ) : (
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-400"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-zinc-500"></span>
                 )}
               </span>
-              <span className="text-[11px] text-zinc-400 font-mono">
-                {realtimeConnected
-                  ? 'Live Stream'
-                  : isFallbackPolling
-                    ? 'Live'
-                    : isConnecting
-                      ? 'Connecting...'
-                      : reconnectionAttempts > 0
-                        ? `Retrying (${reconnectionAttempts}/${maxReconnectionAttempts})`
-                        : 'Disconnected'
+              <span className="text-[11px] text-zinc-400 font-mono" title={errorMessage || undefined}>
+                {hasError
+                  ? 'Live data issue'
+                  : realtimeConnected
+                    ? 'Live Stream'
+                    : isFallbackPolling
+                      ? 'Live'
+                      : isConnecting
+                        ? 'Connecting...'
+                        : reconnectionAttempts > 0
+                          ? `Retrying (${reconnectionAttempts}/${maxReconnectionAttempts})`
+                          : 'Disconnected'
                 }
               </span>
-              {!realtimeConnected && !isFallbackPolling && !isConnecting && reconnectionAttempts >= maxReconnectionAttempts && (
+              {hasError && (
                 <button
                   onClick={retryConnection}
-                  className="text-[11px] text-white hover:underline transition cursor-pointer font-mono ml-1 font-semibold"
+                  className="text-[11px] text-rose-400 hover:text-rose-300 hover:underline transition cursor-pointer font-mono ml-1 font-semibold"
+                  title="Retry live telemetry fetch"
                 >
                   Retry
                 </button>

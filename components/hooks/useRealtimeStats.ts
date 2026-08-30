@@ -20,6 +20,8 @@ export const useRealtimeStats = (selectedProjectId: string | undefined) => {
   const [realtimeStats, setRealtimeStats] = useState<RealtimeStats>({ count: 0, visitors: [] })
   const [isConnecting, setIsConnecting] = useState(false)
   const [realtimeConnected, setRealtimeConnected] = useState(false)
+  const [hasError, setHasError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isFallbackPolling, setIsFallbackPolling] = useState(false)
   const reconnectionAttempts = 0
   const maxReconnectionAttempts = 3
@@ -45,11 +47,21 @@ export const useRealtimeStats = (selectedProjectId: string | undefined) => {
             visitors: json.visitors || []
           })
           setRealtimeConnected(true)
+          setHasError(false)
+          setErrorMessage(null)
           setIsFallbackPolling(true)
         }
+      } else {
+        const errJson = await res.json().catch(() => ({}))
+        setHasError(true)
+        setRealtimeConnected(false)
+        setErrorMessage(errJson.error || `HTTP ${res.status}: Realtime DB query failed`)
       }
     } catch (e) {
       console.debug('Live stats sync error:', e)
+      setHasError(true)
+      setRealtimeConnected(false)
+      setErrorMessage('Network error fetching live stats')
     } finally {
       isFetchingRef.current = false
       setIsConnecting(false)
@@ -111,6 +123,8 @@ export const useRealtimeStats = (selectedProjectId: string | undefined) => {
     realtimeStats,
     isConnecting,
     realtimeConnected,
+    hasError,
+    errorMessage,
     isFallbackPolling,
     reconnectionAttempts,
     maxReconnectionAttempts,

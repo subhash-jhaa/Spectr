@@ -152,29 +152,61 @@ export class EventQueries {
           count: events.length
         };
       } catch (prismaErr) {
-        console.warn('Prisma findRecentEvents failed, falling back to raw query:', prismaErr);
-        const rawEvents = await prisma.$queryRaw<DatabaseEvent[]>`
-          SELECT "id", "projectId", "sessionId", "pageUrl", "referrer",
-                 COALESCE("source", 'Direct') as "source",
-                 "userAgent", "ip", "country", "city", "timestamp"
-          FROM "Event"
-          WHERE "projectId" = ${projectId}
-            AND "timestamp" >= ${timeThreshold}
-          ORDER BY "timestamp" DESC
-          LIMIT 100
-        `;
-        return {
-          success: true,
-          data: rawEvents,
-          count: rawEvents.length
-        };
+        console.warn('[Schema Fallback Triggered] findRecentEvents with source column failed, falling back to core columns:', prismaErr);
+        
+        try {
+          const coreEvents = await prisma.event.findMany({
+            where: {
+              projectId,
+              timestamp: {
+                gte: timeThreshold
+              }
+            },
+            select: {
+              id: true,
+              projectId: true,
+              pageUrl: true,
+              referrer: true,
+              country: true,
+              city: true,
+              userAgent: true,
+              timestamp: true,
+              sessionId: true,
+              ip: true
+            },
+            orderBy: { timestamp: 'desc' },
+            take: 100
+          });
+
+          return {
+            success: true,
+            data: coreEvents.map(e => ({ ...e, source: 'Direct' })) as DatabaseEvent[],
+            count: coreEvents.length
+          };
+        } catch (corePrismaErr) {
+          console.warn('[Schema Fallback Triggered] Core findMany failed, falling back to safe raw SQL:', corePrismaErr);
+          const rawEvents = await prisma.$queryRaw<DatabaseEvent[]>`
+            SELECT "id", "projectId", "sessionId", "pageUrl", "referrer",
+                   'Direct' AS "source",
+                   "userAgent", "ip", "country", "city", "timestamp"
+            FROM "Event"
+            WHERE "projectId" = ${projectId}
+              AND "timestamp" >= ${timeThreshold}
+            ORDER BY "timestamp" DESC
+            LIMIT 100
+          `;
+          return {
+            success: true,
+            data: rawEvents,
+            count: rawEvents.length
+          };
+        }
       }
     } catch (error) {
-      console.error('Error finding recent events:', error);
+      console.error('Fatal error in findRecentEvents:', error);
       return {
-        success: true,
-        data: [],
-        count: 0
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to query recent events'
       };
     }
   }
@@ -431,11 +463,8 @@ export class EventQueries {
     } catch (error) {
       console.error('Error getting real-time stats:', error);
       return {
-        success: true,
-        data: {
-          count: 0,
-          visitors: []
-        }
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to query realtime stats'
       };
     }
   }
