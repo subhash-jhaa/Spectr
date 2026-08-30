@@ -14,10 +14,10 @@ export function Hero() {
 
           {/* ── Crisp Mountain Image Background with Subtle Fade ── */}
           <div
-            className="absolute inset-0 h-full max-h-[85vh] w-full pointer-events-none z-0 overflow-hidden"
+            className="absolute inset-0 h-full w-full pointer-events-none z-0 overflow-hidden"
             style={{
-              WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 50%, transparent 100%)",
-              maskImage: "linear-gradient(to bottom, black 0%, black 50%, transparent 100%)",
+              WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 70%, transparent 100%)",
+              maskImage: "linear-gradient(to bottom, black 0%, black 70%, transparent 100%)",
             }}
           >
             <Image
@@ -25,12 +25,12 @@ export function Hero() {
               alt="Mountain Background"
               fill
               priority
-              className="object-cover object-top opacity-30 dark:opacity-40 filter contrast-105"
+              className="object-cover object-top opacity-85 dark:opacity-75 filter contrast-105"
             />
           </div>
 
           {/* Bottom fade into canvas */}
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#fafaf9] dark:from-black via-[#fafaf9]/80 dark:via-black/80 to-transparent pointer-events-none z-10" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#fafaf9] dark:from-black via-[#fafaf9]/60 dark:via-black/60 to-transparent pointer-events-none z-10" />
 
           {/* ── ContainerScroll 3D Interactive Animation ── */}
           <div className="relative z-20 w-full flex flex-col items-center">

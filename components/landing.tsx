@@ -28,11 +28,6 @@ export default function Landing({ session }: LandingProps) {
       {/* ── Hero ───────────────────────────────────────────────────────────── */}
       <Hero />
 
-      {/* ── How It Works ───────────────────────────────────────────────────── */}
-      <ScrollReveal>
-        <HowItWorks />
-      </ScrollReveal>
-
       {/* ── Walkthrough Section (Why Spectr? Let's walk through it) ────────── */}
       <ScrollReveal>
         <WalkthroughFeatures />
@@ -41,6 +36,11 @@ export default function Landing({ session }: LandingProps) {
       {/* ── Features (Bento Grid) ───────────────────────────────────────────── */}
       <ScrollReveal>
         <Features />
+      </ScrollReveal>
+
+      {/* ── How It Works ───────────────────────────────────────────────────── */}
+      <ScrollReveal>
+        <HowItWorks />
       </ScrollReveal>
 
       {/* ── Integration / Code section ─────────────────────────────────────── */}

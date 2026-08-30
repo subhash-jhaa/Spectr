@@ -1,9 +1,12 @@
 "use client";
 import React from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { cn, SectionLabel, fadeUp } from './Primitives';
 import { FEATURES } from './Constants';
 import { LiveGlobeCard } from './LiveGlobeCard';
+import { CobeGlobe } from '@/components/cobe-globe';
+import { Check } from 'lucide-react';
 
 export function Features() {
   return (
@@ -28,7 +31,7 @@ export function Features() {
   );
 }
 
-type FeatureVariant = 'realtime' | 'privacy' | 'console' | 'script' | 'insights' | 'api';
+type FeatureVariant = 'realtime' | 'privacy' | 'dashboard' | 'presence';
 
 interface Feature {
   readonly icon: React.ElementType;
@@ -40,20 +43,16 @@ interface Feature {
 
 function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
   const { span } = feature;
-  const Icon = feature.icon;
 
   // Map glow colors based on variant
   const glowColors: Record<FeatureVariant, string> = {
     realtime: 'from-blue-500/10 to-transparent',
     privacy: 'from-rose-500/10 to-transparent',
-    console: 'from-violet-500/10 to-transparent',
-    script: 'from-emerald-500/10 to-transparent',
-    insights: 'from-amber-500/10 to-transparent',
-    api: 'from-fuchsia-500/10 to-transparent',
+    dashboard: 'from-blue-500/10 to-transparent',
+    presence: 'from-cyan-500/10 to-transparent',
   };
 
   const glowColor = glowColors[feature.variant];
-  const showGiantIcon = feature.variant !== 'realtime' && feature.variant !== 'script';
 
   return (
     <motion.div
@@ -76,13 +75,6 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
           )} />
 
           <FeatureContent feature={feature} />
-
-          {/* Large bottom-right Icon from the design */}
-          {showGiantIcon && (
-            <div className="absolute bottom-4 right-4 opacity-[0.04] dark:opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-500 z-0 pointer-events-none">
-              <Icon className="w-28 h-28 text-[#0c0a09] dark:text-zinc-100" />
-            </div>
-          )}
         </div>
       </div>
     </motion.div>
@@ -93,10 +85,8 @@ function FeatureContent({ feature }: { feature: Feature }) {
   switch (feature.variant) {
     case 'realtime': return <RealtimeFeature feature={feature} />;
     case 'privacy': return <PrivacyFeature feature={feature} />;
-    case 'console': return <ConsoleFeature feature={feature} />;
-    case 'script': return <ScriptFeature feature={feature} />;
-    case 'insights': return <InsightsFeature feature={feature} />;
-    case 'api': return <ApiFeature feature={feature} />;
+    case 'dashboard': return <DashboardFeature feature={feature} />;
+    case 'presence': return <PresenceFeature feature={feature} />;
     default: return null;
   }
 }
@@ -135,92 +125,76 @@ function PrivacyFeature({ feature: { title, desc } }: { feature: Feature }) {
   );
 }
 
-function ConsoleFeature({ feature: { icon: Icon, title, desc } }: { feature: Feature }) {
+function DashboardFeature({ feature: { icon: Icon, title, desc } }: { feature: Feature }) {
   return (
-    <div className="flex flex-col h-full min-h-[300px]">
-      <div className="p-2.5 sm:p-3 rounded-xl bg-[#f5f5f4] dark:bg-zinc-900 border border-[#e8e6e5] dark:border-zinc-800 w-fit mb-4 text-[#3ba6f1]">
-        <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
-      </div>
-      <h3 className="font-roobert font-semibold text-[#0c0a09] dark:text-white text-xl sm:text-2xl mb-2.5">{title}</h3>
-      <p className="text-sm sm:text-base text-[#78716c] dark:text-zinc-400 leading-relaxed mb-6">{desc}</p>
-      <div className="mt-auto bg-[#fafaf9] dark:bg-zinc-950/60 border border-[#e8e6e5] dark:border-zinc-800/80 rounded-xl p-3.5 font-mono text-xs sm:text-[13px] text-[#78716c] dark:text-zinc-400 code-section">
-        <div className="flex gap-2 mb-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-red-500/60" />
-          <div className="w-1.5 h-1.5 rounded-full bg-amber-500/60" />
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/60" />
+    <div className="grid h-full sm:grid-cols-2 -m-6 sm:-m-8 min-h-[300px]">
+      <div className="relative z-10 space-y-5 p-6 sm:p-8 flex flex-col justify-center">
+        <div className="flex size-12 items-center justify-center rounded-full border border-[#e8e6e5] dark:border-zinc-800 bg-[#f5f5f4] dark:bg-zinc-900 shadow-xs outline outline-[#e8e6e5]/80 dark:outline-zinc-800/80 outline-offset-2">
+          <Icon className="size-5 text-[#3ba6f1]" />
         </div>
-        <div className="text-[#0c0a09] dark:text-zinc-200">$ node spectr.js</div>
-        <div className="text-emerald-600 dark:text-emerald-400">✔ Listening on port 3000</div>
+        <div className="space-y-2">
+          <h3 className="font-roobert font-semibold text-[#0c0a09] dark:text-white text-xl sm:text-2xl">
+            {title}
+          </h3>
+          <p className="text-sm sm:text-base text-[#78716c] dark:text-zinc-400 leading-relaxed">
+            {desc}
+          </p>
+        </div>
+      </div>
+
+      {/* Dashboard Screen */}
+      <div className="relative min-h-[220px] sm:min-h-full flex items-center justify-end p-4 sm:p-6 sm:pl-0">
+        <div className="w-full h-full max-h-[240px] rounded-xl border border-[#e8e6e5] dark:border-zinc-800 bg-white dark:bg-zinc-900 p-1 shadow-lg overflow-hidden flex items-center justify-center">
+          <div className="relative w-full h-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-950">
+            {/* Light Mode: White Dashboard */}
+            <div className="dark:hidden relative w-full h-full">
+              <Image
+                src="https://storage.efferd.com/screen/dashboard-light.webp"
+                alt="Spectr Dashboard Light Preview"
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-contain object-center"
+                unoptimized
+              />
+            </div>
+
+            {/* Dark Mode: Dark Spectr Dashboard */}
+            <div className="hidden dark:block relative w-full h-full">
+              <Image
+                src="https://storage.efferd.com/screen/dashboard-dark.webp"
+                alt="Spectr Dashboard Dark Preview"
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-contain object-center"
+                unoptimized
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function ScriptFeature({ feature: { icon: Icon, title, desc } }: { feature: Feature }) {
+function PresenceFeature({ feature: { icon: Icon, title, desc } }: { feature: Feature }) {
   return (
-    <div className={cn("grid grid-cols-1 sm:grid-cols-2 h-full min-h-[300px] -m-6 sm:-m-8")}>
-      <div className="p-6 sm:p-8 flex flex-col justify-between">
-        <div>
-          <div className="p-2.5 sm:p-3 rounded-xl bg-[#f5f5f4] dark:bg-zinc-900 border border-[#e8e6e5] dark:border-zinc-800 w-fit mb-4 text-[#3ba6f1]">
-            <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
-          </div>
-          <h3 className="font-roobert font-semibold text-[#0c0a09] dark:text-white text-xl sm:text-2xl mb-2.5">{title}</h3>
-          <p className="text-sm sm:text-base text-[#78716c] dark:text-zinc-400 leading-relaxed">{desc}</p>
+    <div className="grid h-full sm:grid-cols-2 -m-6 sm:-m-8 min-h-[300px]">
+      <div className="relative z-10 space-y-5 p-6 sm:p-8 flex flex-col justify-center">
+        <div className="flex size-12 items-center justify-center rounded-full border border-[#e8e6e5] dark:border-zinc-800 bg-[#f5f5f4] dark:bg-zinc-900 shadow-xs outline outline-[#e8e6e5]/80 dark:outline-zinc-800/80 outline-offset-2">
+          <Icon className="size-5 text-[#3ba6f1]" />
         </div>
-        <div className="mt-6 rounded-xl border border-[#e8e6e5] dark:border-zinc-800/80 bg-[#fafaf9] dark:bg-zinc-950/60 p-3.5 font-mono text-xs sm:text-[13px] text-[#0c0a09] dark:text-zinc-300 overflow-hidden code-section">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-[#78716c] dark:text-zinc-500">&lt;script</span>
-            <span className="text-amber-600 dark:text-amber-400">src</span>
-            <span className="text-emerald-600 dark:text-emerald-400 break-all">{`"https://spectr.subhashjha.me/track.js"`}</span>
-            <span className="text-[#78716c] dark:text-zinc-500">&gt;&lt;/script&gt;</span>
-          </div>
+        <div className="space-y-2">
+          <h3 className="font-roobert font-semibold text-[#0c0a09] dark:text-white text-xl sm:text-2xl">
+            {title}
+          </h3>
+          <p className="text-sm sm:text-base text-[#78716c] dark:text-zinc-400 leading-relaxed">
+            {desc}
+          </p>
         </div>
       </div>
-      <div className="relative bg-[#fafaf9] dark:bg-zinc-950/10 border-t border-[#e8e6e5] dark:border-zinc-800/80 sm:border-t-0 sm:border-l overflow-hidden min-h-[160px]">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <svg className="w-full h-28 text-[#e8e6e5] dark:text-zinc-800/40 group-hover:text-[#3ba6f1]/20 transition-all duration-300" viewBox="0 0 200 100" preserveAspectRatio="none">
-            <path d="M0,50 Q25,10 50,50 T100,50 T150,50 T200,50" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="5 5" className="animate-[pulse_3s_infinite]" />
-            <path d="M0,60 Q25,20 50,60 T100,60 T150,60 T200,60" fill="none" stroke="currentColor" strokeWidth="1" strokeOpacity="0.5" />
-          </svg>
-        </div>
-      </div>
-    </div>
-  );
-}
 
-function InsightsFeature({ feature: { icon: Icon, title, desc } }: { feature: Feature }) {
-  return (
-    <div className="flex flex-col h-full min-h-[300px]">
-      <div className="p-2.5 sm:p-3 rounded-xl bg-[#f5f5f4] dark:bg-zinc-900 border border-[#e8e6e5] dark:border-zinc-800 w-fit mb-4 text-[#3ba6f1]">
-        <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
-      </div>
-      <h3 className="font-roobert font-semibold text-[#0c0a09] dark:text-white text-xl sm:text-2xl mb-2.5">{title}</h3>
-      <p className="text-sm sm:text-base text-[#78716c] dark:text-zinc-400 leading-relaxed mb-6">{desc}</p>
-      <div className="grid grid-cols-2 gap-2.5 mt-auto">
-        {[42, 28, 15, 64].map((v, i) => (
-          <div key={i} className="bg-[#fafaf9] dark:bg-zinc-950/60 border border-[#e8e6e5] dark:border-zinc-800/60 rounded-lg p-2 flex items-end gap-1.5 h-14 group-hover:border-[#3ba6f1]/40 transition-all duration-300">
-            <div className="w-full bg-[#d6d3d1] dark:bg-zinc-800/80 rounded-t-sm transition-all duration-700 group-hover:bg-[#3ba6f1] group-hover:shadow-[0_0_12px_rgba(59,166,241,0.4)]" style={{ height: `${v}%` }} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ApiFeature({ feature: { icon: Icon, title, desc } }: { feature: Feature }) {
-  return (
-    <div className="flex flex-col h-full min-h-[300px]">
-      <div className="p-2.5 sm:p-3 rounded-xl bg-[#f5f5f4] dark:bg-zinc-900 border border-[#e8e6e5] dark:border-zinc-800 w-fit mb-4 text-[#3ba6f1]">
-        <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
-      </div>
-      <h3 className="font-roobert font-semibold text-[#0c0a09] dark:text-white text-xl sm:text-2xl mb-2.5">{title}</h3>
-      <p className="text-sm sm:text-base text-[#78716c] dark:text-zinc-400 leading-relaxed mb-6">{desc}</p>
-      <div className="mt-auto overflow-x-auto rounded-xl border border-[#e8e6e5] dark:border-zinc-800/80 bg-[#fafaf9] dark:bg-zinc-950/60 p-4 font-mono text-xs sm:text-[13px] text-[#78716c] dark:text-zinc-400 code-section">
-        <div className="text-[#a8a29e] dark:text-zinc-500 mb-1">{`// GET /api/v1/stats`}</div>
-        <div className="text-[#0c0a09] dark:text-zinc-200">{"{"}</div>
-        <div className="pl-3 text-[#78716c] dark:text-zinc-300">{`"visitors"`}: <span className="text-emerald-600 dark:text-emerald-400">1284</span>,</div>
-        <div className="pl-3 text-[#78716c] dark:text-zinc-300">{`"active"`}: <span className="text-amber-600 dark:text-amber-400">true</span></div>
-        <div className="text-[#0c0a09] dark:text-zinc-200">{"}"}</div>
+      <div className="relative overflow-hidden min-h-[240px] sm:min-h-full">
+        <CobeGlobe className="-top-[12%] right-0 sm:absolute pointer-events-none" />
       </div>
     </div>
   );

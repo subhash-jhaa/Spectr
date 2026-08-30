@@ -1,6 +1,6 @@
 import {
   Eye, BarChart3, Code2, Cpu, ShieldCheck, Plug,
-  Globe, Zap, Activity,
+  Globe, Zap, Activity, MousePointerClick,
 } from 'lucide-react';
 
 export const VISITORS = [
@@ -29,23 +29,23 @@ export const FEATURES = [
   { 
     icon: Globe, 
     title: 'Live View', 
-    desc: 'Interactive globe view of your visitors.',
+    desc: 'Interactive real-time map of your visitors with live location pings and session tracking.',
     variant: 'realtime',
     span: 4
   },
   { 
-    icon: Code2, 
-    title: '1-Line Script', 
-    desc: 'Integrate in seconds. One copy-paste. No bloat, no npm, no build step required.',
-    variant: 'script',
-    span: 4
+    icon: MousePointerClick, 
+    title: 'Sleek & Intuitive Design', 
+    desc: 'Manage & scale your business effortlessly using our user-friendly interface.',
+    variant: 'dashboard',
+    span: 3
   },
   { 
-    icon: Cpu, 
-    title: 'Dev Console Mode', 
-    desc: 'Open a live analytics console in your browser. Feels like devtools, built for users.',
-    variant: 'console',
-    span: 2
+    icon: Globe, 
+    title: 'Access Anytime, Anywhere', 
+    desc: 'Stay connected to your business no matter where you are, with our cloud-based access.',
+    variant: 'presence',
+    span: 3
   },
 ] as const;
 
