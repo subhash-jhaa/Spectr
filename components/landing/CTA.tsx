@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 
@@ -65,6 +66,16 @@ export function CTA() {
           </motion.div>
         </div>
 
+        {/* ─── Right Side Floating CTA Graphic ─────────────────────────────────── */}
+        <Image
+          src="/seline-cta.png"
+          alt="seline-cta"
+          width={775}
+          height={524}
+          loading="lazy"
+          className="z-[2] hidden md:block absolute right-6 bottom-6 h-auto md:w-[310px] lg:w-[370px] pointer-events-none drop-shadow-2xl opacity-90 hover:opacity-100 transition-opacity"
+        />
+
         {/* ─── Right Side Glowing Laser Line ──────────────────────────────────── */}
         <svg 
           className="absolute right-0 h-full w-8 sm:w-16 md:w-20 lg:w-24 pointer-events-none opacity-40 dark:opacity-100" 
@@ -92,3 +103,4 @@ export function CTA() {
 }
 
 export default CTA;
+

@@ -13,15 +13,15 @@ interface FAQItemProps {
 
 function FAQItem({ question, answer, isOpen, onClick }: FAQItemProps) {
   return (
-    <div className="border-b border-[#e8e6e5] dark:border-zinc-800 last:border-0">
+    <div className="py-2">
       <button
         onClick={onClick}
-        className="w-full flex items-center justify-between py-6 text-left focus:outline-none group cursor-pointer"
+        className="w-full flex items-center justify-between py-5 text-left focus:outline-none group cursor-pointer"
       >
         <span className="text-lg sm:text-xl font-medium text-[#0c0a09] dark:text-zinc-100 group-hover:text-[#3ba6f1] dark:group-hover:text-white transition-colors duration-200">
           {question}
         </span>
-        <span className="ml-4 flex-shrink-0 text-[#78716c] dark:text-zinc-500 group-hover:text-[#0c0a09] dark:group-hover:text-zinc-300 transition-colors duration-200">
+        <span className="ml-4 flex-shrink-0 text-[#78716c] dark:text-zinc-400 group-hover:text-[#0c0a09] dark:group-hover:text-zinc-200 transition-colors duration-200">
           {isOpen ? (
             <Minus className="h-5 w-5 sm:h-6 sm:w-6 text-[#3ba6f1]" />
           ) : (
@@ -75,7 +75,7 @@ export function FAQ() {
   ];
 
   return (
-    <section id="faq" className="relative py-20 sm:py-28 bg-[#fafaf9] dark:bg-black overflow-hidden border-t border-[#e8e6e5] dark:border-zinc-900">
+    <section id="faq" className="relative py-20 sm:py-28 bg-[#fafaf9] dark:bg-black overflow-hidden">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Header */}
@@ -92,8 +92,8 @@ export function FAQ() {
           </p>
         </div>
 
-        {/* Accordions Card Container */}
-        <div className="max-w-3xl mx-auto rounded-2xl bg-white dark:bg-zinc-950/50 border border-[#e8e6e5] dark:border-zinc-800 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-none p-6 sm:p-8 divide-y divide-[#e8e6e5] dark:divide-zinc-800">
+        {/* Accordions Container (Clean without bounding card border) */}
+        <div className="max-w-3xl mx-auto divide-y divide-[#e8e6e5] dark:divide-zinc-850">
           {faqs.map((faq, index) => (
             <FAQItem
               key={index}
@@ -104,7 +104,6 @@ export function FAQ() {
             />
           ))}
         </div>
-
       </div>
     </section>
   );

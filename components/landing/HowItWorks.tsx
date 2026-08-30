@@ -114,12 +114,12 @@ const Card = ({ step, i, progress, range, targetScale }: {
   return (
     <div 
       ref={container} 
-      className="h-[75vh] md:h-[80vh] flex items-start justify-center relative sticky top-20 md:top-28 w-full mb-6 md:mb-0" 
+      className="min-h-[460px] sm:min-h-[520px] flex items-start justify-center relative sticky top-24 sm:top-28 w-full mb-8 sm:mb-12" 
       style={{ zIndex: i + 1 }}
     >
       {/* Card */}
       <motion.div 
-        style={{ scale, y: isMobile ? i * 12 : i * 25 }}
+        style={{ scale, y: isMobile ? i * 10 : i * 20 }}
         className="relative w-full rounded-2xl sm:rounded-3xl border border-[#e8e6e5] dark:border-zinc-800/80 bg-white/95 dark:bg-zinc-950/90 backdrop-blur-md overflow-hidden shadow-xl origin-top flex flex-col"
       >
         {/* Card Top: Title & Mobile Step */}
@@ -211,7 +211,7 @@ export function HowItWorks() {
   }, [scrollYProgress]);
 
   return (
-    <section id="how-it-works" ref={container} className="relative w-full py-20 sm:py-28">
+    <section id="how-it-works" ref={container} className="relative w-full pt-16 pb-6 sm:pt-20 sm:pb-8">
       <motion.div
         initial="hidden"
         whileInView="visible"

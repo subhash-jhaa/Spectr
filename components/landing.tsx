@@ -4,12 +4,14 @@ import { Navbar } from './landing/Navbar';
 import { Hero } from './landing/Hero';
 import { HowItWorks } from './landing/HowItWorks';
 import { Features } from './landing/Features';
+import { WalkthroughFeatures } from './landing/WalkthroughFeatures';
 import { Integration } from './landing/Integration';
 import { Testimonials } from './landing/Testimonials';
 import { CTA } from './landing/CTA';
 import { Footer } from './landing/Footer';
 import { Pricing } from './landing/Pricing';
 import { FAQ } from './landing/FAQ';
+import { SimpleByDesign } from './landing/SimpleByDesign';
 import { ScrollReveal } from './landing/ScrollReveal';
 
 interface LandingProps {
@@ -31,7 +33,12 @@ export default function Landing({ session }: LandingProps) {
         <HowItWorks />
       </ScrollReveal>
 
-      {/* ── Features ───────────────────────────────────────────────────────── */}
+      {/* ── Walkthrough Section (Why Spectr? Let's walk through it) ────────── */}
+      <ScrollReveal>
+        <WalkthroughFeatures />
+      </ScrollReveal>
+
+      {/* ── Features (Bento Grid) ───────────────────────────────────────────── */}
       <ScrollReveal>
         <Features />
       </ScrollReveal>
@@ -49,6 +56,11 @@ export default function Landing({ session }: LandingProps) {
       {/* ── Pricing ────────────────────────────────────────────────────────── */}
       <ScrollReveal>
         <Pricing />
+      </ScrollReveal>
+
+      {/* ── Simple by Design (Moving Boxes) ─────────────────────────────────── */}
+      <ScrollReveal>
+        <SimpleByDesign />
       </ScrollReveal>
 
       {/* ── FAQ ────────────────────────────────────────────────────────────── */}

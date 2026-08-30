@@ -20,25 +20,18 @@ export const STATS = [
 
 export const FEATURES = [
   { 
-    icon: Eye, 
-    title: 'Live User Feed', 
-    desc: 'Every visitor in real time — device, browser, country. Zero delay, zero sampling.',
-    variant: 'realtime',
-    span: 4
-  },
-  { 
     icon: ShieldCheck, 
-    title: 'Privacy-First', 
-    desc: 'No cookies, no fingerprinting. Fully GDPR & CCPA compliant — ethical by default.',
+    title: 'No cookie banners', 
+    desc: 'Spectr is cookie-less and privacy-friendly by default. No consent banners and GDPR-compliant out of the box.',
     variant: 'privacy',
     span: 2
   },
   { 
-    icon: Cpu, 
-    title: 'Dev Console Mode', 
-    desc: 'Open a live analytics console in your browser. Feels like devtools, built for users.',
-    variant: 'console',
-    span: 2
+    icon: Globe, 
+    title: 'Live View', 
+    desc: 'Interactive globe view of your visitors.',
+    variant: 'realtime',
+    span: 4
   },
   { 
     icon: Code2, 
@@ -48,18 +41,11 @@ export const FEATURES = [
     span: 4
   },
   { 
-    icon: BarChart3, 
-    title: 'Referrer & Country Insights', 
-    desc: 'Know exactly where traffic comes from, which links perform, and which regions are active.',
-    variant: 'insights',
-    span: 3
-  },
-  { 
-    icon: Plug, 
-    title: 'Open REST API', 
-    desc: 'Fetch analytics programmatically. Build Slack bots, CLI tools, or custom dashboards.',
-    variant: 'api',
-    span: 3
+    icon: Cpu, 
+    title: 'Dev Console Mode', 
+    desc: 'Open a live analytics console in your browser. Feels like devtools, built for users.',
+    variant: 'console',
+    span: 2
   },
 ] as const;
 

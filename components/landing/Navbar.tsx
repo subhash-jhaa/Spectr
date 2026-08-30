@@ -36,12 +36,12 @@ export function Navbar({ session }: NavbarProps) {
       {/* Desktop Navigation */}
       <NavBody>
         <Link href="/" className="flex items-center mr-6">
-          <Logo className="h-8 w-auto" />
+          <Logo className="h-9 sm:h-9.5 w-auto" />
         </Link>
 
         <NavItems items={navItems} />
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <ThemeToggle />
 
           {session?.user ? (
@@ -74,7 +74,7 @@ export function Navbar({ session }: NavbarProps) {
       <MobileNav>
         <MobileNavHeader>
           <Link href="/" className="flex items-center">
-            <Logo className="h-9 w-auto" />
+            <Logo className="h-9.5 w-auto" />
           </Link>
           <div className="flex items-center gap-2">
             <ThemeToggle />
