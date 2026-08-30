@@ -100,6 +100,8 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
     deleteProject
   } = useProjects(initialProjectId, initialProjects)
 
+  const projectId = selectedProject?.id || initialProjectId
+
   const {
     realtimeStats,
     isConnecting,
@@ -108,9 +110,7 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
     reconnectionAttempts,
     maxReconnectionAttempts,
     retryConnection
-  } = useRealtimeStats(selectedProject?.id)
-
-  const projectId = selectedProject?.id
+  } = useRealtimeStats(projectId)
 
   const fetchStats = useCallback(async () => {
     if (!projectId) return
