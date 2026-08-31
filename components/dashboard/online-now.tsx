@@ -7,7 +7,6 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Delta, DeltaIcon, DeltaValue } from "@/components/dashboard/delta";
 import {
 	ShareBarList,
 	ShareBarListContent,
@@ -68,10 +67,6 @@ export function OnlineNow({ count = 0, visitors = [], deviceStats = [] }: Online
 						Live visitors on site
 					</CardDescription>
 				</div>
-				<Delta value={0.0} variant="badge">
-					<DeltaIcon variant="trend" />
-					<DeltaValue suffix="%" />
-				</Delta>
 			</CardHeader>
 			<CardContent className="px-5 py-4">
 				<div className="text-xs font-semibold text-[#78716c] dark:text-zinc-400 uppercase tracking-wider mb-3">Device Distribution</div>
