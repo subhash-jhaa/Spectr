@@ -77,7 +77,7 @@ export const NewProjectModal = ({ isOpen, onClose, onCreate, isCreating }: NewPr
             <button
               onClick={handleSubmit}
               disabled={isCreating || !projectName.trim()}
-              className="flex-1 px-4 py-2.5 bg-[#3ba6f1] hover:bg-[#3398e1] dark:bg-white text-white dark:text-zinc-950 dark:hover:bg-zinc-200 rounded-xl transition font-mono text-xs font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+              className="flex-1 px-4 py-2.5 bg-[#3ba6f1] hover:bg-[#2f9ae6] active:scale-[0.98] text-white rounded-xl transition-all font-mono text-xs font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-[0_2px_10px_rgba(59,166,241,0.3)] hover:shadow-[0_4px_16px_rgba(59,166,241,0.4)]"
             >
               {isCreating ? (
                 <>

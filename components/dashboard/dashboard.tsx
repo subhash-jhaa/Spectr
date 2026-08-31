@@ -42,7 +42,7 @@ export function Dashboard({
 			<ReferrerPanel projectId={projectId} />
 			<AudienceMix data={audienceMix} />
 			<BrowserShare data={browserStats} />
-			<WebVitals />
+			<WebVitals projectId={projectId} />
 		</div>
 	);
 }

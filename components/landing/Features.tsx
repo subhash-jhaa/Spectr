@@ -67,7 +67,7 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
       <div className="bg-white/80 dark:bg-zinc-950/30 hover:bg-[#fafaf9] dark:hover:bg-zinc-950/45 transition-all duration-500 rounded-3xl p-2.5 h-full relative overflow-hidden border border-[#e8e6e5] dark:border-zinc-800/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-none group">
         {/* Inner Box with Subtle Border & backdrop blur */}
         <div className="rounded-[18px] bg-white dark:bg-zinc-950 border border-[#e8e6e5]/60 dark:border-zinc-800/30 h-full transition-all duration-500 relative overflow-hidden w-full p-6 sm:p-8 flex flex-col justify-between">
-          
+
           {/* Backdrop Glow Effect on Hover */}
           <div className={cn(
             "-bottom-40 md:-bottom-64 left-[50%] -translate-x-[50%] opacity-0 group-hover:opacity-100 z-0 absolute bg-gradient-to-t blur-[4rem] md:blur-[6rem] rounded-full transition-all duration-700 ease-out w-40 md:w-96 h-40 md:h-96 pointer-events-none",

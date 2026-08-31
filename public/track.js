@@ -184,4 +184,133 @@
 
   wrapHistoryMethod('pushState');
   wrapHistoryMethod('replaceState');
+
+  // =========================================================================
+  // Core Web Vitals Tracking (Native PerformanceObserver — zero dependencies)
+  // =========================================================================
+  (function initWebVitals() {
+    if (typeof window === 'undefined' || !('PerformanceObserver' in window)) return;
+
+    const vitals = { lcp: null, inp: null, cls: 0 };
+    let vitalsSent = false;
+    let vitalsUrl = apiUrl.replace(/\/api\/track\/?$/, '/api/vitals');
+    if (vitalsUrl === apiUrl) {
+      vitalsUrl = `${apiUrl.substring(0, apiUrl.lastIndexOf('/'))}/vitals`;
+    }
+
+    // ---------- 1. LCP (Largest Contentful Paint) ----------
+    try {
+      const lcpObserver = new PerformanceObserver(function(list) {
+        const entries = list.getEntries();
+        const last = entries[entries.length - 1];
+        if (last) {
+          vitals.lcp = Math.round(last.renderTime || last.loadTime);
+        }
+      });
+      lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+
+      const stopLCP = function() {
+        try { lcpObserver.disconnect(); } catch(e) {}
+      };
+      ['keydown', 'click', 'visibilitychange'].forEach(function(type) {
+        window.addEventListener(type, stopLCP, { once: true, capture: true });
+      });
+    } catch (e) {}
+
+    // ---------- 2. CLS (Session-Window Algorithm) ----------
+    let sessionValue = 0;
+    let sessionEntries = [];
+    try {
+      const clsObserver = new PerformanceObserver(function(list) {
+        const entries = list.getEntries();
+        for (let i = 0; i < entries.length; i++) {
+          const entry = entries[i];
+          if (entry.hadRecentInput) continue;
+
+          const first = sessionEntries[0];
+          const lastEntry = sessionEntries[sessionEntries.length - 1];
+
+          if (
+            sessionValue &&
+            entry.startTime - lastEntry.startTime < 1000 &&
+            entry.startTime - first.startTime < 5000
+          ) {
+            sessionValue += entry.value;
+            sessionEntries.push(entry);
+          } else {
+            sessionValue = entry.value;
+            sessionEntries = [entry];
+          }
+
+          if (sessionValue > vitals.cls) {
+            vitals.cls = Math.round(sessionValue * 1000) / 1000;
+          }
+        }
+      });
+      clsObserver.observe({ type: 'layout-shift', buffered: true });
+    } catch (e) {}
+
+    // ---------- 3. INP (Interaction to Next Paint - 98th Percentile) ----------
+    const interactionDurations = [];
+    try {
+      const inpObserver = new PerformanceObserver(function(list) {
+        const entries = list.getEntries();
+        for (let i = 0; i < entries.length; i++) {
+          const entry = entries[i];
+          if (entry.interactionId) {
+            interactionDurations.push(entry.duration);
+          }
+        }
+        if (interactionDurations.length) {
+          const sorted = interactionDurations.slice().sort(function(a, b) { return a - b; });
+          const idx = sorted.length < 50 ? sorted.length - 1 : Math.floor(sorted.length * 0.98);
+          vitals.inp = Math.round(sorted[idx]);
+        }
+      });
+      inpObserver.observe({ type: 'event', durationThreshold: 40, buffered: true });
+    } catch (e) {}
+
+    function getDeviceType() {
+      return window.innerWidth < 768 ? 'Mobile' : 'Desktop';
+    }
+
+    function sendVitals() {
+      if (vitalsSent) return;
+      if (vitals.lcp === null && vitals.inp === null && !vitals.cls) return;
+      vitalsSent = true;
+
+      const payload = JSON.stringify({
+        projectId: siteId,
+        pageUrl: window.location.href,
+        lcp: vitals.lcp,
+        inp: vitals.inp,
+        cls: vitals.cls,
+        device: getDeviceType(),
+      });
+
+      if (navigator.sendBeacon) {
+        try {
+          navigator.sendBeacon(vitalsUrl, new Blob([payload], { type: 'application/json' }));
+          return;
+        } catch (e) {}
+      }
+
+      if (typeof fetch === 'function') {
+        fetch(vitalsUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true
+        }).catch(function() {});
+      }
+    }
+
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'hidden') {
+        sendVitals();
+      }
+    });
+
+    window.addEventListener('pagehide', sendVitals);
+  })();
 })(); 

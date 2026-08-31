@@ -22,15 +22,30 @@ model User {
 }
 
 model Project {
-  id        String    @id @default(uuid())
+  id        String      @id @default(uuid())
   name      String
   userId    String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime    @default(now())
+  updatedAt DateTime?   @updatedAt
   events    Event[]
-  user      User      @relation(fields: [userId], references: [id])
+  webVitals WebVital[]
+  user      User        @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+model WebVital {
+  id        String   @id @default(uuid())
+  projectId String
+  lcp       Float?
+  inp       Float?
+  cls       Float?
+  pageUrl   String
+  device    String?
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
 }
 
 model Event {

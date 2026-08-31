@@ -1,138 +1,251 @@
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@/components/ui/card";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import {
 	BoltIcon,
 	CursorArrowRaysIcon,
 	ArrowsPointingOutIcon,
 	InformationCircleIcon,
-	CheckCircleIcon
+	CheckCircleIcon,
+	ExclamationTriangleIcon,
+	XCircleIcon,
+	SparklesIcon
 } from "@heroicons/react/24/outline";
 
-export function WebVitals() {
+interface VitalsData {
+	lcp: number | null;
+	inp: number | null;
+	cls: number | null;
+	totalSamples: number;
+	ratings: {
+		lcp: "good" | "needs-improvement" | "poor" | null;
+		inp: "good" | "needs-improvement" | "poor" | null;
+		cls: "good" | "needs-improvement" | "poor" | null;
+	};
+}
+
+export function WebVitals({ projectId }: { projectId?: string }) {
+	const [data, setData] = useState<VitalsData | null>(null);
+	const [loading, setLoading] = useState(false);
+
+	useEffect(() => {
+		if (!projectId) return;
+
+		let isMounted = true;
+		setLoading(true);
+
+		fetch(`/api/vitals?projectId=${encodeURIComponent(projectId)}&days=28`)
+			.then((res) => (res.ok ? res.json() : null))
+			.then((resData: VitalsData) => {
+				if (isMounted && resData) {
+					setData(resData);
+				}
+			})
+			.catch((err) => {
+				console.error("Failed to load web vitals:", err);
+			})
+			.finally(() => {
+				if (isMounted) setLoading(false);
+			});
+
+		return () => {
+			isMounted = false;
+		};
+	}, [projectId]);
+
+	const formatLcp = (ms: number | null) => {
+		if (ms === null || ms === undefined) return null;
+		return ms >= 1000 ? `${(ms / 1000).toFixed(2)}s` : `${ms}ms`;
+	};
+
+	const formatInp = (ms: number | null) => {
+		if (ms === null || ms === undefined) return null;
+		return `${ms}ms`;
+	};
+
+	const formatCls = (val: number | null) => {
+		if (val === null || val === undefined) return null;
+		return val.toFixed(3);
+	};
+
+	const getStatusConfig = (rating: "good" | "needs-improvement" | "poor" | null) => {
+		switch (rating) {
+			case "good":
+				return {
+					label: "Good",
+					badgeColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+					icon: CheckCircleIcon,
+				};
+			case "needs-improvement":
+				return {
+					label: "Needs Work",
+					badgeColor: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20",
+					icon: ExclamationTriangleIcon,
+				};
+			case "poor":
+				return {
+					label: "Poor",
+					badgeColor: "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20",
+					icon: XCircleIcon,
+				};
+			default:
+				return {
+					label: "Collecting...",
+					badgeColor: "text-zinc-500 dark:text-zinc-400 bg-zinc-500/10 border-zinc-500/20",
+					icon: CheckCircleIcon,
+				};
+		}
+	};
+
+	const lcpStatus = getStatusConfig(data?.ratings?.lcp ?? null);
+	const inpStatus = getStatusConfig(data?.ratings?.inp ?? null);
+	const clsStatus = getStatusConfig(data?.ratings?.cls ?? null);
+
 	const metrics = [
 		{
 			id: "lcp",
 			title: "Loading Speed",
-			technicalName: "Largest Contentful Paint (LCP)",
-			target: "Fast (< 2.5s)",
-			status: "Good",
-			badgeColor: "text-emerald-400 bg-emerald-950/40 border-emerald-500/20",
+			tag: "LCP",
+			liveValue: formatLcp(data?.lcp ?? null),
+			benchmark: "Target: < 2.5s",
+			statusConfig: lcpStatus,
 			icon: BoltIcon,
-			iconColor: "text-amber-400 bg-amber-950/30 border-amber-500/20",
-			simpleExplanation: "How quickly your main text, images, and content appear for visitors.",
-			whyItMatters: "Faster loads prevent users from bouncing before seeing your page."
+			iconColor: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+			desc: "Measures render time of largest content element."
 		},
 		{
 			id: "inp",
-			title: "Click Responsiveness",
-			technicalName: "Interaction to Next Paint (INP)",
-			target: "Instant (< 200ms)",
-			status: "Good",
-			badgeColor: "text-emerald-400 bg-emerald-950/40 border-emerald-500/20",
+			title: "Click Response",
+			tag: "INP",
+			liveValue: formatInp(data?.inp ?? null),
+			benchmark: "Target: < 200ms",
+			statusConfig: inpStatus,
 			icon: CursorArrowRaysIcon,
-			iconColor: "text-blue-400 bg-blue-950/30 border-blue-500/20",
-			simpleExplanation: "How fast buttons, menus, and links react when a user clicks or taps them.",
-			whyItMatters: "Eliminates frustrating UI lag and keeps interactions snappy."
+			iconColor: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+			desc: "Measures UI latency when users interact with page."
 		},
 		{
 			id: "cls",
 			title: "Visual Stability",
-			technicalName: "Cumulative Layout Shift (CLS)",
-			target: "Smooth (< 0.1)",
-			status: "Good",
-			badgeColor: "text-emerald-400 bg-emerald-950/40 border-emerald-500/20",
+			tag: "CLS",
+			liveValue: formatCls(data?.cls ?? null),
+			benchmark: "Target: < 0.1",
+			statusConfig: clsStatus,
 			icon: ArrowsPointingOutIcon,
-			iconColor: "text-purple-400 bg-purple-950/30 border-purple-500/20",
-			simpleExplanation: "Ensures the layout stays solid without elements jumping around as it loads.",
-			whyItMatters: "Prevents accidental misclicks caused by shifting content."
+			iconColor: "text-purple-500 bg-purple-500/10 border-purple-500/20",
+			desc: "Tracks layout shifts without user inputs."
 		}
 	];
 
 	return (
-		<Card className="md:col-span-2 lg:col-span-4 bg-white dark:bg-zinc-950/70 border border-[#e8e6e5] dark:border-zinc-900/80 rounded-2xl backdrop-blur-md hover:border-[#3ba6f1]/40 dark:hover:border-zinc-800/80 transition-all duration-200 shadow-sm overflow-hidden">
-			<CardHeader className="pb-3.5 border-b border-[#e8e6e5] dark:border-zinc-900/80">
-				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-					<div>
-						<div className="flex items-center gap-2">
-							<CardTitle className="text-lg sm:text-xl font-bold font-sans tracking-tight text-[#0c0a09] dark:text-white">
-								Site Speed & Health
-							</CardTitle>
-							<span className="text-xs font-mono font-medium text-[#78716c] dark:text-zinc-400 bg-[#f5f5f4] dark:bg-zinc-900 px-2.5 py-0.5 rounded-lg border border-[#e8e6e5] dark:border-zinc-800">
-								Google Core Web Vitals
-							</span>
+		<div className="md:col-span-2 lg:col-span-4 bg-white/80 dark:bg-zinc-950/30 hover:bg-[#fafaf9] dark:hover:bg-zinc-950/45 transition-all duration-500 rounded-3xl p-2 border border-[#e8e6e5] dark:border-zinc-800/80 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-none group relative overflow-hidden">
+			{/* Inner Box */}
+			<div className="rounded-[18px] bg-white dark:bg-zinc-950 border border-[#e8e6e5]/60 dark:border-zinc-800/30 p-5 sm:p-6 transition-all duration-500 relative overflow-hidden flex flex-col justify-between">
+				
+				{/* Backdrop Glow Effect on Hover */}
+				<div className="-bottom-32 left-[50%] -translate-x-[50%] opacity-0 group-hover:opacity-100 z-0 absolute bg-gradient-to-t from-blue-500/10 to-transparent blur-[3.5rem] rounded-full transition-all duration-500 w-48 h-48 pointer-events-none" />
+
+				<div className="relative z-10">
+					{/* Header Row */}
+					<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-4 border-b border-[#e8e6e5]/80 dark:border-zinc-900">
+						<div className="flex items-center gap-2.5">
+							<div className="p-2 rounded-xl bg-[#f5f5f4] dark:bg-zinc-900 border border-[#e8e6e5] dark:border-zinc-800 text-[#3ba6f1]">
+								<SparklesIcon className="w-4 h-4" />
+							</div>
+							<div>
+								<div className="flex items-center gap-2">
+									<h3 className="font-roobert text-base sm:text-lg font-semibold text-[#0c0a09] dark:text-white tracking-tight">
+										Site Speed & Health
+									</h3>
+									<span className="text-[10px] font-mono font-medium text-[#78716c] dark:text-zinc-400 bg-[#f5f5f4] dark:bg-zinc-900 px-2 py-0.5 rounded-full border border-[#e8e6e5] dark:border-zinc-800">
+										Core Web Vitals
+									</span>
+								</div>
+								<p className="text-xs text-[#78716c] dark:text-zinc-400 mt-0.5">
+									{data?.totalSamples && data.totalSamples > 0 
+										? `P75 aggregation across ${data.totalSamples} real visitor sessions` 
+										: "Live 75th percentile (P75) Real User Measurement (RUM)"}
+								</p>
+							</div>
 						</div>
-						<CardDescription className="text-xs sm:text-sm text-[#78716c] dark:text-zinc-400 mt-1">
-							Google&apos;s 3 official metrics measuring real user speed, responsiveness, and stability
-						</CardDescription>
+
+						<div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-mono font-medium w-fit">
+							<span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+							Live Telemetry
+						</div>
 					</div>
-					<div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-mono font-semibold w-fit">
-						<span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-						Live Monitoring
-					</div>
-				</div>
-			</CardHeader>
-			
-			<CardContent className="p-4 sm:p-6 space-y-4">
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-					{metrics.map((m) => {
-						const Icon = m.icon;
-						return (
-							<div
-								key={m.id}
-								className="bg-[#fafaf9] dark:bg-zinc-900/40 border border-[#e8e6e5] dark:border-zinc-800/60 rounded-xl p-4 flex flex-col justify-between hover:border-[#3ba6f1]/40 dark:hover:border-zinc-700/60 transition-colors"
-							>
-								<div>
-									{/* Top Header Row */}
-									<div className="flex items-center justify-between mb-3">
-										<div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${m.iconColor}`}>
-											<Icon className="w-4 h-4" />
+
+					{/* 3 Metrics Cards Grid */}
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mb-3.5">
+						{metrics.map((m) => {
+							const Icon = m.icon;
+							const StatusIcon = m.statusConfig.icon;
+							return (
+								<div
+									key={m.id}
+									className="rounded-2xl border border-[#e8e6e5] dark:border-zinc-800/80 bg-[#fafaf9] dark:bg-zinc-900/50 p-4 flex flex-col justify-between hover:border-[#3ba6f1]/40 dark:hover:border-zinc-700/80 transition-all duration-200"
+								>
+									<div>
+										{/* Top Row: Icon + Score Badge */}
+										<div className="flex items-center justify-between mb-3">
+											<div className={`w-8 h-8 rounded-xl flex items-center justify-center border ${m.iconColor}`}>
+												<Icon className="w-4 h-4" />
+											</div>
+											<span className={`inline-flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-0.5 rounded-full border ${m.statusConfig.badgeColor}`}>
+												<StatusIcon className="w-3 h-3" />
+												{m.statusConfig.label}
+											</span>
 										</div>
-										<span className={`inline-flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md border ${m.badgeColor}`}>
-											<CheckCircleIcon className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
-											{m.status}
-										</span>
+
+										{/* Title + Tag */}
+										<div className="flex items-baseline justify-between mb-1">
+											<h4 className="font-roobert text-sm font-semibold text-[#0c0a09] dark:text-white">
+												{m.title}
+											</h4>
+											<span className="text-[10px] font-mono font-bold text-[#78716c] dark:text-zinc-500">
+												{m.tag}
+											</span>
+										</div>
+
+										{/* Live Measured Value / Empty State */}
+										<div className="my-2">
+											{m.liveValue ? (
+												<div className="font-mono text-2xl font-bold tracking-tight text-[#0c0a09] dark:text-white">
+													{m.liveValue}
+												</div>
+											) : (
+												<div className="text-xs font-mono text-[#78716c] dark:text-zinc-500 italic">
+													{loading ? "Calculating..." : "Awaiting traffic..."}
+												</div>
+											)}
+										</div>
+
+										{/* Description */}
+										<p className="text-xs text-[#78716c] dark:text-zinc-400 leading-relaxed font-sans mb-3">
+											{m.desc}
+										</p>
 									</div>
 
-									{/* Main Simple Title & Technical Subtitle */}
-									<h4 className="text-base font-bold font-sans text-[#0c0a09] dark:text-white tracking-tight">
-										{m.title}
-									</h4>
-									<p className="text-[11px] font-mono text-[#78716c] dark:text-zinc-400 mb-2 font-medium">
-										{m.technicalName}
-									</p>
-
-									{/* Easy to understand explanation */}
-									<p className="text-sm text-[#0c0a09] dark:text-zinc-300 leading-relaxed font-sans mb-2">
-										{m.simpleExplanation}
-									</p>
-									<p className="text-xs text-[#78716c] dark:text-zinc-400 leading-normal font-sans">
-										{m.whyItMatters}
-									</p>
+									{/* Benchmark Target */}
+									<div className="pt-2.5 border-t border-[#e8e6e5]/80 dark:border-zinc-800/60 flex items-center justify-between text-xs font-mono">
+										<span className="text-[#78716c] dark:text-zinc-500 text-[11px]">Benchmark</span>
+										<span className="text-[#0c0a09] dark:text-zinc-300 font-semibold text-[11px]">{m.benchmark}</span>
+									</div>
 								</div>
+							);
+						})}
+					</div>
 
-								{/* Benchmark Target */}
-								<div className="mt-4 pt-3 border-t border-[#e8e6e5] dark:border-zinc-800/50 flex items-center justify-between text-xs font-mono">
-									<span className="text-[#78716c] dark:text-zinc-400">Google Benchmark:</span>
-									<span className="text-emerald-600 dark:text-emerald-400 font-semibold">{m.target}</span>
-								</div>
-							</div>
-						);
-					})}
+					{/* Informational 1-Line Footer */}
+					<div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#f5f5f4] dark:bg-zinc-900/60 border border-[#e8e6e5] dark:border-zinc-800/60 text-[#78716c] dark:text-zinc-400 text-xs font-mono">
+						<InformationCircleIcon className="w-3.5 h-3.5 text-[#3ba6f1] shrink-0" />
+						<span className="truncate">
+							<strong className="text-[#0c0a09] dark:text-zinc-200">SEO Impact:</strong> Google uses P75 vitals from real user traffic as an official search ranking signal.
+						</span>
+					</div>
 				</div>
-
-				{/* Informational Bottom Helper Banner */}
-				<div className="flex items-start sm:items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-[#f5f5f4] dark:bg-zinc-900/30 border border-[#e8e6e5] dark:border-zinc-800/40 text-[#78716c] dark:text-zinc-400 text-xs font-mono">
-					<InformationCircleIcon className="w-4 h-4 text-[#3ba6f1] shrink-0 mt-0.5 sm:mt-0" />
-					<p className="leading-normal">
-						<strong className="text-[#0c0a09] dark:text-zinc-200">Why this matters:</strong> Google uses these 3 signals to rank your site in search results. Higher scores lead to better SEO rankings and higher visitor conversion rates.
-					</p>
-				</div>
-			</CardContent>
-		</Card>
+			</div>
+		</div>
 	);
 }
+
