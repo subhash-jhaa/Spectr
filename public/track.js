@@ -192,7 +192,6 @@
     if (typeof window === 'undefined' || !('PerformanceObserver' in window)) return;
 
     const vitals = { lcp: null, inp: null, cls: 0 };
-    let vitalsSent = false;
     let vitalsUrl = apiUrl.replace(/\/api\/track\/?$/, '/api/vitals');
     if (vitalsUrl === apiUrl) {
       vitalsUrl = `${apiUrl.substring(0, apiUrl.lastIndexOf('/'))}/vitals`;
@@ -274,10 +273,10 @@
       return window.innerWidth < 768 ? 'Mobile' : 'Desktop';
     }
 
-    function sendVitals() {
-      if (vitalsSent) return;
+    let lastSentPayload = '';
+
+    function sendVitals(force) {
       if (vitals.lcp === null && vitals.inp === null && !vitals.cls) return;
-      vitalsSent = true;
 
       const payload = JSON.stringify({
         projectId: siteId,
@@ -288,10 +287,13 @@
         device: getDeviceType(),
       });
 
+      if (payload === lastSentPayload && !force) return;
+      lastSentPayload = payload;
+
       if (navigator.sendBeacon) {
         try {
-          navigator.sendBeacon(vitalsUrl, new Blob([payload], { type: 'application/json' }));
-          return;
+          const blob = new Blob([payload], { type: 'application/json' });
+          if (navigator.sendBeacon(vitalsUrl, blob)) return;
         } catch (e) {}
       }
 
@@ -305,12 +307,20 @@
       }
     }
 
+    // 1. Initial dispatch after 4 seconds of page load (captures fast LCP/CLS)
+    setTimeout(function() {
+      sendVitals(false);
+    }, 4000);
+
+    // 2. Final dispatch when user switches tabs or navigates away
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'hidden') {
-        sendVitals();
+        sendVitals(true);
       }
     });
 
-    window.addEventListener('pagehide', sendVitals);
+    window.addEventListener('pagehide', function() {
+      sendVitals(true);
+    });
   })();
 })(); 
