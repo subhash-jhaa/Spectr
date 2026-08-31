@@ -1,3 +1,6 @@
+'use client';
+
+import React, { useState } from "react";
 import { AudienceMix } from "@/components/dashboard/audience-mix";
 import { BrowserShare } from "@/components/dashboard/browser-share";
 import { OnlineNow } from "@/components/dashboard/online-now";
@@ -7,10 +10,13 @@ import { TopSources } from "@/components/dashboard/top-sources";
 import { ReferrerPanel } from "@/components/dashboard/referrer-panel";
 import { VisitorsChart } from "@/components/dashboard/visitors-chart";
 import { WebVitals } from "@/components/dashboard/web-vitals";
+import { OverviewMetrics, OverviewMetricKey } from "@/components/dashboard/overview-metrics";
+import { OverviewMetrics as OverviewMetricsType } from "@/interfaces/database";
 
 export interface DashboardProps {
 	projectId?: string;
-	dailyStats?: { date: string; visitors: number }[];
+	overviewMetrics?: OverviewMetricsType;
+	dailyStats?: { date: string; visitors: number; pageViews: number; bounceRate?: number }[];
 	realtimeStats?: { count: number; visitors: { id: string; pageUrl: string; referrer: string; country: string; city: string; userAgent: string; timestamp: string }[] };
 	countryStats?: { country: string; visitors: number }[];
 	referrerStats?: { referrer: string; visitors: number }[];
@@ -23,6 +29,7 @@ export interface DashboardProps {
 
 export function Dashboard({
 	projectId,
+	overviewMetrics,
 	dailyStats,
 	realtimeStats,
 	countryStats,
@@ -32,9 +39,22 @@ export function Dashboard({
 	deviceStats,
 	audienceMix
 }: DashboardProps) {
+	const [activeMetric, setActiveMetric] = useState<OverviewMetricKey>('visitors');
+
 	return (
 		<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-			<VisitorsChart data={dailyStats} />
+			<OverviewMetrics 
+				data={overviewMetrics} 
+				activeMetric={activeMetric}
+				onSelectMetric={setActiveMetric}
+			/>
+			<VisitorsChart 
+				data={dailyStats} 
+				activeMetric={activeMetric}
+				overviewMetrics={overviewMetrics}
+				delta={overviewMetrics?.visitors.delta} 
+				isNew={overviewMetrics?.visitors.isNew} 
+			/>
 			<OnlineNow count={realtimeStats?.count} visitors={realtimeStats?.visitors} deviceStats={deviceStats} />
 			<TopPages data={pageStats} />
 			<TopCountries data={countryStats} />

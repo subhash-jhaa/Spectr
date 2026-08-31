@@ -30,6 +30,7 @@ import { Dashboard } from '@/components/dashboard/dashboard'
 import { getCountryCode, getCountryName, getCountryCoordinates } from '@/lib/geo-utils'
 import { GlobeAnalytics, type AnalyticsMarker } from '@/components/ui/cobe-globe-analytics'
 import { useTheme } from 'next-themes'
+import { OverviewMetrics as OverviewMetricsType } from '@/interfaces/database'
 
 // Custom Hooks
 import { useProjects } from './hooks/useProjects'
@@ -48,6 +49,8 @@ interface DashboardClientProps {
 interface DailyStats {
   date: string
   visitors: number
+  pageViews: number
+  bounceRate?: number
 }
 
 interface CountryStats {
@@ -101,6 +104,7 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
   const [browserStats, setBrowserStats] = useState<BrowserStats[]>([])
   const [deviceStats, setDeviceStats] = useState<DeviceStats[]>([])
   const [sourceStats, setSourceStats] = useState<SourceStats[]>([])
+  const [overviewMetrics, setOverviewMetrics] = useState<OverviewMetricsType | undefined>()
   const [audienceMix, setAudienceMix] = useState<AudienceMixStats>({
     newVisitors: 0,
     returningVisitors: 0,
@@ -155,7 +159,7 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
         }
       }
 
-      const [dailyData, countriesData, referrersData, pagesData, browsersData, devicesData, sourcesData, audienceData] = await Promise.all([
+      const [dailyData, countriesData, referrersData, pagesData, browsersData, devicesData, sourcesData, audienceData, overviewData] = await Promise.all([
         fetchWithCheck(`/api/stats/project/${projectId}/7days`),
         fetchWithCheck(`/api/stats/project/${projectId}/countries`),
         fetchWithCheck(`/api/stats/project/${projectId}/referrers`),
@@ -168,7 +172,8 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
           returningVisitors: 0,
           newShare: 0,
           returningShare: 0
-        }))
+        })),
+        fetchWithCheck(`/api/stats/project/${projectId}/overview`).catch(() => undefined)
       ])
 
       setDailyStats(dailyData)
@@ -179,6 +184,7 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
       setDeviceStats(Array.isArray(devicesData) ? devicesData : [])
       setSourceStats(Array.isArray(sourcesData) ? sourcesData : [])
       if (audienceData) setAudienceMix(audienceData)
+      if (overviewData) setOverviewMetrics(overviewData)
       setDataFetched(true)
       setLoading(false)
     } catch (error) {
@@ -402,19 +408,8 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
               >
                 <Bars3Icon className="h-5 w-5" />
               </button>
-              
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 text-sm font-medium text-[#78716c] dark:text-zinc-400 hover:text-[#0c0a09] dark:hover:text-white bg-[#f5f5f4] dark:bg-zinc-900/60 border border-[#e8e6e5] dark:border-zinc-800/80 hover:border-[#3ba6f1]/50 dark:hover:border-zinc-700 px-3 py-1.5 rounded-xl transition-colors"
-                title="Back to All Projects"
-              >
-                <ArrowLeftIcon className="w-4 h-4" />
-                <span>Projects</span>
-              </Link>
 
-              <span className="text-[#a8a29e] dark:text-zinc-700">/</span>
-
-              <span className="text-sm sm:text-base font-bold text-[#0c0a09] dark:text-white tracking-tight truncate max-w-[180px] sm:max-w-[300px]">
+              <span className="text-sm sm:text-base font-bold text-[#0c0a09] dark:text-white tracking-tight truncate max-w-[220px] sm:max-w-[350px]">
                 {selectedProject?.name || 'Analytics'}
               </span>
             </div>
@@ -479,6 +474,7 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
           {activeTab === 'overview' && (
             <Dashboard 
               projectId={projectId}
+              overviewMetrics={overviewMetrics}
               dailyStats={dailyStats} 
               realtimeStats={realtimeStats} 
               countryStats={countryStats} 
