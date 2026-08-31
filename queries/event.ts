@@ -20,7 +20,8 @@ import {
   BrowserStats,
   DeviceStats,
   SourceStats,
-  AudienceMixStats
+  AudienceMixStats,
+  OverviewMetrics
 } from '../interfaces/database';
 
 export class EventQueries {
@@ -478,14 +479,30 @@ export class EventQueries {
       
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const stats = await prisma.$queryRaw<any[]>`
+        WITH session_activity AS (
+          SELECT 
+            "sessionId",
+            COUNT(*) as cnt
+          FROM "Event"
+          WHERE "projectId" = ${projectId} AND "timestamp" >= ${startDate} AND "sessionId" IS NOT NULL
+          GROUP BY "sessionId"
+        )
         SELECT 
-          TO_CHAR(DATE_TRUNC('day', "timestamp"), 'YYYY-MM-DD') AS "date",
-          COUNT(DISTINCT COALESCE("sessionId", "ip"))::integer AS "visitors",
-          COUNT(*)::integer AS "pageViews"
-        FROM "Event"
-        WHERE "projectId" = ${projectId} AND "timestamp" >= ${startDate}
-        GROUP BY DATE_TRUNC('day', "timestamp")
-        ORDER BY DATE_TRUNC('day', "timestamp") ASC
+          TO_CHAR(DATE_TRUNC('day', e."timestamp"), 'YYYY-MM-DD') AS "date",
+          COUNT(DISTINCT COALESCE(e."sessionId", e."ip"))::integer AS "visitors",
+          COUNT(*)::integer AS "pageViews",
+          COALESCE(
+            ROUND(
+              (COUNT(DISTINCT CASE WHEN s.cnt = 1 THEN e."sessionId" END)::numeric / 
+               NULLIF(COUNT(DISTINCT e."sessionId"), 0)::numeric) * 100
+            )::integer, 
+            0
+          ) AS "bounceRate"
+        FROM "Event" e
+        LEFT JOIN session_activity s ON e."sessionId" = s."sessionId"
+        WHERE e."projectId" = ${projectId} AND e."timestamp" >= ${startDate}
+        GROUP BY DATE_TRUNC('day', e."timestamp")
+        ORDER BY DATE_TRUNC('day', e."timestamp") ASC
       `;
 
       // Initialize daily stats with 0
@@ -497,7 +514,8 @@ export class EventQueries {
         dailyStatsMap[dateKey] = {
           date: dateKey,
           visitors: 0,
-          pageViews: 0
+          pageViews: 0,
+          bounceRate: 0
         };
       }
 
@@ -505,13 +523,15 @@ export class EventQueries {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       stats.forEach((row: any) => {
         if (dailyStatsMap[row.date]) {
-          dailyStatsMap[row.date].visitors = row.visitors;
-          dailyStatsMap[row.date].pageViews = row.pageViews;
+          dailyStatsMap[row.date].visitors = Number(row.visitors || 0);
+          dailyStatsMap[row.date].pageViews = Number(row.pageViews || 0);
+          dailyStatsMap[row.date].bounceRate = Number(row.bounceRate || 0);
         } else {
           dailyStatsMap[row.date] = {
             date: row.date,
-            visitors: row.visitors,
-            pageViews: row.pageViews
+            visitors: Number(row.visitors || 0),
+            pageViews: Number(row.pageViews || 0),
+            bounceRate: Number(row.bounceRate || 0)
           };
         }
       });
@@ -1132,6 +1152,114 @@ export class EventQueries {
       return {
         success: true,
         data: []
+      };
+    }
+  }
+
+  /**
+   * Get overview metrics (Unique Visitors, Page Views, Bounce Rate) with prior period deltas
+   */
+  static async getOverviewMetrics(projectId: string, days: number = 7): Promise<QueryResult<OverviewMetrics>> {
+    try {
+      const now = new Date();
+      const currentStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      const priorStart = new Date(now.getTime() - 2 * days * 24 * 60 * 60 * 1000);
+
+      const rows = await prisma.$queryRaw<any[]>`
+        WITH current_period AS (
+          SELECT COALESCE("sessionId", "ip") AS vid, "sessionId"
+          FROM "Event"
+          WHERE "projectId" = ${projectId} AND "timestamp" >= ${currentStart} AND "timestamp" <= ${now}
+        ),
+        prior_period AS (
+          SELECT COALESCE("sessionId", "ip") AS vid, "sessionId"
+          FROM "Event"
+          WHERE "projectId" = ${projectId} AND "timestamp" >= ${priorStart} AND "timestamp" < ${currentStart}
+        ),
+        curr_sessions AS (
+          SELECT "sessionId", COUNT(*) AS cnt
+          FROM current_period
+          WHERE "sessionId" IS NOT NULL
+          GROUP BY "sessionId"
+        ),
+        prior_sessions AS (
+          SELECT "sessionId", COUNT(*) AS cnt
+          FROM prior_period
+          WHERE "sessionId" IS NOT NULL
+          GROUP BY "sessionId"
+        )
+        SELECT
+          (SELECT COUNT(DISTINCT vid) FROM current_period)::int AS "currVisitors",
+          (SELECT COUNT(DISTINCT vid) FROM prior_period)::int AS "priorVisitors",
+          (SELECT COUNT(*) FROM current_period)::int AS "currPageviews",
+          (SELECT COUNT(*) FROM prior_period)::int AS "priorPageviews",
+          (SELECT COUNT(*) FROM curr_sessions)::int AS "currTotalSessions",
+          (SELECT COUNT(*) FROM curr_sessions WHERE cnt = 1)::int AS "currBouncedSessions",
+          (SELECT COUNT(*) FROM prior_sessions)::int AS "priorTotalSessions",
+          (SELECT COUNT(*) FROM prior_sessions WHERE cnt = 1)::int AS "priorBouncedSessions";
+      `;
+
+      const row = rows[0] || {};
+      const currVisitors = Number(row.currVisitors || 0);
+      const priorVisitors = Number(row.priorVisitors || 0);
+      const currPageviews = Number(row.currPageviews || 0);
+      const priorPageviews = Number(row.priorPageviews || 0);
+      const currTotalSessions = Number(row.currTotalSessions || 0);
+      const currBouncedSessions = Number(row.currBouncedSessions || 0);
+      const priorTotalSessions = Number(row.priorTotalSessions || 0);
+      const priorBouncedSessions = Number(row.priorBouncedSessions || 0);
+
+      const currBounceRate = currTotalSessions > 0 ? Math.round((currBouncedSessions / currTotalSessions) * 100) : 0;
+      const priorBounceRate = priorTotalSessions > 0 ? Math.round((priorBouncedSessions / priorTotalSessions) * 100) : 0;
+
+      const calcDelta = (curr: number, prior: number) => {
+        if (prior === 0 && curr > 0) {
+          return { delta: 100, isNew: true };
+        }
+        if (prior === 0 && curr === 0) {
+          return { delta: 0, isNew: false };
+        }
+        return {
+          delta: Math.round(((curr - prior) / prior) * 100),
+          isNew: false
+        };
+      };
+
+      const visitorsDelta = calcDelta(currVisitors, priorVisitors);
+      const pageviewsDelta = calcDelta(currPageviews, priorPageviews);
+      
+      const bounceDelta = priorTotalSessions === 0 && currTotalSessions > 0 
+        ? { delta: currBounceRate, isNew: true }
+        : { delta: currBounceRate - priorBounceRate, isNew: false };
+
+      return {
+        success: true,
+        data: {
+          visitors: {
+            current: currVisitors,
+            prior: priorVisitors,
+            delta: visitorsDelta.delta,
+            isNew: visitorsDelta.isNew
+          },
+          pageViews: {
+            current: currPageviews,
+            prior: priorPageviews,
+            delta: pageviewsDelta.delta,
+            isNew: pageviewsDelta.isNew
+          },
+          bounceRate: {
+            current: currBounceRate,
+            prior: priorBounceRate,
+            delta: bounceDelta.delta,
+            isNew: bounceDelta.isNew
+          }
+        }
+      };
+    } catch (error) {
+      console.error('Error getting overview metrics:', error);
+      return {
+        success: false,
+        error: 'Failed to get overview metrics'
       };
     }
   }

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Minus } from 'lucide-react';
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Plus, Minus } from "lucide-react";
 
 interface FAQItemProps {
   question: string;
@@ -13,19 +13,19 @@ interface FAQItemProps {
 
 function FAQItem({ question, answer, isOpen, onClick }: FAQItemProps) {
   return (
-    <div className="border-b border-zinc-800 last:border-0">
+    <div className="py-2">
       <button
         onClick={onClick}
-        className="w-full flex items-center justify-between py-6 text-left focus:outline-none group"
+        className="w-full flex items-center justify-between py-5 text-left focus:outline-none group cursor-pointer"
       >
-        <span className="text-base md:text-lg font-medium text-zinc-200 group-hover:text-white transition-colors duration-200">
+        <span className="text-lg sm:text-xl font-medium text-[#0c0a09] dark:text-zinc-100 group-hover:text-[#3ba6f1] dark:group-hover:text-white transition-colors duration-200">
           {question}
         </span>
-        <span className="ml-4 flex-shrink-0 text-zinc-500 group-hover:text-zinc-300 transition-colors duration-200">
+        <span className="ml-4 flex-shrink-0 text-[#78716c] dark:text-zinc-400 group-hover:text-[#0c0a09] dark:group-hover:text-zinc-200 transition-colors duration-200">
           {isOpen ? (
-            <Minus className="h-5 w-5 md:h-6 md:w-6" />
+            <Minus className="h-5 w-5 sm:h-6 sm:w-6 text-[#3ba6f1]" />
           ) : (
-            <Plus className="h-5 w-5 md:h-6 md:w-6" />
+            <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
           )}
         </span>
       </button>
@@ -33,12 +33,12 @@ function FAQItem({ question, answer, isOpen, onClick }: FAQItemProps) {
         {isOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden"
           >
-            <div className="pb-6 pr-12 text-sm md:text-base text-zinc-400 leading-relaxed">
+            <div className="pb-6 pr-8 text-base sm:text-[17px] text-[#78716c] dark:text-zinc-300 leading-[1.65] font-normal">
               {answer}
             </div>
           </motion.div>
@@ -53,43 +53,47 @@ export function FAQ() {
 
   const faqs = [
     {
-      question: "How does spectr track visitors without cookies?",
-      answer: "We use privacy-friendly hashes and metadata that rotates daily. This means we don't store persistent identifiers on user devices and don't need cookie consent banners."
+      question: "How does Spectr track visitors without cookies or consent banners?",
+      answer: "We use rotating daily cryptographic hashes that eliminate the need to persist unique identifiers on user devices. Because no cross-session personal data is stored, no cookie consent banner is legally required under GDPR, CCPA, and PECR.",
     },
     {
-      question: "How easy is it to integrate spectr in my website?",
-      answer: "Extremely easy. You just copy-paste a single light script tag into your HTML or install our npm library for React/Next.js/Vue."
+      question: "Will Spectr impact my site's page load speed or Core Web Vitals?",
+      answer: "No. The tracking script is under 2KB gzipped and loads asynchronously with the defer attribute. It runs entirely off the main rendering path and has zero impact on Lighthouse scores.",
     },
     {
-      question: "Does spectr track personal data (PII)?",
-      answer: "No, we are fully GDPR, CCPA, and PECR compliant. We do not track IP addresses or store any personal data."
+      question: "Can I use Spectr with Next.js, React, or static sites?",
+      answer: "Yes! Spectr works with any web framework (Next.js App Router/Pages, Remix, Astro, Svelte, Vue) as well as plain static HTML and WordPress.",
     },
     {
-      question: "What analytics metrics do you provide?",
-      answer: "We show real-time visitor counts, page views, referrers, browser/device info, country/geography, and user session flows."
+      question: "How does Dev Console Mode work?",
+      answer: "When enabled in development environments, Spectr outputs clean, formatted real-time event logs directly into your browser console, making it effortless to debug pageviews and custom conversion events without leaving your code.",
     },
     {
       question: "Can I export my analytics data?",
-      answer: "Yes, Pro users can export all their analytics data as CSV/JSON at any time."
-    }
+      answer: "Yes. Pro users can export all analytics data as CSV/JSON at any time or consume metrics programmatically via our open REST API.",
+    },
   ];
 
   return (
-    <section id="faq" className="relative py-24 sm:py-32 bg-black overflow-hidden border-t border-zinc-850 mt-16 md:mt-24">
+    <section id="faq" className="relative py-20 sm:py-28 bg-[#fafaf9] dark:bg-black overflow-hidden">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Header */}
-        <div className="text-center mb-16">
-          <h2 className="inline-block text-3xl md:text-5xl lg:text-6xl font-bold bg-[radial-gradient(61.17%_178.53%_at_38.83%_-13.54%,#3B3B3B_0%,#888787_12.61%,#FFFFFF_50%,#888787_80%,#3B3B3B_100%)] bg-clip-text text-transparent tracking-tight leading-tight">
-            Let&apos;s Answer Your Questions
+        <div className="text-center mb-16 max-w-2xl mx-auto">
+          <span className="text-xs font-mono font-bold tracking-widest text-[#3ba6f1] uppercase">
+            FAQ
+          </span>
+          <h2 className="font-roobert text-4xl sm:text-5xl md:text-[52px] font-normal text-[#0c0a09] dark:text-white tracking-[-0.025em] leading-[1.12] mt-2">
+            <span>Got questions? </span>
+            <span className="highlight-span">Clear answers</span>
           </h2>
-          <p className="max-w-lg text-sm text-zinc-400 mx-auto mt-4 leading-relaxed">
-            Have questions about integration, data privacy, or custom events? Find quick answers to common developer queries here.
+          <p className="mt-4 text-base sm:text-lg md:text-[18px] font-normal text-[#78716c] dark:text-zinc-400 leading-[1.64]">
+            Have questions about integration, privacy, or custom events? Find quick answers to common developer queries here.
           </p>
         </div>
 
-        {/* Accordions */}
-        <div className="max-w-3xl mx-auto divide-y divide-zinc-800">
+        {/* Accordions Container (Clean without bounding card border) */}
+        <div className="max-w-3xl mx-auto divide-y divide-[#e8e6e5] dark:divide-zinc-850">
           {faqs.map((faq, index) => (
             <FAQItem
               key={index}
@@ -100,9 +104,9 @@ export function FAQ() {
             />
           ))}
         </div>
-
       </div>
     </section>
   );
 }
+
 export default FAQ;

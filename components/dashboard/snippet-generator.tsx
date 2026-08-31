@@ -103,32 +103,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <div className="space-y-6">
-      {/* Live Verification Banner */}
-      <div className="bg-zinc-950/70 border border-zinc-900/80 rounded-xl p-5 backdrop-blur-md shadow-sm">
+    <div className="space-y-5">
+      {/* Live Status Header Banner */}
+      <div className="bg-white dark:bg-zinc-950/70 border border-[#e8e6e5] dark:border-zinc-900/80 rounded-2xl p-5 sm:p-6 backdrop-blur-md shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center border ${
-              activeVisitorsCount > 0
-                ? 'bg-emerald-950/50 border-emerald-500/30 text-emerald-400'
-                : isConnected
-                  ? 'bg-blue-950/40 border-blue-500/30 text-blue-400'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-400'
-            }`}>
-              <SignalIcon className="w-5 h-5" />
-            </div>
+          <div className="flex items-center gap-3">
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold font-mono text-white uppercase tracking-wider">Telemetry Status:</span>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-mono">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h3 className="text-base font-semibold text-[#0c0a09] dark:text-white font-roobert">
+                  Telemetry Status
+                </h3>
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/20 text-xs font-mono font-medium shadow-xs">
                   <span className={`w-1.5 h-1.5 rounded-full ${
                     activeVisitorsCount > 0
-                      ? 'bg-emerald-400 animate-pulse'
+                      ? 'bg-emerald-500 animate-pulse'
                       : isConnected
-                        ? 'bg-blue-400 animate-pulse'
-                        : 'bg-amber-400 animate-pulse'
+                        ? 'bg-emerald-500'
+                        : 'bg-amber-500'
                   }`}></span>
-                  <span className={activeVisitorsCount > 0 ? 'text-emerald-400' : isConnected ? 'text-blue-400' : 'text-amber-400'}>
+                  <span className={activeVisitorsCount > 0 ? 'text-emerald-600 dark:text-emerald-400' : isConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}>
                     {activeVisitorsCount > 0
                       ? `${activeVisitorsCount} Active Visitor${activeVisitorsCount > 1 ? 's' : ''}`
                       : isConnected
@@ -137,7 +130,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </span>
                 </div>
               </div>
-              <p className="text-xs text-zinc-400 font-mono mt-0.5">
+              <p className="text-xs text-[#78716c] dark:text-zinc-400 font-sans mt-1">
                 {activeVisitorsCount > 0
                   ? `Spectr is actively tracking live visitors for "${projectName}".`
                   : 'Embed the snippet below and open your website in a new tab to verify telemetry.'}
@@ -149,19 +142,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             href={baseUrl + '/track.js'}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 hover:border-zinc-700 rounded-lg transition-colors w-fit"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono text-[#78716c] dark:text-zinc-400 hover:text-[#0c0a09] dark:hover:text-white bg-[#fafaf9] dark:bg-zinc-900 border border-[#e8e6e5] dark:border-zinc-800 hover:border-[#3ba6f1]/40 rounded-xl transition-all shadow-xs w-fit shrink-0"
           >
-            <GlobeAltIcon className="w-3.5 h-3.5" />
-            Inspect track.js
+            <GlobeAltIcon className="w-3.5 h-3.5 text-[#3ba6f1]" />
+            <span>Inspect track.js</span>
           </a>
         </div>
       </div>
 
-      {/* Snippet Code Generator */}
-      <div className="bg-zinc-950/70 border border-zinc-900/80 rounded-xl overflow-hidden backdrop-blur-md shadow-sm">
+      {/* Snippet Code Generator Card */}
+      <div className="bg-white dark:bg-zinc-950/70 border border-[#e8e6e5] dark:border-zinc-900/80 rounded-2xl overflow-hidden backdrop-blur-md shadow-sm">
         {/* Framework Selector Tabs */}
-        <div className="flex items-center justify-between border-b border-zinc-900/80 px-4 pt-3 pb-2.5 bg-zinc-950/40">
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#e8e6e5] dark:border-zinc-900/80 px-4 sm:px-5 py-3 bg-[#fafaf9] dark:bg-zinc-950/40 gap-3">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 sm:pb-0">
             {(Object.keys(snippets) as FrameworkKey[]).map((key) => {
               const tab = snippets[key]
               const isActive = activeTab === key
@@ -172,13 +165,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     setActiveTab(key)
                     setHasCopied(false)
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer whitespace-nowrap ${
                     isActive
-                      ? 'bg-zinc-800 text-white font-semibold border border-zinc-700/60 shadow-sm'
-                      : 'text-zinc-400 hover:text-white hover:bg-zinc-900/60'
+                      ? 'bg-[#3ba6f1] text-white font-semibold shadow-[0_2px_8px_rgba(59,166,241,0.3)]'
+                      : 'text-[#78716c] dark:text-zinc-400 hover:text-[#0c0a09] dark:hover:text-white hover:bg-[#f5f5f4] dark:hover:bg-zinc-900/60'
                   }`}
                 >
-                  <CodeBracketIcon className="w-3.5 h-3.5" />
                   {tab.title}
                 </button>
               )
@@ -187,46 +179,51 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           <button
             onClick={handleCopy}
-            disabled={hasCopied}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono rounded-lg border transition-colors cursor-pointer ${
+            className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-mono rounded-xl border transition-all cursor-pointer shadow-xs self-start sm:self-auto ${
               hasCopied
-                ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400'
-                : 'bg-zinc-900 border-zinc-700/80 text-zinc-200 hover:bg-zinc-800 hover:text-white'
+                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-semibold'
+                : 'bg-white dark:bg-zinc-900 border-[#e8e6e5] dark:border-zinc-800 text-[#0c0a09] dark:text-zinc-200 hover:border-[#3ba6f1]/50 hover:bg-[#f5f5f4] dark:hover:bg-zinc-800'
             }`}
           >
             {hasCopied ? (
               <>
-                <CheckIcon className="w-3.5 h-3.5 text-emerald-400" />
-                Copied!
+                <CheckIcon className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Copied to Clipboard!</span>
               </>
             ) : (
               <>
-                <DocumentDuplicateIcon className="w-3.5 h-3.5" />
-                Copy Code
+                <DocumentDuplicateIcon className="w-3.5 h-3.5 text-[#3ba6f1]" />
+                <span>Copy Code</span>
               </>
             )}
           </button>
         </div>
 
         {/* Code Content Area */}
-        <div className="p-5">
-          <div className="flex items-center justify-between text-xs font-mono text-zinc-500 mb-2">
-            <span>File: {currentSnippet.filename}</span>
-            <span className="text-[11px] text-zinc-600">Site ID: {projectId}</span>
+        <div className="p-5 sm:p-6">
+          {/* File Header Bar */}
+          <div className="flex items-center justify-between text-xs font-mono text-[#78716c] dark:text-zinc-400 mb-2.5 px-1">
+            <span className="font-semibold text-[#0c0a09] dark:text-zinc-200">{currentSnippet.filename}</span>
+            <span className="text-[11px] text-[#a8a29e] dark:text-zinc-500">Site ID: {projectId}</span>
           </div>
 
-          <div className="relative bg-black/90 rounded-xl border border-zinc-900 p-4 overflow-x-auto font-mono text-xs text-zinc-200 selection:bg-zinc-800">
-            <pre className="leading-relaxed">
-              <code>{currentSnippet.code}</code>
+          {/* Code Window */}
+          <div className="relative bg-[#fafaf9] dark:bg-zinc-950/80 rounded-xl border border-[#e8e6e5] dark:border-zinc-800/80 p-4 sm:p-5 overflow-x-auto font-mono text-xs text-[#0c0a09] dark:text-zinc-200 selection:bg-[#3ba6f1]/20 dark:selection:bg-[#3ba6f1]/30">
+            <pre className="leading-relaxed font-mono">
+              <code className="text-[#0c0a09] dark:text-zinc-200 font-mono">{currentSnippet.code}</code>
             </pre>
           </div>
 
-          <div className="mt-3.5 flex items-start gap-2 text-xs font-mono text-zinc-400">
-            <SparklesIcon className="w-4 h-4 text-zinc-500 mt-0.5 shrink-0" />
-            <p>{currentSnippet.note}</p>
+          {/* Quick Guide Note */}
+          <div className="mt-4 px-3.5 py-2.5 rounded-xl bg-[#fafaf9] dark:bg-zinc-900/50 border border-[#e8e6e5] dark:border-zinc-800/70 text-xs text-[#78716c] dark:text-zinc-400">
+            <p className="font-sans leading-relaxed">
+              <strong className="font-semibold text-[#0c0a09] dark:text-zinc-200">Note: </strong>
+              {currentSnippet.note}
+            </p>
           </div>
         </div>
       </div>
     </div>
   )
 }
+

@@ -165,11 +165,11 @@ export function ReferrerPanel({ projectId, initialData = [] }: ReferrerPanelProp
   const displayRows = expanded ? filteredData : filteredData.slice(0, 10);
 
   return (
-    <Card className="col-span-1 md:col-span-2 bg-zinc-950/70 border border-zinc-900/80 rounded-xl backdrop-blur-md hover:border-zinc-800/80 transition-all duration-200 shadow-sm overflow-hidden flex flex-col justify-between">
+    <Card className="col-span-1 md:col-span-2 bg-white dark:bg-zinc-950/70 border border-[#e8e6e5] dark:border-zinc-900/80 rounded-2xl backdrop-blur-md hover:border-[#3ba6f1]/40 dark:hover:border-zinc-800/80 transition-all duration-200 shadow-sm overflow-hidden flex flex-col justify-between">
       <div>
         {/* Top Tab Bar */}
-        <div className="border-b border-zinc-900/80 px-4 pt-3 pb-2.5 bg-zinc-950/40">
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
+        <div className="border-b border-[#e8e6e5] dark:border-zinc-900/80 px-4 pt-3.5 pb-3 bg-[#fafaf9] dark:bg-zinc-950/40">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-0.5">
             {TABS.map((tab) => {
               const isActive = activeTab === tab.key;
               return (
@@ -180,10 +180,10 @@ export function ReferrerPanel({ projectId, initialData = [] }: ReferrerPanelProp
                     setSearchQuery("");
                     setExpanded(false);
                   }}
-                  className={`px-3 py-1 rounded-lg text-xs font-mono transition-colors cursor-pointer whitespace-nowrap ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                     isActive
-                      ? "bg-zinc-800 text-white font-semibold shadow-sm border border-zinc-700/60"
-                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60"
+                      ? "bg-[#3ba6f1] text-white dark:bg-zinc-800 dark:text-white font-semibold shadow-sm"
+                      : "text-[#78716c] dark:text-zinc-400 hover:text-[#0c0a09] dark:hover:text-zinc-200 hover:bg-[#f5f5f4] dark:hover:bg-zinc-900/60"
                   }`}
                 >
                   {tab.label}
@@ -194,18 +194,18 @@ export function ReferrerPanel({ projectId, initialData = [] }: ReferrerPanelProp
         </div>
 
         {/* Search Input & Controls */}
-        <div className="px-4 py-2.5 border-b border-zinc-900/80 flex items-center justify-between gap-3 bg-zinc-950/60">
+        <div className="px-4 py-3 border-b border-[#e8e6e5] dark:border-zinc-900/80 flex items-center justify-between gap-3 bg-white dark:bg-zinc-950/60">
           <div className="relative flex-1 max-w-sm">
-            <MagnifyingGlassIcon className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <MagnifyingGlassIcon className="w-4 h-4 text-[#78716c] dark:text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder={activeTabConfig.placeholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-zinc-900/70 border border-zinc-800/80 rounded-lg pl-8 pr-3 py-1 text-xs text-white font-mono placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition"
+              className="w-full bg-[#fafaf9] dark:bg-zinc-900/70 border border-[#e8e6e5] dark:border-zinc-800/80 rounded-xl pl-9 pr-3.5 py-1.5 text-xs sm:text-sm text-[#0c0a09] dark:text-white placeholder:text-[#a8a29e] dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#3ba6f1] focus:ring-1 focus:ring-[#3ba6f1] transition font-medium"
             />
           </div>
-          <div className="text-[11px] font-mono text-zinc-500 bg-zinc-900/70 border border-zinc-800/60 px-2 py-0.5 rounded">
+          <div className="text-xs font-mono font-medium text-[#78716c] dark:text-zinc-400 bg-[#f5f5f4] dark:bg-zinc-900/70 border border-[#e8e6e5] dark:border-zinc-800/60 px-2.5 py-0.5 rounded-lg">
             {filteredData.length} {filteredData.length === 1 ? "entry" : "entries"}
           </div>
         </div>
@@ -214,25 +214,25 @@ export function ReferrerPanel({ projectId, initialData = [] }: ReferrerPanelProp
         <CardContent className="p-0">
           <div className={expanded ? "max-h-96 overflow-y-auto" : ""}>
             <Table>
-              <TableHeader className="bg-zinc-950/60">
-                <TableRow className="border-b border-zinc-900 hover:bg-transparent text-xs text-zinc-500 font-mono">
-                  <TableHead className="pl-4 h-8">Attribution channel</TableHead>
-                  <TableHead className="text-right pr-4 h-8 w-24">Visitors</TableHead>
-                  <TableHead className="text-right pr-4 h-8 w-24">Views</TableHead>
+              <TableHeader className="bg-[#fafaf9] dark:bg-zinc-950/60">
+                <TableRow className="border-b border-[#e8e6e5] dark:border-zinc-900 hover:bg-transparent text-xs sm:text-sm text-[#78716c] dark:text-zinc-400 font-medium">
+                  <TableHead className="pl-4 h-9 text-[#78716c] dark:text-zinc-400 font-semibold">Attribution channel</TableHead>
+                  <TableHead className="text-right pr-4 h-9 w-28 text-[#78716c] dark:text-zinc-400 font-semibold">Visitors</TableHead>
+                  <TableHead className="text-right pr-4 h-9 w-28 text-[#78716c] dark:text-zinc-400 font-semibold">Views</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i} className="border-b border-zinc-900/50">
-                      <TableCell className="pl-4 py-2.5">
-                        <div className="h-4 bg-zinc-900 rounded animate-pulse w-48"></div>
+                    <TableRow key={i} className="border-b border-[#e8e6e5]/60 dark:border-zinc-900/50">
+                      <TableCell className="pl-4 py-3">
+                        <div className="h-4 bg-[#f5f5f4] dark:bg-zinc-900 rounded animate-pulse w-48"></div>
                       </TableCell>
-                      <TableCell className="text-right pr-4 py-2.5">
-                        <div className="h-4 bg-zinc-900 rounded animate-pulse w-12 ml-auto"></div>
+                      <TableCell className="text-right pr-4 py-3">
+                        <div className="h-4 bg-[#f5f5f4] dark:bg-zinc-900 rounded animate-pulse w-12 ml-auto"></div>
                       </TableCell>
-                      <TableCell className="text-right pr-4 py-2.5">
-                        <div className="h-4 bg-zinc-900 rounded animate-pulse w-10 ml-auto"></div>
+                      <TableCell className="text-right pr-4 py-3">
+                        <div className="h-4 bg-[#f5f5f4] dark:bg-zinc-900 rounded animate-pulse w-10 ml-auto"></div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -244,22 +244,22 @@ export function ReferrerPanel({ projectId, initialData = [] }: ReferrerPanelProp
                     return (
                       <TableRow
                         key={row.name + idx}
-                        className="group relative border-b border-zinc-900/50 hover:bg-zinc-900/40 transition-colors"
+                        className="group relative border-b border-[#e8e6e5]/60 dark:border-zinc-900/50 hover:bg-[#f5f5f4] dark:hover:bg-zinc-900/40 transition-colors"
                       >
-                        <TableCell className="pl-4 py-2.5 relative max-w-[320px]">
+                        <TableCell className="pl-4 py-3 relative max-w-[320px]">
                           {/* Background visual proportional bar */}
                           <div
-                            className="absolute inset-y-1 left-0 bg-zinc-800/20 rounded pointer-events-none transition-all duration-300 group-hover:bg-zinc-800/30"
+                            className="absolute inset-y-1 left-0 bg-[#3ba6f1]/10 dark:bg-zinc-800/20 rounded pointer-events-none transition-all duration-300 group-hover:bg-[#3ba6f1]/15 dark:group-hover:bg-zinc-800/30"
                             style={{ width: `${barPercentage}%` }}
                           />
-                          <div className="relative flex items-center gap-2 truncate font-mono text-xs text-zinc-200">
-                            <span className="shrink-0 text-sm">{meta.icon}</span>
+                          <div className="relative flex items-center gap-2.5 truncate font-mono text-xs sm:text-sm text-[#0c0a09] dark:text-zinc-200">
+                            <span className="shrink-0 text-sm sm:text-base">{meta.icon}</span>
                             <span
                               title={row.name}
                               className={`truncate ${
                                 row.name.includes("Direct / Not set")
-                                  ? "text-zinc-500 italic"
-                                  : "text-zinc-200 group-hover:text-white"
+                                  ? "text-[#a8a29e] dark:text-zinc-500 italic"
+                                  : "text-[#0c0a09] dark:text-zinc-200 group-hover:text-[#3ba6f1] dark:group-hover:text-white font-medium"
                               }`}
                             >
                               {row.name}
@@ -267,11 +267,11 @@ export function ReferrerPanel({ projectId, initialData = [] }: ReferrerPanelProp
                           </div>
                         </TableCell>
 
-                        <TableCell className="relative pr-4 py-2.5 text-right font-mono text-xs text-zinc-400 tabular-nums">
+                        <TableCell className="relative pr-4 py-3 text-right font-mono text-xs sm:text-sm text-[#78716c] dark:text-zinc-400 tabular-nums">
                           {formatInteger(row.sessions)}
                         </TableCell>
 
-                        <TableCell className="relative pr-4 py-2.5 text-right font-mono text-xs font-semibold text-zinc-200 tabular-nums">
+                        <TableCell className="relative pr-4 py-3 text-right font-mono text-xs sm:text-sm font-semibold text-[#0c0a09] dark:text-zinc-200 tabular-nums">
                           {formatInteger(row.views)}
                         </TableCell>
                       </TableRow>
@@ -280,10 +280,10 @@ export function ReferrerPanel({ projectId, initialData = [] }: ReferrerPanelProp
                 ) : error ? (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center py-10 font-mono text-xs">
-                      <div className="text-red-400 mb-2">{error}</div>
+                      <div className="text-red-500 mb-2">{error}</div>
                       <button
                         onClick={() => fetchBreakdown(activeTab)}
-                        className="px-3 py-1 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 rounded text-xs transition cursor-pointer"
+                        className="px-3 py-1 bg-[#f5f5f4] dark:bg-zinc-900 border border-[#e8e6e5] dark:border-zinc-800 text-[#0c0a09] dark:text-zinc-300 rounded text-xs transition cursor-pointer"
                       >
                         Retry
                       </button>
@@ -291,7 +291,7 @@ export function ReferrerPanel({ projectId, initialData = [] }: ReferrerPanelProp
                   </TableRow>
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-12 text-zinc-500 font-mono text-xs">
+                    <TableCell colSpan={3} className="text-center py-12 text-[#a8a29e] dark:text-zinc-500 font-mono text-xs">
                       No data recorded for {activeTabConfig.label.toLowerCase()} in the selected period
                     </TableCell>
                   </TableRow>
@@ -304,10 +304,10 @@ export function ReferrerPanel({ projectId, initialData = [] }: ReferrerPanelProp
 
       {/* Footer Expand / Collapse */}
       {filteredData.length > 10 && (
-        <div className="flex items-center justify-center py-2 px-4 border-t border-zinc-900/80 bg-zinc-950/40">
+        <div className="flex items-center justify-center py-2 px-4 border-t border-[#e8e6e5] dark:border-zinc-900/80 bg-[#fafaf9] dark:bg-zinc-950/40">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="inline-flex items-center gap-1.5 text-xs font-mono text-zinc-400 hover:text-white transition-colors cursor-pointer py-1"
+            className="inline-flex items-center gap-1.5 text-xs font-mono text-[#78716c] dark:text-zinc-400 hover:text-[#0c0a09] dark:hover:text-white transition-colors cursor-pointer py-1"
           >
             <span>{expanded ? "Show less" : `View all (${filteredData.length})`}</span>
             <ChevronDownIcon

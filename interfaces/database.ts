@@ -87,6 +87,7 @@ export interface DailyStats {
   date: string;
   visitors: number;
   pageViews: number;
+  bounceRate?: number;
 }
 
 export interface CountryStats {
@@ -149,6 +150,19 @@ export interface RealtimeVisitor {
 export interface RealtimeStats {
   count: number;
   visitors: RealtimeVisitor[];
+}
+
+export interface OverviewMetricItem {
+  current: number;
+  prior: number;
+  delta: number;
+  isNew: boolean;
+}
+
+export interface OverviewMetrics {
+  visitors: OverviewMetricItem;
+  pageViews: OverviewMetricItem;
+  bounceRate: OverviewMetricItem;
 }
 
 // Database operation result interfaces

@@ -83,61 +83,63 @@ export function TopSources({ data = [] }: TopSourcesProps) {
   const displayRows = expanded ? data : data.slice(0, 5);
 
   return (
-    <Card className="relative dark:bg-transparent">
-      <CardHeader>
-        <CardTitle className="text-balance">Traffic Sources</CardTitle>
-        <CardDescription className="text-pretty">
-          Where your visitors are coming from in the last 7&nbsp;days.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className={expanded ? "max-h-96 overflow-y-auto" : ""}>
-          <Table className="border-t">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-6" scope="col">Source</TableHead>
-                <TableHead className="pr-6 text-end tabular-nums" scope="col">Visitors</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {displayRows.length > 0 ? (
-                displayRows.map((row) => {
-                  const meta = getSourceMeta(row.source);
-                  return (
-                    <TableRow className="hover:bg-transparent" key={row.source}>
-                      <TableCell className="max-w-[220px] truncate pl-6 font-medium">
-                        <span className="inline-flex items-center gap-2 text-xs">
-                          <span>{meta.icon}</span>
-                          <span className={meta.color}>{row.source}</span>
-                        </span>
-                      </TableCell>
-                      <TableCell className="pr-6 text-end text-muted-foreground text-xs tabular-nums">
-                        {formatInteger(row.visitors)}
-                        {row.percentage !== undefined && (
-                          <span className="ml-1.5 text-muted-foreground/60">
-                            ({row.percentage.toFixed(1)}%)
-                          </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={2} className="text-center py-8 text-muted-foreground font-mono text-xs">
-                    No sources yet.
-                  </TableCell>
+    <Card className="col-span-1 md:col-span-1 lg:col-span-1 bg-white dark:bg-zinc-950/70 border border-[#e8e6e5] dark:border-zinc-900/80 rounded-2xl backdrop-blur-md hover:border-[#3ba6f1]/40 dark:hover:border-zinc-800/80 transition-all duration-200 shadow-sm overflow-hidden flex flex-col justify-between">
+      <div>
+        <CardHeader className="pb-3.5 border-b border-[#e8e6e5] dark:border-zinc-900/80">
+          <CardTitle className="text-lg sm:text-xl font-bold font-roobert tracking-tight text-[#0c0a09] dark:text-white">Traffic Sources</CardTitle>
+          <CardDescription className="text-xs sm:text-sm text-[#78716c] dark:text-zinc-400 mt-0.5">
+            Where your visitors are coming from in the last 7&nbsp;days.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className={expanded ? "max-h-96 overflow-y-auto" : ""}>
+            <Table>
+              <TableHeader className="bg-[#fafaf9] dark:bg-zinc-950/60">
+                <TableRow className="border-b border-[#e8e6e5] dark:border-zinc-900 hover:bg-transparent text-xs sm:text-sm text-[#78716c] dark:text-zinc-400 font-medium">
+                  <TableHead className="pl-6 h-9 text-[#78716c] dark:text-zinc-400 font-semibold" scope="col">Source</TableHead>
+                  <TableHead className="pr-6 text-end tabular-nums h-9 text-[#78716c] dark:text-zinc-400 font-semibold" scope="col">Visitors</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
+              </TableHeader>
+              <TableBody>
+                {displayRows.length > 0 ? (
+                  displayRows.map((row) => {
+                    const meta = getSourceMeta(row.source);
+                    return (
+                      <TableRow className="border-b border-[#e8e6e5]/60 dark:border-zinc-900/50 hover:bg-[#f5f5f4] dark:hover:bg-zinc-900/40 transition-colors" key={row.source}>
+                        <TableCell className="max-w-[220px] truncate pl-6 py-3 font-medium text-xs sm:text-sm text-[#0c0a09] dark:text-zinc-200">
+                          <span className="inline-flex items-center gap-2.5">
+                            <span className="text-sm sm:text-base">{meta.icon}</span>
+                            <span className={meta.color}>{row.source}</span>
+                          </span>
+                        </TableCell>
+                        <TableCell className="pr-6 py-3 text-end text-[#78716c] dark:text-zinc-400 font-mono text-xs sm:text-sm tabular-nums font-medium">
+                          {formatInteger(row.visitors)}
+                          {row.percentage !== undefined && (
+                            <span className="ml-1.5 opacity-70">
+                              ({row.percentage.toFixed(1)}%)
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-center py-8 text-[#a8a29e] dark:text-zinc-500 font-mono text-xs">
+                      No sources yet.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </div>
       {data.length > 5 && (
-        <div className="flex items-center justify-center py-2 border-t">
-          <Button variant="ghost" onClick={() => setExpanded(!expanded)}>
+        <div className="flex items-center justify-center py-2 px-4 border-t border-[#e8e6e5] dark:border-zinc-900/80 bg-[#fafaf9] dark:bg-zinc-950/40">
+          <Button variant="ghost" className="text-xs font-mono text-[#78716c] dark:text-zinc-400 hover:text-[#0c0a09] dark:hover:text-white" onClick={() => setExpanded(!expanded)}>
             {expanded ? "Show less" : `View All (${data.length})`}
-            <ArrowRightIcon className={`transition-transform duration-200 ${expanded ? "rotate-90" : ""}`} aria-hidden="true" />
+            <ArrowRightIcon className={`w-3.5 h-3.5 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`} aria-hidden="true" />
           </Button>
         </div>
       )}

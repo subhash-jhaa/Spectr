@@ -219,3 +219,35 @@ export function getCountryCode(countryCodeOrName: string): string {
   const code = COUNTRY_NAME_TO_CODE[countryCodeOrName.toLowerCase().trim()];
   return code || 'UN';
 }
+
+const COUNTRY_COORDINATES: Record<string, [number, number]> = {
+  US: [37.0902, -95.7129],
+  IN: [20.5937, 78.9629],
+  GB: [55.3781, -3.4360],
+  DE: [51.1657, 10.4515],
+  FR: [46.2276, 2.2137],
+  CA: [56.1304, -106.3468],
+  AU: [-25.2744, 133.7751],
+  JP: [36.2048, 138.2529],
+  CN: [35.8617, 104.1954],
+  BR: [-14.2350, -51.9253],
+  NL: [52.1326, 5.2913],
+  SG: [1.3521, 103.8198],
+  AE: [23.4241, 53.8478],
+  IT: [41.8719, 12.5674],
+  ES: [40.4637, -3.7492],
+  SE: [60.1282, 18.6435],
+  CH: [46.8182, 8.2275],
+  PL: [51.9194, 19.1451],
+  ID: [-0.7893, 113.9213],
+  KR: [35.9078, 127.7669],
+  RU: [61.5240, 105.3188],
+  ZA: [-30.5595, 22.9375],
+  MX: [23.6345, -102.5528],
+  TR: [38.9637, 35.2433],
+};
+
+export function getCountryCoordinates(countryCodeOrName: string): [number, number] {
+  const code = getCountryCode(countryCodeOrName);
+  return COUNTRY_COORDINATES[code] || [37.0902, -95.7129];
+}

@@ -8,12 +8,12 @@ export function Integration() {
   return (
     <section id="code" className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
       {/* Outer Box with Border */}
-      <div className="bg-zinc-950/30 rounded-2xl p-2 relative overflow-hidden border border-zinc-800/80">
+      <div className="bg-white/80 dark:bg-zinc-950/30 rounded-2xl p-2 relative overflow-hidden border border-[#e8e6e5] dark:border-zinc-800/80 shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-none">
         {/* Inner Box with Subtle Border */}
-        <div className="rounded-[14px] bg-zinc-950 border border-zinc-800/30 relative overflow-hidden w-full p-8 sm:p-12">
+        <div className="rounded-[14px] bg-white dark:bg-zinc-950 border border-[#e8e6e5]/60 dark:border-zinc-800/30 relative overflow-hidden w-full p-8 sm:p-12">
 
           {/* Background glow */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#3ba6f1]/5 dark:bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none" />
 
           <motion.div
             initial="hidden"
@@ -24,13 +24,14 @@ export function Integration() {
           >
             <motion.div variants={fadeUp} custom={0}>
               <SectionLabel>Zero config</SectionLabel>
-              <h2 className="font-mono text-2xl sm:text-3xl font-bold text-zinc-100 tracking-tight mb-4 text-balance">
-                Add Analytics<br />in 5 Seconds
+              <h2 className="font-roobert text-3xl sm:text-4xl lg:text-[44px] font-normal text-[#0c0a09] dark:text-white tracking-[-0.025em] leading-[1.15] mb-5 text-balance">
+                <span>Add analytics in </span>
+                <span className="highlight-span">5 seconds</span>
               </h2>
-              <p className="text-sm text-zinc-500 leading-relaxed mb-6">
+              <p className="text-base sm:text-lg font-normal text-[#78716c] dark:text-zinc-300 leading-[1.64] mb-8">
                 No npm install. No build step. No configuration file. Paste one script tag anywhere in your HTML and you&apos;re live.
               </p>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {[
                   'Works with React, Vue, Next.js, and plain HTML',
                   'GDPR & CCPA compliant by default',
@@ -41,12 +42,12 @@ export function Integration() {
                     key={i} 
                     variants={fadeUp}
                     custom={i + 1}
-                    className="flex items-center gap-2.5 group"
+                    className="flex items-center gap-3.5 group"
                   >
-                    <div className="h-5 w-5 rounded-full bg-black border border-zinc-700 flex items-center justify-center shrink-0 group-hover:border-emerald-500/50 transition-colors">
-                      <Check className="h-3 w-3 text-emerald-400" />
+                    <div className="h-6 w-6 rounded-full bg-[#f5f5f4] dark:bg-black border border-[#e8e6e5] dark:border-zinc-700 flex items-center justify-center shrink-0 group-hover:border-[#3ba6f1] transition-colors">
+                      <Check className="h-3.5 w-3.5 text-[#3ba6f1] dark:text-emerald-400" />
                     </div>
-                    <span className="text-[13px] text-zinc-400 group-hover:text-zinc-300 transition-colors">{t}</span>
+                    <span className="text-sm sm:text-base text-[#0c0a09] dark:text-zinc-300 font-medium group-hover:text-[#3ba6f1] dark:group-hover:text-white transition-colors">{t}</span>
                   </motion.div>
                 ))}
               </div>

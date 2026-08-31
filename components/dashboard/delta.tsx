@@ -29,20 +29,25 @@ function Delta({
 	className,
 	value,
 	variant = "default",
+	isInverse = false,
 	...props
 }: React.ComponentProps<"div"> & {
 	value: number;
 	variant?: DeltaVariant;
+	isInverse?: boolean;
 }) {
+	const isPositive = isInverse ? value < 0 : value > 0;
+	const isNegative = isInverse ? value > 0 : value < 0;
+
 	return (
 		<DeltaContext.Provider value={{ value }}>
 			{variant === "badge" ? (
 				<Badge
 					className={cn(
 						"gap-1 border-none tabular-nums [&_svg]:size-4 [&_svg]:shrink-0",
-						value > 0
+						isPositive
 							? "bg-emerald-500/10 text-emerald-500"
-							: value < 0
+							: isNegative
 								? "bg-red-500/10 text-red-500"
 								: "bg-zinc-500/10 text-zinc-400",
 						className
@@ -56,8 +61,8 @@ function Delta({
 					className={cn(
 						"inline-flex items-center gap-1 text-muted-foreground tabular-nums",
 						"[&_svg]:size-3 [&_svg]:shrink-0",
-						value > 0 ? "text-emerald-600 dark:text-emerald-400" : "",
-						value < 0 ? "text-rose-600 dark:text-rose-400" : "",
+						isPositive ? "text-emerald-600 dark:text-emerald-400" : "",
+						isNegative ? "text-rose-600 dark:text-rose-400" : "",
 						className
 					)}
 					data-slot="delta"
