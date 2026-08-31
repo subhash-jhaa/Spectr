@@ -18,6 +18,11 @@ import {
   ArrowLeftIcon,
   Squares2X2Icon,
   DocumentTextIcon,
+  ExclamationTriangleIcon,
+  TrashIcon,
+  CheckIcon,
+  DocumentDuplicateIcon,
+  AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline'
 import { LogoMark } from './landing/Logo'
 import { ThemeToggle } from './ThemeToggle'
@@ -106,6 +111,7 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [dataFetched, setDataFetched] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [hasCopiedConfigId, setHasCopiedConfigId] = useState(false)
 
   // Use Custom Hooks
   const {
@@ -618,7 +624,25 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
           )}
 
           {activeTab === 'setup' && selectedProject && (
-            <div className="space-y-6 max-w-4xl mx-auto code-section">
+            <div className="space-y-6 max-w-4xl mx-auto code-section pb-12">
+              {/* ── Top Navigation Bar: Back to Dashboard ── */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('overview')}
+                  className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-mono font-medium text-[#78716c] dark:text-zinc-400 hover:text-[#0c0a09] dark:hover:text-white bg-white dark:bg-zinc-950/70 border border-[#e8e6e5] dark:border-zinc-800 hover:border-[#3ba6f1]/50 dark:hover:border-zinc-700 rounded-xl transition-all shadow-xs cursor-pointer w-fit group"
+                >
+                  <ArrowLeftIcon className="w-3.5 h-3.5 text-[#3ba6f1] group-hover:-translate-x-0.5 transition-transform" />
+                  <span>Back to Analytics Dashboard</span>
+                </button>
+
+                <div className="flex items-center gap-2 text-xs font-mono text-[#78716c] dark:text-zinc-500">
+                  <span className="font-semibold text-[#0c0a09] dark:text-zinc-300">{selectedProject.name}</span>
+                  <span>/</span>
+                  <span className="text-[#3ba6f1] font-medium">Settings & Setup</span>
+                </div>
+              </div>
+
               <SnippetGenerator
                 projectId={selectedProject.id}
                 projectName={selectedProject.name}
@@ -626,37 +650,81 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
                 activeVisitorsCount={realtimeStats.count}
               />
 
+              {/* ── Project Configuration Card ── */}
               <div className="bg-white dark:bg-zinc-950/70 border border-[#e8e6e5] dark:border-zinc-900/80 rounded-2xl p-6 backdrop-blur-md shadow-sm">
-                <h3 className="text-sm font-bold font-mono text-[#0c0a09] dark:text-white tracking-tight mb-4 uppercase tracking-wider text-zinc-400">Project Configuration</h3>
-                <div className="space-y-3 text-xs font-mono">
-                  <div className="flex items-center justify-between py-2 border-b border-[#e8e6e5] dark:border-zinc-900/80">
-                     <span className="text-[#78716c] dark:text-zinc-400">Project ID</span>
-                     <span className="text-[#0c0a09] dark:text-white font-mono bg-[#f5f5f4] dark:bg-zinc-900/80 px-2 py-1 rounded border border-[#e8e6e5] dark:border-zinc-800 select-all">{selectedProject.id}</span>
+                <div className="pb-4 border-b border-[#e8e6e5] dark:border-zinc-900/80 mb-5">
+                  <h3 className="text-base font-semibold font-roobert text-[#0c0a09] dark:text-white tracking-tight">
+                    Project Configuration
+                  </h3>
+                  <p className="text-xs text-[#78716c] dark:text-zinc-400 font-sans mt-0.5">
+                    Core identifiers and deployment parameters
+                  </p>
+                </div>
+
+                <div className="space-y-3.5 text-xs font-mono">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 py-2 border-b border-[#e8e6e5]/80 dark:border-zinc-900">
+                    <span className="text-[#78716c] dark:text-zinc-400 font-sans text-xs">Project ID</span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(selectedProject.id)
+                          setHasCopiedConfigId(true)
+                          setTimeout(() => setHasCopiedConfigId(false), 1800)
+                        } catch (e) {}
+                      }}
+                      title="Click to copy Project ID"
+                      className="group inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#fafaf9] dark:bg-zinc-900/80 border border-[#e8e6e5] dark:border-zinc-800 text-xs font-mono text-[#0c0a09] dark:text-zinc-200 hover:border-[#3ba6f1]/50 transition-all cursor-pointer w-fit"
+                    >
+                      <span>{selectedProject.id}</span>
+                      {hasCopiedConfigId ? (
+                        <CheckIcon className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      ) : (
+                        <DocumentDuplicateIcon className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 transition-opacity shrink-0" />
+                      )}
+                    </button>
                   </div>
-                  <div className="flex items-center justify-between py-2 border-b border-[#e8e6e5] dark:border-zinc-900/80">
-                     <span className="text-[#78716c] dark:text-zinc-400">Project Name</span>
-                     <span className="text-[#0c0a09] dark:text-white font-bold">{selectedProject.name}</span>
+
+                  <div className="flex items-center justify-between py-2 border-b border-[#e8e6e5]/80 dark:border-zinc-900">
+                    <span className="text-[#78716c] dark:text-zinc-400 font-sans text-xs">Project Name</span>
+                    <span className="text-[#0c0a09] dark:text-white font-semibold font-mono bg-[#f5f5f4] dark:bg-zinc-900/60 border border-[#e8e6e5] dark:border-zinc-800 px-2.5 py-1 rounded-lg">
+                      {selectedProject.name}
+                    </span>
                   </div>
+
                   <div className="flex items-center justify-between py-2">
-                     <span className="text-[#78716c] dark:text-zinc-400">Created Date</span>
-                     <span className="text-[#0c0a09] dark:text-zinc-300">
-                       {new Date(selectedProject.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
-                     </span>
+                    <span className="text-[#78716c] dark:text-zinc-400 font-sans text-xs">Created Date</span>
+                    <span className="text-[#0c0a09] dark:text-zinc-300 font-mono">
+                      {new Date(selectedProject.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-500/20 rounded-2xl p-6 backdrop-blur-md">
-                <h3 className="text-sm font-bold font-mono text-red-600 dark:text-red-400 tracking-tight mb-1.5">Danger Zone</h3>
-                <p className="text-xs text-[#78716c] dark:text-zinc-400 font-mono mb-4 leading-relaxed">
-                  Permanently delete this project and all associated visitor event logs and analytics data. This action cannot be undone.
-                </p>
-                <button
-                  onClick={() => setShowDeleteModal(true)}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white dark:bg-red-500/10 dark:hover:bg-red-500/20 dark:text-red-400 border border-transparent dark:border-red-500/30 rounded-xl transition font-mono text-xs font-bold cursor-pointer"
-                >
-                  Delete Project
-                </button>
+              {/* ── Danger Zone Card ── */}
+              <div className="bg-white dark:bg-zinc-950/70 border border-red-500/20 dark:border-red-500/25 rounded-2xl p-6 backdrop-blur-md shadow-sm relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-semibold font-roobert text-red-600 dark:text-red-400 tracking-tight">
+                        Danger Zone
+                      </h3>
+                      <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">
+                        Destructive
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#78716c] dark:text-zinc-400 font-sans mt-1 leading-relaxed max-w-xl">
+                      Permanently delete this project and all associated visitor event logs and analytics data. This action cannot be undone.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setShowDeleteModal(true)}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/10 hover:bg-red-600 text-red-600 hover:text-white dark:bg-red-500/15 dark:hover:bg-red-600 dark:text-red-400 dark:hover:text-white border border-red-500/30 hover:border-red-600 rounded-xl transition-all font-mono text-xs font-semibold cursor-pointer shadow-xs active:scale-[0.98] shrink-0 self-start sm:self-auto"
+                  >
+                    <span>Delete Project</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
