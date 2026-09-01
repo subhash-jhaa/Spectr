@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { LogoIcon } from "@/components/dashboard/logo";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,6 @@ import { AppSearch } from "@/components/dashboard/app-search";
 import { navGroups } from "@/components/dashboard/app-shared";
 import { CustomTrigger } from "@/components/dashboard/custom-trigger";
 import { LatestChange } from "@/components/dashboard/latest-change";
-import { ThemeSwitcher } from "@/components/dashboard/theme-switcher";
 import { SettingsIcon } from "lucide-react";
 
 export function AppSidebar() {
@@ -33,7 +33,10 @@ export function AppSidebar() {
 			variant="sidebar"
 		>
 			<SidebarHeader className="h-(--app-header-height,3rem) flex-row items-center justify-between">
-				<Button variant="ghost" render={<a href="#link" />} nativeButton={false}><LogoIcon /><span className="font-medium">Efferd</span></Button>
+				<Button variant="ghost" render={<Link href="/dashboard" />} nativeButton={false} className="gap-2.5 px-2">
+					<LogoIcon className="w-5 h-5 text-foreground" />
+					<span className="font-bold tracking-tight text-foreground">Spectr</span>
+				</Button>
 				<CustomTrigger place="sidebar" />
 			</SidebarHeader>
 			<SidebarContent>
@@ -58,7 +61,6 @@ export function AppSidebar() {
 			<SidebarFooter className="px-4">
 				<LatestChange />
 				<div className="flex items-center pt-4 pb-2">
-					<ThemeSwitcher />
 					<Button className="text-muted-foreground" size="icon-sm" variant="ghost" render={<a aria-label="Settings" href="#" />} nativeButton={false}><SettingsIcon
                     							/></Button>
 				</div>

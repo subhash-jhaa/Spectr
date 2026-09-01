@@ -6,7 +6,7 @@ import type { Session } from "next-auth";
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: "Real-time Website Analytics — spectr",
+  title: "Real-time Website Analytics — Spectr",
   description: "Monitor your website traffic in real-time without compromising visitor privacy. Zero-cookie, lightweight script, and fully GDPR/CCPA compliant.",
 };
 

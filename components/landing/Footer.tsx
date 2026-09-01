@@ -49,7 +49,7 @@ export function Footer() {
 
   return (
     <AnimatedFooter
-      brandName="spectr"
+      brandName="Spectr"
       brandDescription="Realtime, privacy-first analytics for developers. Know who's visiting, where they came from, and exactly what they're doing."
       socialLinks={socialLinks}
       navLinks={navLinks}

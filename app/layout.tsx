@@ -28,8 +28,8 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://spectr.subhashjha.me"),
   title: {
-    default: "spectr | Know Your Traffic.",
-    template: "%s | spectr",
+    default: "Spectr | Know Your Traffic.",
+    template: "%s | Spectr",
   },
   description: "Real-time, privacy-first analytics for developers. Zero cookies, zero bloat, and GDPR/CCPA compliant.",
   keywords: [
@@ -40,6 +40,7 @@ export const metadata: Metadata = {
     "privacy analytics",
     "cookieless analytics",
     "web analytics",
+    "Spectr",
     "spectr",
   ],
   authors: [{ name: "Subhash Jha", url: "https://subhashjha.me" }],
@@ -51,10 +52,10 @@ export const metadata: Metadata = {
     apple: "/favicon.svg",
   },
   openGraph: {
-    title: "spectr | Know Your Traffic.",
+    title: "Spectr | Know Your Traffic.",
     description: "Real-time, privacy-first analytics for developers. Zero cookies, zero bloat, and GDPR/CCPA compliant.",
     url: "https://spectr.subhashjha.me",
-    siteName: "spectr",
+    siteName: "Spectr",
     images: [
       {
         url: "/preview.png",
