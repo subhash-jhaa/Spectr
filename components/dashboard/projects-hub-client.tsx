@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { signOut } from 'next-auth/react'
 import { Session } from 'next-auth'
 import { LogoMark } from '@/components/landing/Logo'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { useProjects, Project } from '@/components/hooks/useProjects'
 import { ProjectCard } from './project-card'
 import { NewProjectModal } from '@/components/NewProjectModal'
@@ -67,7 +66,7 @@ export default function ProjectsHubClient({ session, initialProjects }: Projects
           <div className="flex items-center gap-4 sm:gap-5">
             <Link href="/" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity">
               <LogoMark size={28} />
-              <span className="font-bold text-lg text-[#0c0a09] dark:text-white font-mono tracking-tight">spectr</span>
+              <span className="font-bold text-lg text-[#0c0a09] dark:text-white font-mono tracking-tight">Spectr</span>
             </Link>
             <div className="flex items-center gap-2 text-xs font-mono text-[#78716c] dark:text-zinc-400 border-l border-[#e8e6e5] dark:border-zinc-800/80 pl-4 sm:pl-5">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#f5f5f4] dark:bg-zinc-900 border border-[#e8e6e5] dark:border-zinc-800 text-[#0c0a09] dark:text-zinc-300 font-medium">
@@ -78,8 +77,6 @@ export default function ProjectsHubClient({ session, initialProjects }: Projects
           </div>
 
           <div className="flex items-center gap-2.5">
-            <ThemeToggle />
-
             <Link
               href="/dashboard/profile"
               className="flex items-center gap-2 px-3.5 py-1.5 text-xs font-mono text-[#78716c] dark:text-zinc-400 hover:text-[#0c0a09] dark:hover:text-white bg-white dark:bg-zinc-950 border border-[#e8e6e5] dark:border-zinc-800 hover:border-[#3ba6f1]/50 dark:hover:border-zinc-700 rounded-full transition-colors shadow-xs"

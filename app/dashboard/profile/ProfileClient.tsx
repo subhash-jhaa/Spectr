@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { signOut } from 'next-auth/react';
 import { LogoMark } from '@/components/landing/Logo';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   Card, CardContent, CardHeader, CardTitle, CardDescription,
 } from '@/components/ui/card';
@@ -82,7 +81,7 @@ export default function ProfileClient({ user, projects: initialProjects }: Props
           <div className="flex items-center gap-4 sm:gap-5">
             <Link href="/" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity">
               <LogoMark size={28} />
-              <span className="font-bold text-lg text-[#0c0a09] dark:text-white font-mono tracking-tight">spectr</span>
+              <span className="font-bold text-lg text-[#0c0a09] dark:text-white font-mono tracking-tight">Spectr</span>
             </Link>
             <div className="flex items-center gap-2 text-xs font-mono text-[#78716c] dark:text-zinc-400 border-l border-[#e8e6e5] dark:border-zinc-800/80 pl-4 sm:pl-5">
               <Link
@@ -96,7 +95,6 @@ export default function ProfileClient({ user, projects: initialProjects }: Props
           </div>
 
           <div className="flex items-center gap-2.5">
-            <ThemeToggle />
             <button
               onClick={() => signOut({ callbackUrl: '/' })}
               title="Sign Out"

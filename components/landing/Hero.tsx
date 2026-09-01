@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Code2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { ContainerScroll } from "@/components/ui/container-scroll-animation";
 
 export function Hero() {
@@ -111,14 +111,6 @@ export function Hero() {
                       <span>Start Free Trial</span>
                       <ArrowRight className="h-4 w-4" />
                     </Link>
-
-                    <a
-                      href="#features"
-                      className="inline-flex items-center justify-center gap-2.5 rounded-full bg-white dark:bg-zinc-900 border border-[#e8e6e5] dark:border-zinc-800 hover:border-[#d6d3d1] dark:hover:border-zinc-700 px-7 py-3.5 text-base font-normal text-[#0c0a09] dark:text-zinc-200 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-sm"
-                    >
-                      <Code2 className="h-4 w-4 text-[#78716c] dark:text-zinc-400" />
-                      <span>View Live Demo</span>
-                    </a>
                   </div>
                 </div>
               }

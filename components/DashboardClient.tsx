@@ -25,7 +25,6 @@ import {
   AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline'
 import { LogoMark } from './landing/Logo'
-import { ThemeToggle } from './ThemeToggle'
 import { Dashboard } from '@/components/dashboard/dashboard'
 import { getCountryCode, getCountryName, getCountryCoordinates } from '@/lib/geo-utils'
 import { GlobeAnalytics, type AnalyticsMarker } from '@/components/ui/cobe-globe-analytics'
@@ -310,9 +309,9 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
       <aside className={`fixed inset-y-0 left-0 z-40 w-64 h-full shrink-0 bg-white dark:bg-zinc-950/90 border-r border-[#e8e6e5] dark:border-zinc-900/80 backdrop-blur-xl transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col justify-between overflow-hidden`}>
         <div className="p-5 flex-1 flex flex-col min-h-0">
           <div className="flex items-center justify-between gap-2 mb-6 shrink-0">
-            <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+            <Link href="/dashboard" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity">
               <LogoMark size={28} />
-              <span className="font-bold text-lg text-[#0c0a09] dark:text-white font-roobert tracking-tight">spectr</span>
+              <span className="font-bold text-lg text-[#0c0a09] dark:text-white font-roobert tracking-tight">Spectr</span>
             </Link>
             <button
               onClick={() => setIsSidebarOpen(false)}
@@ -415,9 +414,6 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Theme Toggle */}
-              <ThemeToggle />
-
               {/* Real-time connection indicator */}
               <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-[#f5f5f4] dark:bg-zinc-900/60 border border-[#e8e6e5] dark:border-zinc-800/80">
                 <span className="relative flex h-2.5 w-2.5">

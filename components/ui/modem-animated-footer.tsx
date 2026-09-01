@@ -127,15 +127,16 @@ export const Footer = ({
         {/* Bottom logo */}
         <button 
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="absolute bottom-24 md:bottom-20 backdrop-blur-xl rounded-3xl bg-white/80 dark:bg-black/60 left-1/2 border border-[#e8e6e5] dark:border-white/20 flex items-center justify-center p-2 -translate-x-1/2 z-10 transition-all overflow-hidden shadow-lg dark:drop-shadow-[0_0px_50px_rgba(255,255,255,0.15)] cursor-pointer"
+          className="absolute bottom-24 md:bottom-20 backdrop-blur-xl rounded-2xl sm:rounded-3xl bg-white/90 dark:bg-zinc-900/80 left-1/2 border border-[#e8e6e5] dark:border-white/15 flex items-center justify-center p-3 sm:p-4 -translate-x-1/2 z-10 transition-all hover:scale-105 overflow-hidden shadow-lg dark:drop-shadow-[0_0px_50px_rgba(255,255,255,0.1)] cursor-pointer group"
+          aria-label="Scroll to top"
         >
           {brandIcon ? (
-            <div className="w-12 sm:w-16 md:w-24 h-12 sm:h-16 md:h-24 flex items-center justify-center rounded-2xl overflow-hidden shadow-md relative z-10">
+            <div className="w-7 sm:w-9 md:w-11 h-7 sm:h-9 md:h-11 flex items-center justify-center relative z-10">
               {brandIcon}
             </div>
           ) : (
-            <div className="w-12 sm:w-16 md:w-20 h-12 sm:h-16 md:h-20 bg-gradient-to-br from-zinc-100 to-zinc-400 rounded-2xl flex items-center justify-center shadow-md relative z-10">
-              <NotepadTextDashed className="w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 text-zinc-950" />
+            <div className="w-7 sm:w-9 md:w-11 h-7 sm:h-9 md:h-11 flex items-center justify-center relative z-10">
+              <NotepadTextDashed className="w-6 h-6 text-foreground" />
             </div>
           )}
         </button>

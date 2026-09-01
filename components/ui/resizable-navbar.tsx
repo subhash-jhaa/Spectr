@@ -9,6 +9,7 @@ import {
   useScroll,
   useMotionValueEvent,
 } from "framer-motion";
+import { Logo } from "@/components/landing/Logo";
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -223,9 +224,9 @@ export const NavbarLogo = () => {
   return (
     <Link
       href="/"
-      className="relative z-20 mr-4 flex items-center space-x-2 px-2 py-1 text-lg font-bold text-[#0c0a09] dark:text-white tracking-tight"
+      className="relative z-20 mr-4 flex items-center space-x-2 px-2 py-1"
     >
-      <span className="font-bold text-xl tracking-tight">Spectr</span>
+      <Logo className="h-6 w-auto" />
     </Link>
   );
 };
