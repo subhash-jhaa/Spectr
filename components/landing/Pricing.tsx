@@ -3,14 +3,15 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, X, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/components/landing/Primitives';
 
 export function Pricing() {
   const { data: session } = useSession();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'FREE' | 'PRO' | null>(null);
+  const [activeCardLoading, setActiveCardLoading] = useState<string | null>(null);
+  const [buttonNotice, setButtonNotice] = useState<{ cardName: string; text: string } | null>(null);
 
   const plans = [
     {
@@ -83,42 +84,51 @@ export function Pricing() {
     }
   ];
 
-  const handlePlanSelect = async (plan: 'FREE' | 'PRO') => {
+  const handlePlanSelect = async (cardName: string, plan: 'FREE' | 'PRO') => {
     if (!session) {
       router.push('/auth');
       return;
     }
 
-    setSelectedPlan(plan);
-    setIsLoading(true);
+    if (buttonNotice?.cardName === cardName) return;
+
+    if (plan === 'FREE') {
+      router.push('/dashboard');
+      return;
+    }
+
+    setActiveCardLoading(cardName);
 
     try {
-      if (plan === 'FREE') {
-        router.push('/dashboard');
-      } else if (plan === 'PRO') {
-        const response = await fetch('/api/stripe/checkout', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            plan: 'PRO'
-          }),
-        });
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          plan: 'PRO'
+        }),
+      });
 
-        if (response.ok) {
-          const { url } = await response.json();
-          window.location.href = url;
-        } else {
-          throw new Error('Failed to create checkout session');
-        }
+      if (response.ok) {
+        const { url } = await response.json();
+        window.location.href = url;
+      } else {
+        const data = await response.json().catch(() => null);
+        const message = data?.error || 'Coming soon • Payments not live';
+        setButtonNotice({ cardName, text: message });
+        setTimeout(() => {
+          setButtonNotice((curr) => (curr?.cardName === cardName ? null : curr));
+        }, 3500);
       }
     } catch (error) {
       console.error('Error selecting plan:', error);
-      alert('Something went wrong. Please try again.');
+      setButtonNotice({ cardName, text: 'Coming soon • Payments not live' });
+      setTimeout(() => {
+        setButtonNotice((curr) => (curr?.cardName === cardName ? null : curr));
+      }, 3500);
     } finally {
-      setIsLoading(false);
-      setSelectedPlan(null);
+      setActiveCardLoading(null);
     }
   };
 
@@ -212,20 +222,53 @@ export function Pricing() {
                 {/* Button container */}
                 <div className="mt-auto">
                   <button
-                    onClick={() => handlePlanSelect(p.plan)}
-                    disabled={isLoading && selectedPlan === p.plan}
+                    onClick={() => handlePlanSelect(p.name, p.plan)}
+                    disabled={activeCardLoading === p.name}
                     className={cn(
-                      "w-full py-3 rounded-full text-sm font-semibold relative transition duration-200 flex items-center justify-center cursor-pointer",
-                      p.popular
+                      "w-full py-3 px-4 rounded-full text-sm font-semibold relative transition-all duration-300 flex items-center justify-center cursor-pointer overflow-hidden",
+                      buttonNotice?.cardName === p.name
+                        ? "bg-amber-500/10 dark:bg-amber-400/10 border border-amber-500/40 dark:border-amber-400/30 text-amber-700 dark:text-amber-300 shadow-[0_0_16px_rgba(245,158,11,0.12)]"
+                        : p.popular
                         ? "text-white bg-[#3ba6f1] hover:bg-[#3398e1] shadow-[0_4px_16px_rgba(59,166,241,0.3)]"
                         : "text-[#0c0a09] dark:text-zinc-300 bg-transparent border border-[#e8e6e5] dark:border-zinc-800 hover:bg-[#fafaf9] dark:hover:border-zinc-700 dark:hover:text-white"
                     )}
                   >
-                    {isLoading && selectedPlan === p.plan ? (
-                      <div className="h-5 w-5 border-2 border-white/30 border-t-white animate-spin rounded-full" />
-                    ) : (
-                      p.buttonText
-                    )}
+                    <AnimatePresence mode="wait" initial={false}>
+                      {activeCardLoading === p.name ? (
+                        <motion.div
+                          key="loading"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.15 }}
+                          className="flex items-center gap-2"
+                        >
+                          <Loader2 className="h-4 w-4 animate-spin text-current" />
+                          <span>Checking availability...</span>
+                        </motion.div>
+                      ) : buttonNotice?.cardName === p.name ? (
+                        <motion.div
+                          key="notice"
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -5 }}
+                          transition={{ duration: 0.2 }}
+                          className="flex items-center justify-center text-xs font-medium text-center px-1"
+                        >
+                          <span>{buttonNotice.text}</span>
+                        </motion.div>
+                      ) : (
+                        <motion.span
+                          key="idle"
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          {p.buttonText}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
                   </button>
                 </div>
 
