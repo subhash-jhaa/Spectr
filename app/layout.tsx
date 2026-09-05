@@ -61,7 +61,7 @@ export const metadata: Metadata = {
         url: "/preview.png",
         width: 1200,
         height: 630,
-        alt: "spectr - Real-time privacy-first analytics",
+        alt: "Spectr | Know Your Traffic — Real-time privacy-first analytics",
       },
     ],
     locale: "en_US",
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "spectr | Know Your Traffic.",
+    title: "Spectr | Know Your Traffic.",
     description: "Real-time, privacy-first analytics for developers. Zero cookies, zero bloat, and GDPR/CCPA compliant.",
     images: ["/preview.png"],
     creator: "@subhash_jh",
