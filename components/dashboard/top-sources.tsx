@@ -13,6 +13,8 @@ import {
 import { ArrowRightIcon } from "lucide-react";
 
 export interface TopSourcesProps {
+  days?: number;
+  periodLabel?: string;
   data?: { source: string; visitors: number; percentage?: number }[];
 }
 
@@ -78,7 +80,7 @@ function getSourceMeta(source: string) {
   return SOURCE_META[source] ?? { icon: "🌐", color: "text-zinc-400" };
 }
 
-export function TopSources({ data = [] }: TopSourcesProps) {
+export function TopSources({ data = [], days = 7, periodLabel }: TopSourcesProps) {
   const [expanded, setExpanded] = useState(false);
   const displayRows = expanded ? data : data.slice(0, 5);
 
@@ -88,7 +90,7 @@ export function TopSources({ data = [] }: TopSourcesProps) {
         <CardHeader className="pb-3.5 border-b border-[#e8e6e5] dark:border-zinc-900/80">
           <CardTitle className="text-lg sm:text-xl font-bold font-roobert tracking-tight text-[#0c0a09] dark:text-white">Traffic Sources</CardTitle>
           <CardDescription className="text-xs sm:text-sm text-[#78716c] dark:text-zinc-400 mt-0.5">
-            Where your visitors are coming from in the last 7&nbsp;days.
+            Where your visitors came from {periodLabel || `in the last ${days} days`}.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">

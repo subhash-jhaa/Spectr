@@ -25,6 +25,9 @@ model Project {
   id        String      @id @default(uuid())
   name      String
   userId    String
+  filterBots Boolean @default(true)
+  goals Goal[]
+  customEvents CustomEvent[]
   createdAt DateTime    @default(now())
   updatedAt DateTime?   @updatedAt
   events    Event[]
@@ -32,6 +35,31 @@ model Project {
   user      User        @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+model Goal {
+  id String @id @default(uuid())
+  projectId String
+  name String
+  eventName String
+  createdAt DateTime @default(now())
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@unique([projectId, eventName])
+}
+
+model CustomEvent {
+  id String @id @default(uuid())
+  projectId String
+  eventId String
+  eventName String
+  sessionId String
+  pageViewId String
+  source String
+  properties Json @default("{}")
+  timestamp DateTime @default(now())
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@unique([projectId, eventId])
+  @@index([projectId, timestamp, eventName])
 }
 
 model WebVital {
@@ -43,6 +71,7 @@ model WebVital {
   pageUrl   String
   device    String?
   sampleId  String?
+  sampleRevision Int @default(0)
   createdAt DateTime @default(now())
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 

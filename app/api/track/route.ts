@@ -21,6 +21,8 @@ import { prisma } from '@/lib/prisma';
 import { checkRateLimit, readJsonBody } from '@/lib/request-limits';
 import { ProjectQueries } from '../../../queries';
 import { randomUUID } from 'crypto';
+import { acceptTrackingProbe, recordTrackingReceipt } from '@/lib/tracking-health';
+import { botFilteringEnabled, isKnownBot } from '@/lib/traffic-filters';
 
 function resolveSessionId(clientSessionId: string | undefined): string {
   if (
@@ -51,7 +53,10 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       const value = body[key];
       if (value !== undefined && (typeof value !== 'string' || value.length > (key === 'pageUrl' || key === 'referrer' ? 2000 : 512))) return createErrorResponse('Invalid tracking fields', 400);
     }
-    if (body.type !== undefined && !['pageview', 'heartbeat'].includes(body.type)) return createErrorResponse('Invalid event type', 400);
+    if (body.type !== undefined && !['pageview', 'heartbeat', 'test'].includes(body.type)) return createErrorResponse('Invalid event type', 400);
+    if (body.trackerVersion !== undefined && (typeof body.trackerVersion !== 'string' || !/^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(body.trackerVersion))) return createErrorResponse('Invalid tracker version', 400);
+    const now = Date.now();
+    if (body.occurredAt !== undefined && (typeof body.occurredAt !== 'number' || !Number.isFinite(body.occurredAt) || body.occurredAt < now - 86400000 || body.occurredAt > now + 60000)) return createErrorResponse('Invalid event timestamp', 400);
     const { projectId, pageUrl, referrer, userAgent, sessionId, timezone, locale } = body;
 
     // Extract UTM parameters from client payload
@@ -70,18 +75,45 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       return createErrorResponse('Invalid project ID', 400);
     }
 
-    // Bot/crawler filtering — exclude from analytics
-    const BOT_PATTERN = /bot|crawl|spider|slurp|bingpreview|mediapartners|facebookexternalhit|linkedinbot|embedly|quora|pinterest|twitterbot|whatsapp|telegram|googlebot|yandex|baiduspider|duckduckbot|semrush|ahrefsbot|dotbot|rogerbot|screaming frog/i;
-    if (userAgent && BOT_PATTERN.test(userAgent)) {
-      return createSuccessResponse({ success: true, eventId: 'bot' });
-    }
-
     // Verify project exists by UUID only (name-lookup removed — was cross-user attack surface)
     const projectResult = await ProjectQueries.findById(projectId);
     if (!projectResult.success || !projectResult.data) {
       return createErrorResponse('Project not found', 404);
     }
     const resolvedProjectId = projectResult.data.id;
+    // Installation probes never enter analytics or trigger geolocation.
+    if (body.type === 'test') {
+      if (typeof body.testToken !== 'string' || !/^[a-f0-9-]{36}$/.test(body.testToken)) return createErrorResponse('Invalid test token', 400);
+      if (!await acceptTrackingProbe(resolvedProjectId, body.testToken, body.trackerVersion)) return createErrorResponse('Installation test expired or invalid', 400);
+      return createSuccessResponse({ success: true, eventId: 'test' });
+    }
+    if ((isKnownBot(userAgent || '') || isKnownBot(request.headers.get('user-agent') || '')) && await botFilteringEnabled(resolvedProjectId)) return createSuccessResponse({ success: true, eventId: 'bot' });
+    const recordReceipt = async () => {
+      // The health store must never hold an already committed pageview hostage.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([recordTrackingReceipt(resolvedProjectId, body.trackerVersion), new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Tracking health receipt timed out')), 1200);
+        })]);
+      }
+      catch (error) { console.error('Tracking health receipt failed:', error); }
+      finally { if (timer !== undefined) clearTimeout(timer); }
+    };
+    let cleanPageUrl: string;
+    let cleanReferrer = '';
+    try { const url = new URL(pageUrl); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); cleanPageUrl = url.origin + url.pathname; }
+    catch { return createErrorResponse('Invalid page URL', 400); }
+    try { const url = new URL(referrer || ''); if (['http:', 'https:'].includes(url.protocol)) cleanReferrer = url.origin + url.pathname; } catch {}
+    const resolvedSessionId = resolveSessionId(sessionId);
+    const pageViewId = body.pageViewId && /^[a-zA-Z0-9_\-.:]{6,128}$/.test(body.pageViewId) ? body.pageViewId : null;
+    // Heartbeats need only an indexed lookup, not another geolocation request.
+    if (body.type === 'heartbeat') {
+      const event = await prisma.event.findFirst({ where: { projectId: resolvedProjectId, sessionId: resolvedSessionId, ...(pageViewId ? { pageViewId } : { pageUrl: cleanPageUrl }) }, orderBy: { timestamp: 'desc' }, select: { id: true } });
+      if (!event) return createErrorResponse('Pageview not received', 409);
+      await prisma.event.update({ where: { id: event.id }, data: { lastSeenAt: new Date() } });
+      await recordReceipt();
+      return createSuccessResponse({ success: true, eventId: event.id, updated: true });
+    }
 
     // Get the client IP early for rate limiting and geolocation
     const ip = getClientIP(request);
@@ -126,27 +158,13 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
     // Classify traffic source from referrer and URL params
     const source = classifySource(referrer, pageUrl);
 
-    // Resolve trustworthy session ID
-    const resolvedSessionId = resolveSessionId(sessionId);
-
-    const pageViewId = body.pageViewId && /^[a-zA-Z0-9_\-.:]{6,128}$/.test(body.pageViewId) ? body.pageViewId : null;
-    if (body.type === 'heartbeat') {
-      const event = await prisma.event.findFirst({ where: { projectId: resolvedProjectId, sessionId: resolvedSessionId, ...(pageViewId ? { pageViewId } : { pageUrl }) }, orderBy: { timestamp: 'desc' }, select: { id: true } });
-      if (event) await prisma.event.update({ where: { id: event.id }, data: { lastSeenAt: new Date() } });
-      return createSuccessResponse({ success: true, eventId: event?.id || 'heartbeat', updated: true });
-    }
-    let cleanPageUrl: string;
-    let cleanReferrer = '';
-    try { const url = new URL(pageUrl); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); cleanPageUrl = url.origin + url.pathname; }
-    catch { return createErrorResponse('Invalid page URL', 400); }
-    try { const url = new URL(referrer || ''); if (['http:', 'https:'].includes(url.protocol)) cleanReferrer = url.origin + url.pathname; } catch {}
-
     // Create new event (first visit or new session)
     const eventData = {
       projectId: resolvedProjectId,
       sessionId: resolvedSessionId,
       pageViewId,
-      lastSeenAt: new Date(),
+      timestamp: new Date(body.occurredAt ?? now),
+      lastSeenAt: new Date(body.occurredAt ?? now),
       pageUrl: cleanPageUrl,
       referrer: cleanReferrer || '',
       source,
@@ -160,6 +178,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       city: city,
     };
     const event = pageViewId ? await prisma.event.upsert({ where: { projectId_pageViewId: { projectId: resolvedProjectId, pageViewId } }, create: eventData, update: {} }) : await prisma.event.create({ data: eventData });
+    await recordReceipt();
     const createResult = { success: true, data: event };
 
     if (!createResult.success || !createResult.data) {

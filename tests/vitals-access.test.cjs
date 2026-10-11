@@ -9,6 +9,8 @@ const ts = require('typescript');
 function loadRoute(user, project, failure = false) {
   const calls = [];
   const modules = {
+    'crypto': require('crypto'),
+    '@/lib/traffic-filters': { isKnownBot: () => false },
     'next/server': require('next/server'),
     '@/lib/api-utils': { getAuthenticatedUser: async () => user },
     '@/lib/request-limits': {},
@@ -83,4 +85,16 @@ test('ownership lookup errors fail closed', async () => {
   const { GET, calls } = loadRoute({ id: 'user-a' }, null, true);
   assert.equal((await GET(request())).status, 500);
   assert.equal(calls.length, 1);
+});
+test('vitals ranges reject malformed and unbounded inputs before querying', async () => {
+  for (const days of ['', '0', '-1', '91', '99999999', '7x', '7.5', '07', 'NaN']) {
+    const { GET, calls } = loadRoute({ id: 'owner' }, { id: 'project-a' });
+    assert.equal((await GET(request(`projectId=project-a&days=${days}`))).status, 400);
+    assert.equal(calls.length, 0);
+  }
+  for (const days of [1, 7, 15, 28, 30, 90]) {
+    const { GET, calls } = loadRoute({ id: 'owner' }, { id: 'project-a' });
+    assert.equal((await GET(request(`projectId=project-a&days=${days}`))).status, 200);
+    assert.equal(calls[1][2], days);
+  }
 });

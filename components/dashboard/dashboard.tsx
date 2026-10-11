@@ -15,6 +15,9 @@ import { OverviewMetrics, OverviewMetricKey } from "@/components/dashboard/overv
 import { OverviewMetrics as OverviewMetricsType } from "@/interfaces/database";
 
 export interface DashboardProps {
+  rangeQuery?: string;
+  periodLabel?: string;
+  compare?: boolean;
   days?: number;
   loading?: boolean;
   initialVitals?: VitalsData | null;
@@ -32,6 +35,9 @@ export interface DashboardProps {
 }
 
 export function Dashboard({
+  rangeQuery,
+  periodLabel,
+  compare = true,
   days = 7,
   loading,
 	projectId,
@@ -52,13 +58,18 @@ export function Dashboard({
 		<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 			<OverviewMetrics 
 				data={overviewMetrics}
+        compare={compare}
+        periodLabel={periodLabel}
 				days={days}
 				loading={loading}
 				activeMetric={activeMetric}
 				onSelectMetric={setActiveMetric}
 			/>
 			<VisitorsChart 
+        rangeStart={rangeQuery ? new URLSearchParams(rangeQuery).get('start') || undefined : undefined}
 				data={dailyStats}
+        compare={compare}
+        periodLabel={periodLabel}
 				days={days}
 				activeMetric={activeMetric}
 				overviewMetrics={overviewMetrics}
@@ -66,11 +77,11 @@ export function Dashboard({
 				isNew={overviewMetrics?.visitors.isNew} 
 			/>
 			<OnlineNow count={realtimeStats?.count} visitors={realtimeStats?.visitors} deviceStats={deviceStats} />
-			<TopPages days={days} data={pageStats} />
+			<TopPages days={days} periodLabel={periodLabel} data={pageStats} />
 			<TopCountries data={countryStats} />
-			<TopSources data={sourceStats} />
-			<ReferrerPanel key={`${projectId}:${days}`} days={days} projectId={projectId} />
-			<AudienceMix days={days} data={audienceMix} />
+			<TopSources data={sourceStats} days={days} periodLabel={periodLabel} />
+			<ReferrerPanel key={`${projectId}:${rangeQuery || days}`} rangeQuery={rangeQuery} days={days} projectId={projectId} />
+			<AudienceMix days={days} periodLabel={periodLabel} data={audienceMix} />
 			<BrowserShare data={browserStats} />
 			<WebVitals key={projectId} projectId={projectId} initialData={initialVitals} />
 		</div>

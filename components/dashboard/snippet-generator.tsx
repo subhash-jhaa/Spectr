@@ -108,7 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h3 className="text-base font-semibold text-[#0c0a09] dark:text-white font-roobert">
-                  Telemetry Status
+                  Live dashboard connection
                 </h3>
                 <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/20 text-xs font-mono font-medium shadow-xs">
                   <span className={`w-1.5 h-1.5 rounded-full ${
@@ -122,15 +122,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     {activeVisitorsCount > 0
                       ? `${activeVisitorsCount} Active Visitor${activeVisitorsCount > 1 ? 's' : ''}`
                       : isConnected
-                        ? 'Connected (Listening)'
-                        : 'Waiting for Telemetry'}
+                        ? 'Dashboard connected'
+                        : 'Dashboard reconnecting'}
                   </span>
                 </div>
               </div>
               <p className="text-xs text-[#78716c] dark:text-zinc-400 font-sans mt-1">
                 {activeVisitorsCount > 0
                   ? `Spectr is actively tracking live visitors for "${projectName}".`
-                  : 'Embed the snippet below and open your website in a new tab to verify telemetry.'}
+                  : 'Use Tracking health above to verify your website installation.'}
               </p>
             </div>
           </div>

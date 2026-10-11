@@ -1,4 +1,4 @@
-import { historyStart } from '@/lib/history-range';
+import { resolveHistory, type HistorySelection } from '@/lib/history-range';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
@@ -474,9 +474,9 @@ export class EventQueries {
   /**
    * Get daily visitor stats
    */
-  static async getDailyStats(projectId: string, days: number = 7): Promise<QueryResult<DailyStats[]>> {
+  static async getDailyStats(projectId: string, days: HistorySelection = 7): Promise<QueryResult<DailyStats[]>> {
     try {
-      const startDate = historyStart(days);
+      const { startDate, endDate, days: rangeDays } = resolveHistory(days);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const stats = await prisma.$queryRaw<any[]>`
@@ -485,7 +485,7 @@ export class EventQueries {
             "sessionId",
             COUNT(*) as cnt
           FROM "Event"
-          WHERE "projectId" = ${projectId} AND "timestamp" >= ${startDate} AND "sessionId" IS NOT NULL
+          WHERE "projectId" = ${projectId} AND "timestamp" >= ${startDate} AND "timestamp" < ${endDate} AND "sessionId" IS NOT NULL
           GROUP BY "sessionId"
         )
         SELECT
@@ -501,16 +501,16 @@ export class EventQueries {
           ) AS "bounceRate"
         FROM "Event" e
         LEFT JOIN session_activity s ON e."sessionId" = s."sessionId"
-        WHERE e."projectId" = ${projectId} AND e."timestamp" >= ${startDate}
+        WHERE e."projectId" = ${projectId} AND e."timestamp" >= ${startDate} AND e."timestamp" < ${endDate}
         GROUP BY DATE_TRUNC('day', e."timestamp")
         ORDER BY DATE_TRUNC('day', e."timestamp") ASC
       `;
 
       // Initialize daily stats with 0
       const dailyStatsMap: { [key: string]: DailyStats } = {};
-      for (let i = days - 1; i >= 0; i--) {
-        const date = new Date();
-        date.setUTCDate(date.getUTCDate() - i);
+      for (let i = 0; i < rangeDays; i++) {
+        const date = new Date(startDate);
+        date.setUTCDate(date.getUTCDate() + i);
         const dateKey = date.toISOString().split('T')[0];
         dailyStatsMap[dateKey] = {
           date: dateKey,
@@ -548,9 +548,9 @@ export class EventQueries {
   /**
    * Get country stats (standardized unique visitors)
    */
-  static async getCountryStats(projectId: string, days: number = 30): Promise<QueryResult<CountryStats[]>> {
+  static async getCountryStats(projectId: string, days: HistorySelection = 30): Promise<QueryResult<CountryStats[]>> {
     try {
-      const startDate = historyStart(days);
+      const { startDate, endDate } = resolveHistory(days);
 
       const rows = await prisma.$queryRaw<Array<{ country: string | null; visitors: number | bigint }>>`
         SELECT
@@ -558,7 +558,7 @@ export class EventQueries {
           COUNT(DISTINCT COALESCE("sessionId", "ip"))::integer AS visitors
         FROM "Event"
         WHERE "projectId" = ${projectId}
-          AND "timestamp" >= ${startDate}
+          AND "timestamp" >= ${startDate} AND "timestamp" < ${endDate}
         GROUP BY COALESCE(NULLIF("country", ''), 'Unknown')
         ORDER BY visitors DESC
         LIMIT 10
@@ -588,9 +588,9 @@ export class EventQueries {
   /**
    * Get referrer stats (standardized unique visitors)
    */
-  static async getReferrerStats(projectId: string, days: number = 30): Promise<QueryResult<ReferrerStats[]>> {
+  static async getReferrerStats(projectId: string, days: HistorySelection = 30): Promise<QueryResult<ReferrerStats[]>> {
     try {
-      const startDate = historyStart(days);
+      const { startDate, endDate } = resolveHistory(days);
 
       const rows = await prisma.$queryRaw<Array<{ referrer: string | null; visitors: number | bigint }>>`
         SELECT
@@ -598,7 +598,7 @@ export class EventQueries {
           COUNT(DISTINCT COALESCE("sessionId", "ip"))::integer AS visitors
         FROM "Event"
         WHERE "projectId" = ${projectId}
-          AND "timestamp" >= ${startDate}
+          AND "timestamp" >= ${startDate} AND "timestamp" < ${endDate}
         GROUP BY "referrer"
         ORDER BY visitors DESC
         LIMIT 25
@@ -651,10 +651,10 @@ export class EventQueries {
    */
   static async getPageStats(
     projectId: string,
-    days: number = 30
+    days: HistorySelection = 30
   ): Promise<QueryResult<PageStats[]>> {
     try {
-      const startDate = historyStart(days);
+      const { startDate, endDate } = resolveHistory(days);
 
       const rows = await prisma.$queryRaw<
         { pageUrl: string; pageViews: bigint | number; visitors: bigint | number }[]
@@ -665,7 +665,7 @@ export class EventQueries {
           COUNT(DISTINCT COALESCE("sessionId", "ip"))::integer AS visitors
         FROM "Event"
         WHERE "projectId" = ${projectId}
-          AND "timestamp" >= ${startDate}
+          AND "timestamp" >= ${startDate} AND "timestamp" < ${endDate}
         GROUP BY "pageUrl"
         ORDER BY visitors DESC
         LIMIT 20
@@ -687,14 +687,14 @@ export class EventQueries {
   /**
    * Helper to query user agent counts in distinct groups (standardized unique visitors)
    */
-  private static async getUserAgentCounts(projectId: string, startDate: Date) {
+  private static async getUserAgentCounts(projectId: string, startDate: Date, endDate: Date) {
     return await prisma.$queryRaw<{ userAgent: string; count: bigint | number }[]>`
       SELECT
         "userAgent",
         COUNT(DISTINCT COALESCE("sessionId", "ip"))::bigint as count
       FROM "Event"
       WHERE "projectId" = ${projectId}
-        AND "timestamp" >= ${startDate}
+        AND "timestamp" >= ${startDate} AND "timestamp" < ${endDate}
         AND "userAgent" IS NOT NULL
         AND "userAgent" != ''
       GROUP BY "userAgent"
@@ -706,11 +706,11 @@ export class EventQueries {
    */
   static async getUserAgentStats(
     projectId: string,
-    days: number = 30
+    days: HistorySelection = 30
   ): Promise<QueryResult<{ browsers: BrowserStats[]; devices: DeviceStats[] }>> {
     try {
-      const startDate = historyStart(days);
-      const rows = await this.getUserAgentCounts(projectId, startDate);
+      const { startDate, endDate } = resolveHistory(days);
+      const rows = await this.getUserAgentCounts(projectId, startDate, endDate);
 
       const getBrowser = (ua: string): string => {
         const u = ua.toLowerCase();
@@ -767,7 +767,7 @@ export class EventQueries {
    */
   static async getBrowserStats(
     projectId: string,
-    days: number = 30
+    days: HistorySelection = 30
   ): Promise<QueryResult<BrowserStats[]>> {
     const result = await this.getUserAgentStats(projectId, days);
     if (!result.success || !result.data) {
@@ -781,7 +781,7 @@ export class EventQueries {
    */
   static async getDeviceStats(
     projectId: string,
-    days: number = 7
+    days: HistorySelection = 7
   ): Promise<QueryResult<DeviceStats[]>> {
     const result = await this.getUserAgentStats(projectId, days);
     if (!result.success || !result.data) {
@@ -830,10 +830,9 @@ export class EventQueries {
   /**
    * Get traffic source stats (standardized unique visitors)
    */
-  static async getSourceStats(projectId: string, days: number = 30): Promise<QueryResult<SourceStats[]>> {
+  static async getSourceStats(projectId: string, days: HistorySelection = 30): Promise<QueryResult<SourceStats[]>> {
     try {
-      const endDate = new Date();
-      const startDate = historyStart(days);
+      const { startDate, endDate } = resolveHistory(days);
 
       // Strategy 1: Raw SQL with unique visitor count
       try {
@@ -841,8 +840,7 @@ export class EventQueries {
           SELECT COALESCE("source", 'Direct') as source, COUNT(DISTINCT COALESCE("sessionId", "ip"))::int as count
           FROM "Event"
           WHERE "projectId" = ${projectId}
-            AND "timestamp" >= ${startDate}
-            AND "timestamp" <= ${endDate}
+            AND "timestamp" >= ${startDate} AND "timestamp" < ${endDate}
           GROUP BY "source"
           ORDER BY count DESC
           LIMIT 15
@@ -871,7 +869,7 @@ export class EventQueries {
           projectId,
           timestamp: {
             gte: startDate,
-            lte: endDate
+            lt: endDate
           }
         },
         select: {
@@ -918,9 +916,9 @@ export class EventQueries {
    * Session engagement. Legacy response keys are retained for client compatibility;
    * these counts describe single-page and multi-page sessions, not returning people.
    */
-  static async getAudienceMix(projectId: string, days: number = 30): Promise<QueryResult<AudienceMixStats>> {
+  static async getAudienceMix(projectId: string, days: HistorySelection = 30): Promise<QueryResult<AudienceMixStats>> {
     try {
-      const startDate = historyStart(days);
+      const { startDate, endDate } = resolveHistory(days);
 
       const rows = await prisma.$queryRaw<Array<{
         total_visitors: bigint | number;
@@ -934,7 +932,7 @@ export class EventQueries {
             COUNT(DISTINCT DATE_TRUNC('day', "timestamp")) AS distinct_days
           FROM "Event"
           WHERE "projectId" = ${projectId}
-            AND "timestamp" >= ${startDate}
+            AND "timestamp" >= ${startDate} AND "timestamp" < ${endDate}
           GROUP BY COALESCE("sessionId", "ip")
         )
         SELECT
@@ -992,11 +990,10 @@ export class EventQueries {
   static async getReferrerBreakdown(
     projectId: string,
     dimension: string = 'refs',
-    days: number = 7
+    days: HistorySelection = 7
   ): Promise<QueryResult<Array<{ name: string; views: number; sessions: number }>>> {
     try {
-      const endDate = new Date();
-      const startDate = historyStart(days);
+      const { startDate, endDate } = resolveHistory(days);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let events: any[] = [];
@@ -1006,7 +1003,7 @@ export class EventQueries {
             projectId,
             timestamp: {
               gte: startDate,
-              lte: endDate
+              lt: endDate
             }
           },
           select: {
@@ -1028,7 +1025,7 @@ export class EventQueries {
               projectId,
               timestamp: {
                 gte: startDate,
-                lte: endDate
+                lt: endDate
               }
             },
             select: {
@@ -1043,8 +1040,7 @@ export class EventQueries {
             SELECT "referrer", "pageUrl", "sessionId"
             FROM "Event"
             WHERE "projectId" = ${projectId}
-              AND "timestamp" >= ${startDate}
-              AND "timestamp" <= ${endDate}
+              AND "timestamp" >= ${startDate} AND "timestamp" < ${endDate}
           `;
         }
       }
@@ -1154,17 +1150,17 @@ export class EventQueries {
   /**
    * Get overview metrics (Unique Visitors, Page Views, Bounce Rate) with prior period deltas
    */
-  static async getOverviewMetrics(projectId: string, days: number = 7): Promise<QueryResult<OverviewMetrics>> {
+  static async getOverviewMetrics(projectId: string, days: HistorySelection = 7): Promise<QueryResult<OverviewMetrics>> {
     try {
       const now = new Date();
-      const currentStart = historyStart(days, now);
-      const priorStart = new Date(currentStart.getTime() - days * 24 * 60 * 60 * 1000);
+      const { startDate: currentStart, endDate: currentEnd, days: rangeDays } = resolveHistory(days, now);
+      const priorStart = new Date(currentStart.getTime() - rangeDays * 24 * 60 * 60 * 1000);
 
       const rows = await prisma.$queryRaw<Record<string, number>[]>`
         WITH current_period AS (
           SELECT COALESCE("sessionId", "ip") AS vid, "sessionId"
           FROM "Event"
-          WHERE "projectId" = ${projectId} AND "timestamp" >= ${currentStart} AND "timestamp" <= ${now}
+          WHERE "projectId" = ${projectId} AND "timestamp" >= ${currentStart} AND "timestamp" < ${currentEnd}
         ),
         prior_period AS (
           SELECT COALESCE("sessionId", "ip") AS vid, "sessionId"

@@ -17,6 +17,7 @@ import {
 } from "@/components/dashboard/share-bar-list";
 
 export interface AudienceMixProps {
+  periodLabel?: string;
   days?: number;
 	data?: {
 		newVisitors: number;
@@ -26,7 +27,7 @@ export interface AudienceMixProps {
 	};
 }
 
-export function AudienceMix({ data, days = 7 }: AudienceMixProps) {
+export function AudienceMix({ data, days = 7, periodLabel }: AudienceMixProps) {
 	const total = (data?.newVisitors || 0) + (data?.returningVisitors || 0);
 	const segments = total > 0 ? [
 		{ label: `Single-page (${data?.newVisitors || 0})`, share: data?.newShare ?? 0 },
@@ -45,7 +46,7 @@ export function AudienceMix({ data, days = 7 }: AudienceMixProps) {
 							</CardDescription>
 						</div>
 						<div className="text-xs font-mono font-medium text-[#78716c] dark:text-zinc-400 bg-[#f5f5f4] dark:bg-zinc-900/70 border border-[#e8e6e5] dark:border-zinc-800/60 px-2.5 py-0.5 rounded-lg">
-							Last {days}d
+							{periodLabel || `Last ${days}d`}
 						</div>
 					</div>
 				</CardHeader>

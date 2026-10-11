@@ -13,6 +13,33 @@ function load(file, mocks = {}, DateClass = Date) {
 }
 const ranges = load('lib/history-range.ts');
 
+test('custom dates validate exact calendar dates and use an inclusive UTC end date', () => {
+  const now = new Date('2026-10-11T12:00:00Z');
+  const parse = query => ranges.parseHistorySelection(new URLSearchParams(query), now);
+  const leap = parse('start=2024-02-28&end=2024-03-01');
+  assert.equal(leap.days, 3);
+  assert.equal(leap.startDate.toISOString(), '2024-02-28T00:00:00.000Z');
+  assert.equal(leap.endDate.toISOString(), '2024-03-02T00:00:00.000Z');
+  assert.equal(parse('start=2024-01-01&end=2024-12-31').days, 366);
+  for (const query of ['start=2025-02-29&end=2025-03-01', 'start=2026-10-12&end=2026-10-12', 'start=2026-02-01', 'end=2026-02-01', 'start=2026-02-02&end=2026-02-01', 'start=2024-01-01&end=2025-01-01', 'start=1999-12-31&end=2000-01-01', 'start=2026-01-01&end=2026-01-02&days=7']) assert.equal(parse(query), null, query);
+});
+
+test('custom chart and overview queries share exclusive boundaries and adjacent previous periods', async () => {
+  const selection = ranges.parseHistorySelection(new URLSearchParams('start=2026-01-30&end=2026-02-02'), new Date('2026-10-11'));
+  const calls = [];
+  const { EventQueries } = load('queries/event.ts', {
+    '@/lib/prisma': { prisma: { $queryRaw: async (strings, ...values) => { calls.push({ sql: strings.join('?'), dates: values.filter(value => value instanceof Date).map(value => value.toISOString()) }); return []; } } },
+    '@/lib/history-range': ranges, '@/lib/source-classifier': {}, '@/lib/channel-classifier': {},
+  });
+  const daily = await EventQueries.getDailyStats('project-a', selection);
+  assert.equal(daily.success, true);
+  assert.deepEqual(Array.from(daily.data, row => row.date), ['2026-01-30', '2026-01-31', '2026-02-01', '2026-02-02']);
+  assert.ok(calls[0].sql.includes('"timestamp" <'));
+  assert.ok(calls[0].dates.includes('2026-02-03T00:00:00.000Z'));
+  await EventQueries.getOverviewMetrics('project-a', selection);
+  assert.deepEqual(calls.at(-1).dates, ['2026-01-30T00:00:00.000Z', '2026-02-03T00:00:00.000Z', '2026-01-26T00:00:00.000Z', '2026-01-30T00:00:00.000Z']);
+});
+
 test('only supported ranges are accepted, with a seven-day default', () => {
   assert.equal(ranges.parseHistoryDays(null), 7);
   for (const days of [7, 15, 30]) assert.equal(ranges.parseHistoryDays(String(days)), days);

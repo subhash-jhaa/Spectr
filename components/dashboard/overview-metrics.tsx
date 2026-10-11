@@ -9,6 +9,8 @@ import { OverviewMetrics as OverviewMetricsType } from '@/interfaces/database';
 export type OverviewMetricKey = 'visitors' | 'pageViews' | 'bounceRate';
 
 export interface OverviewMetricsProps {
+  periodLabel?: string;
+  compare?: boolean;
   days?: number;
   data?: OverviewMetricsType;
   loading?: boolean;
@@ -17,6 +19,8 @@ export interface OverviewMetricsProps {
 }
 
 export function OverviewMetrics({
+  periodLabel,
+  compare = true,
   days = 7,
   data,
   loading,
@@ -82,7 +86,7 @@ export function OverviewMetrics({
             <span className="font-roobert text-3xl sm:text-4xl font-bold tracking-tight text-[#0c0a09] dark:text-white tabular-nums">
               {formatInteger(visitors.current)}
             </span>
-            {visitors.isNew ? (
+            {compare && (visitors.isNew ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-medium shadow-xs">
                 New
               </span>
@@ -91,11 +95,11 @@ export function OverviewMetrics({
                 <DeltaIcon variant="trend" />
                 <DeltaValue suffix="%" />
               </Delta>
-            )}
+            ))}
           </div>
         </div>
         <p className="text-[11px] text-[#a8a29e] dark:text-zinc-500 font-sans mt-2.5">
-          Unique visitors in the last {days} days
+          Unique visitors in {periodLabel || `the last ${days} days`}
         </p>
       </div>
 
@@ -133,7 +137,7 @@ export function OverviewMetrics({
             <span className="font-roobert text-3xl sm:text-4xl font-bold tracking-tight text-[#0c0a09] dark:text-white tabular-nums">
               {formatInteger(pageViews.current)}
             </span>
-            {pageViews.isNew ? (
+            {compare && (pageViews.isNew ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-medium shadow-xs">
                 New
               </span>
@@ -142,7 +146,7 @@ export function OverviewMetrics({
                 <DeltaIcon variant="trend" />
                 <DeltaValue suffix="%" />
               </Delta>
-            )}
+            ))}
           </div>
         </div>
         <p className="text-[11px] text-[#a8a29e] dark:text-zinc-500 font-sans mt-2.5">
@@ -184,16 +188,16 @@ export function OverviewMetrics({
             <span className="font-roobert text-3xl sm:text-4xl font-bold tracking-tight text-[#0c0a09] dark:text-white tabular-nums">
               {bounceRate.current}%
             </span>
-            {bounceRate.isNew ? (
+            {compare && (bounceRate.isNew ? (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-500/10 text-zinc-500 border border-zinc-500/20 text-xs font-mono font-medium shadow-xs">
                 New
               </span>
             ) : (
               <Delta value={bounceRate.delta} variant="badge" isInverse={true}>
                 <DeltaIcon variant="trend" />
-                <DeltaValue suffix="%" />
+                <DeltaValue suffix=" pp" />
               </Delta>
-            )}
+            ))}
           </div>
         </div>
         <p className="text-[11px] text-[#a8a29e] dark:text-zinc-500 font-sans mt-2.5">

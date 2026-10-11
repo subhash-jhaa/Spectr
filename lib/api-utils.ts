@@ -4,7 +4,7 @@ import { SessionUser, ApiErrorResponse, CorsHeaders } from '../interfaces/api';
 import { ProjectQueries } from '../queries';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
-import { parseHistoryDays, type HistoryDays } from '@/lib/history-range';
+import { parseHistorySelection, type HistorySelection } from '@/lib/history-range';
 
 // Authenticated API rate limiter (generous: 60 req/min per user)
 const hasRedisConfig = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
@@ -24,6 +24,7 @@ export const corsHeaders: CorsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, GET, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Expose-Headers': 'Retry-After',
 };
 
 // Authentication utilities — Next.js 15 App Router compatible
@@ -270,10 +271,10 @@ export async function handleCorsPreflight(): Promise<NextResponse> {
 export async function handleHistoricalStatsRoute<T>(
   request: NextRequest,
   params: Promise<{ id: string }>,
-  fetchData: (projectId: string, days: HistoryDays) => Promise<{ success: boolean; data?: T; error?: string }>
+  fetchData: (projectId: string, days: HistorySelection) => Promise<{ success: boolean; data?: T; error?: string }>
 ) {
-  const days = parseHistoryDays(request.nextUrl.searchParams.get('days'));
-  if (days === null) return createErrorResponse('days must be 7, 15, or 30', 400);
+  const days = parseHistorySelection(request.nextUrl.searchParams);
+  if (days === null) return createErrorResponse('Choose 7, 15, 30 days or a valid UTC date range of up to 366 days', 400);
   return handleStatsRoute(params, projectId => fetchData(projectId, days));
 }
 

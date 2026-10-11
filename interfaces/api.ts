@@ -80,7 +80,10 @@ export interface Event {
 }
 
 export interface TrackingRequest {
-  type?: 'pageview' | 'heartbeat';
+  type?: 'pageview' | 'heartbeat' | 'test';
+  testToken?: string;
+  trackerVersion?: string;
+  occurredAt?: number;
   pageViewId?: string;
   projectId: string;
   pageUrl: string;
@@ -232,4 +235,4 @@ export interface PaginationParams {
 export interface SortParams {
   field: string;
   order: 'asc' | 'desc';
-} 
+}

@@ -37,6 +37,9 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export interface VisitorsChartProps {
+  rangeStart?: string;
+  periodLabel?: string;
+  compare?: boolean;
   days?: number;
 	data?: DailyStats[];
 	activeMetric?: OverviewMetricKey;
@@ -46,11 +49,14 @@ export interface VisitorsChartProps {
 }
 
 export function VisitorsChart({
+  rangeStart,
+  periodLabel,
+  compare = true,
   days = 7,
 	data,
 	activeMetric = 'visitors',
 	overviewMetrics,
-	delta = 0,
+	delta,
 	isNew = false
 }: VisitorsChartProps) {
 	const gradientId = `metric-area-gradient-${activeMetric}`;
@@ -66,8 +72,9 @@ export function VisitorsChart({
     }
     const result = [];
     const now = new Date();
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
+    const first = rangeStart ? new Date(rangeStart) : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - days + 1));
+    for (let i = 0; i < days; i++) {
+      const d = new Date(first.getTime() + i * 86400000);
       result.push({
         month: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
         visitors: 0,
@@ -76,12 +83,16 @@ export function VisitorsChart({
       });
     }
     return result;
-  }, [data, days]);
+  }, [data, days, rangeStart]);
 
   // Compute display values
   const currentOverviewItem = overviewMetrics?.[activeMetric];
-  const activeDelta = currentOverviewItem ? currentOverviewItem.delta : delta;
-  const activeIsNew = currentOverviewItem ? currentOverviewItem.isNew : isNew;
+  const activeDelta = currentOverviewItem ? currentOverviewItem.delta : activeMetric === 'visitors' ? delta : undefined;
+  const activeIsNew = currentOverviewItem ? currentOverviewItem.isNew : activeMetric === 'visitors' && isNew;
+  const hasComparison = currentOverviewItem !== undefined || activeDelta !== undefined;
+  const comparisonTitle = currentOverviewItem
+    ? `${periodLabel || `Current ${days} days`}: ${formatInteger(currentOverviewItem.current)}${activeMetric === 'bounceRate' ? '%' : ''}; previous ${days} days: ${formatInteger(currentOverviewItem.prior)}${activeMetric === 'bounceRate' ? '%' : ''}`
+    : undefined;
 
   const totalVisitors = chartDataFormatted.reduce((sum, row) => sum + row.visitors, 0);
   const totalPageViews = chartDataFormatted.reduce((sum, row) => sum + row.pageViews, 0);
@@ -90,16 +101,16 @@ export function VisitorsChart({
     : Math.round(chartDataFormatted.reduce((sum, row) => sum + row.bounceRate, 0) / Math.max(chartDataFormatted.length, 1));
 
   let displayTitle = "Unique Visitors";
-  let displayDescription = `Total visitors in the last ${days} days`;
+  let displayDescription = `Total visitors in ${periodLabel || `the last ${days} days`}`;
   let displayValue = currentOverviewItem ? formatInteger(currentOverviewItem.current) : formatInteger(totalVisitors);
 
   if (activeMetric === 'pageViews') {
     displayTitle = "Total Page Views";
-    displayDescription = `Total page views in the last ${days} days`;
+    displayDescription = `Total page views in ${periodLabel || `the last ${days} days`}`;
     displayValue = currentOverviewItem ? formatInteger(currentOverviewItem.current) : formatInteger(totalPageViews);
   } else if (activeMetric === 'bounceRate') {
     displayTitle = "Average Bounce Rate";
-    displayDescription = `Average single-page session ratio in the last ${days} days`;
+    displayDescription = `Average single-page session ratio in ${periodLabel || `the last ${days} days`}`;
     displayValue = `${avgBounceRate}%`;
   }
 
@@ -119,18 +130,18 @@ export function VisitorsChart({
 						{displayDescription}
 					</CardDescription>
 				</div>
-				<div className="flex items-center gap-2">
-					{activeIsNew ? (
+				<div className="flex items-center gap-2" title={comparisonTitle}>
+					{compare && (activeIsNew ? (
 						<span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-medium shadow-xs">
 							New
 						</span>
-					) : (
-						<Delta value={activeDelta} variant="badge" isInverse={activeMetric === 'bounceRate'}>
+					) : hasComparison ? (
+						<Delta value={activeDelta ?? 0} variant="badge" isInverse={activeMetric === 'bounceRate'}>
 							<DeltaIcon variant="trend" />
-							<DeltaValue suffix="%" />
+							<DeltaValue suffix={activeMetric === 'bounceRate' ? ' pp' : '%'} />
 							<span className="text-[#78716c] dark:text-zinc-400 text-xs font-medium">vs prior</span>
 						</Delta>
-					)}
+					) : null)}
 				</div>
 			</CardHeader>
 			<CardContent className="pt-4 pb-2">

@@ -31,6 +31,32 @@
   if (!apiUrl) {
     apiUrl = 'https://spectr.subhashjha.me/api/track';
   }
+  const exclusionKey = `spectr_excluded_${siteId}`;
+  const configuration = new URLSearchParams(window.location.search || '');
+  const testToken = configuration.get('spectr_test');
+  let excluded = false;
+  try { excluded = localStorage.getItem(exclusionKey) === '1'; } catch (e) { try { excluded = sessionStorage.getItem(exclusionKey) === '1'; } catch (e) {} }
+  function setExcluded(value) {
+    excluded = value;
+    try { localStorage.setItem(exclusionKey, value ? '1' : '0'); } catch (e) { try { sessionStorage.setItem(exclusionKey, value ? '1' : '0'); } catch (e) {} }
+  }
+  window.spectr = { track: function() { return false; }, isExcluded: function() { return excluded; }, optOut: function() { setExcluded(true); }, optIn: function() { setExcluded(false); } };
+  const configuring = configuration.get('spectr_exclude') === siteId || configuration.get('spectr_include') === siteId;
+  if (configuring) {
+    setExcluded(configuration.get('spectr_exclude') === siteId);
+    const notice = function() {
+      if (!document.createElement || !document.body) return;
+      const element = document.createElement('div');
+      element.textContent = excluded ? 'Spectr: this browser is excluded from analytics on this website.' : 'Spectr: tracking is enabled for this browser. Remove the configuration parameter or open a normal page to resume.';
+      element.style.cssText = 'position:fixed;bottom:16px;left:16px;right:16px;z-index:2147483647;padding:16px;background:#111827;color:white;border-radius:12px;font:14px system-ui';
+      element.setAttribute('role', 'status');
+      element.addEventListener('click', function() { element.remove(); });
+      document.body.appendChild(element);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', notice); else notice();
+    return;
+  }
+  if (excluded && !testToken) return;
 
   // 3. Safe Storage Helpers (protects against incognito/iframe restrictions)
   const SESSION_KEY = `spectr_session_${siteId}`;
@@ -66,6 +92,69 @@
   }
 
   const makeId = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const TRACKER_VERSION = '2.1.1';
+  const pending = new Map();
+  let currentPageview = null;
+  let acknowledgedView = null;
+  const acceptedViews = new Set();
+  const deliveryId = payload => payload.eventId || payload.pageViewId;
+  // Four total attempts, at most 20 pending pageviews, and a ten-minute lifetime.
+  // Keep payloads in memory so URL data is not persisted in browser storage.
+  function deliver(entry) {
+    if (excluded && entry.payload.type !== 'test' || pending.get(deliveryId(entry.payload)) !== entry) return;
+    if (entry.payload.type === 'custom' && !acceptedViews.has(entry.payload.pageViewId)) return;
+    if (entry.inFlight || entry.attempts >= 4) return;
+    if (Date.now() < entry.retryAt) return;
+    if (Date.now() - entry.createdAt >= 600000) { pending.delete(deliveryId(entry.payload)); return; }
+    const destination = entry.payload.type === 'custom' ? (/\/api\/track\/?$/.test(apiUrl) ? apiUrl.replace(/\/api\/track\/?$/, '/api/events') : apiUrl.replace(/\/[^/]*$/, '/events')) : apiUrl;
+    if (typeof fetch !== 'function') {
+      const queued = navigator.sendBeacon && navigator.sendBeacon(destination, JSON.stringify(entry.payload));
+      pending.delete(deliveryId(entry.payload));
+      if (queued && currentPageview && currentPageview.pageViewId === entry.payload.pageViewId) acknowledgedView = entry.payload.pageViewId;
+      return;
+    }
+    entry.inFlight = true;
+    entry.attempts++;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeout = controller ? setTimeout(() => controller.abort(), 8000) : null;
+    const retry = (response) => {
+      if (pending.get(deliveryId(entry.payload)) !== entry) return;
+      if (entry.attempts >= 4) return;
+      let delay = [1000, 3000, 10000][entry.attempts - 1] + Math.floor(Math.random() * 500);
+      const retryAfter = response && response.headers && response.headers.get('Retry-After');
+      if (retryAfter) {
+        const seconds = Number(retryAfter);
+        const requested = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(retryAfter) - Date.now();
+        if (Number.isFinite(requested)) delay = Math.max(delay, requested);
+      }
+      if (Date.now() + delay - entry.createdAt >= 600000) return;
+      entry.retryAt = Date.now() + delay;
+      entry.timer = setTimeout(() => { entry.timer = null; deliver(entry); }, delay);
+    };
+    fetch(destination, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry.payload), keepalive: true,
+      ...(controller ? { signal: controller.signal } : {}) })
+      .then(response => {
+        if (response.ok) {
+          pending.delete(deliveryId(entry.payload));
+          if (entry.payload.type === 'pageview') {
+            acceptedViews.add(entry.payload.pageViewId);
+            if (acceptedViews.size > 50) acceptedViews.delete(acceptedViews.values().next().value);
+            if (currentPageview && currentPageview.pageViewId === entry.payload.pageViewId) acknowledgedView = entry.payload.pageViewId;
+            for (const queued of pending.values()) if (queued.payload.type === 'custom' && queued.payload.pageViewId === entry.payload.pageViewId) deliver(queued);
+          }
+        } else if (response.status === 408 || response.status === 429 || response.status >= 500 || response.status === 409 && entry.payload.type === 'custom') retry(response);
+        else pending.delete(deliveryId(entry.payload));
+      }, () => retry())
+      .finally(() => { entry.inFlight = false; if (timeout !== null) clearTimeout(timeout); });
+  }
+  function queuePageview(payload) {
+    for (const [id, entry] of pending) if (Date.now() - entry.createdAt >= 600000) { if (entry.timer) clearTimeout(entry.timer); pending.delete(id); }
+    if (pending.has(deliveryId(payload))) return;
+    if (pending.size >= 20) { const first = pending.keys().next().value; const entry = pending.get(first); if (entry.timer) clearTimeout(entry.timer); pending.delete(first); }
+    const entry = { payload, createdAt: Date.now(), attempts: 0, inFlight: false, timer: null, retryAt: 0 };
+    pending.set(deliveryId(payload), entry);
+    deliver(entry);
+  }
   let trackedPage = '';
   let pageViewId = makeId();
 
@@ -102,6 +191,7 @@
 
   // Send tracking beacon
   function track(isHeartbeat) {
+    if (excluded) return;
     const previousView = pageViewId;
     if (!shouldTrackVisit(isHeartbeat)) return;
     isHeartbeat = isHeartbeat && previousView === pageViewId;
@@ -118,6 +208,8 @@
       projectId: siteId,
       type: isHeartbeat ? 'heartbeat' : 'pageview',
       pageViewId: pageViewId,
+      trackerVersion: TRACKER_VERSION,
+      occurredAt: Date.now(),
       pageUrl: window.location.href,
       referrer: document.referrer || '',
       userAgent: navigator.userAgent || '',
@@ -127,6 +219,9 @@
       utm: utm
     };
 
+    if (!isHeartbeat) { currentPageview = payload; queuePageview(payload); return; }
+    // Do not send heartbeats until the initial pageview has been accepted.
+    if (acknowledgedView !== pageViewId) return;
     var payloadStr = JSON.stringify(payload);
     if (typeof fetch === 'function') {
       fetch(apiUrl, {
@@ -134,6 +229,11 @@
         headers: { 'Content-Type': 'application/json' },
         body: payloadStr,
         keepalive: true
+      }).then(function(response) {
+        if (response.status === 409 && currentPageview && currentPageview.pageViewId === payload.pageViewId) {
+          acknowledgedView = null;
+          queuePageview(currentPageview);
+        }
       }).catch(function(error) {
         console.debug('Spectr: Tracking request failed', error);
       });
@@ -141,6 +241,40 @@
       navigator.sendBeacon(apiUrl, payloadStr);
     }
   }
+  window.spectr.track = function(eventName, properties) {
+    if (excluded || testToken || typeof fetch !== 'function' || typeof eventName !== 'string' || !/^[a-zA-Z][a-zA-Z0-9_.:-]{0,63}$/.test(eventName)) return false;
+    if (properties === undefined) properties = {};
+    if (!properties || typeof properties !== 'object' || Array.isArray(properties)) return false;
+    const keys = Object.keys(properties);
+    if (keys.length > 10) return false;
+    const snapshot = {};
+    for (const key of keys) {
+      const value = properties[key];
+      if (!/^[a-zA-Z][a-zA-Z0-9_]{0,39}$/.test(key) || /email|password|token|secret|address|phone|user_?id|^ip$/i.test(key)) return false;
+      if (!(typeof value === 'string' && value.length <= 200 || typeof value === 'number' && Number.isFinite(value) || typeof value === 'boolean')) return false;
+      snapshot[key] = value;
+    }
+    track(true);
+    if (!currentPageview) return false;
+    queuePageview({ projectId: siteId, type: 'custom', eventId: makeId(), eventName: eventName,
+      sessionId: currentPageview.sessionId, pageViewId: currentPageview.pageViewId, occurredAt: Date.now(), properties: snapshot });
+    return true;
+  };
+
+  // A test URL sends only an installation probe, never pageviews or Web Vitals.
+  if (testToken) {
+    queuePageview({ projectId: siteId, type: 'test', testToken: testToken, pageViewId: makeId(), pageUrl: window.location.href,
+      trackerVersion: TRACKER_VERSION });
+    return;
+  }
+
+  window.addEventListener('online', function() {
+    for (const entry of pending.values()) {
+      if (Date.now() < entry.retryAt) continue;
+      if (entry.timer) { clearTimeout(entry.timer); entry.timer = null; }
+      deliver(entry);
+    }
+  });
 
   // Initial load tracking
   if (document.readyState === 'loading') {
@@ -272,11 +406,13 @@
     const sampleId = makeId();
     const measuredPageUrl = window.location.href;
     let lastSentPayload = '';
+    let sampleRevision = 0;
 
     function sendVitals() {
+      if (excluded) return;
       if (vitals.lcp === null && vitals.inp === null && !vitals.cls) return;
 
-      const payload = JSON.stringify({
+      const snapshot = JSON.stringify({
         projectId: siteId,
         sampleId: sampleId,
         pageUrl: measuredPageUrl,
@@ -286,8 +422,9 @@
         device: getDeviceType(),
       });
 
-      if (payload === lastSentPayload) return;
-      lastSentPayload = payload;
+      if (snapshot === lastSentPayload) return;
+      lastSentPayload = snapshot;
+      const payload = JSON.stringify({ ...JSON.parse(snapshot), sampleRevision: ++sampleRevision });
 
       if (navigator.sendBeacon) {
         try {

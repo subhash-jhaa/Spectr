@@ -23,7 +23,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { LogoMark } from './landing/Logo'
 import { Dashboard } from '@/components/dashboard/dashboard'
-import { HISTORY_DAYS, type HistoryDays } from '@/lib/history-range'
+import { type HistoryDays, type CustomRange } from '@/lib/history-range'
 import type { VitalsData } from '@/components/dashboard/web-vitals'
 import { getCountryCode, getCountryName, getCountryCoordinates } from '@/lib/geo-utils'
 import { GlobeAnalytics, type AnalyticsMarker } from '@/components/ui/cobe-globe-analytics'
@@ -37,6 +37,11 @@ import { useRealtimeStats } from './hooks/useRealtimeStats'
 // Sub-components
 import { DeleteProjectModal } from './DeleteProjectModal'
 import { SnippetGenerator } from './dashboard/snippet-generator'
+import { TrackingHealth } from './dashboard/tracking-health'
+import { CsvExport } from './dashboard/csv-export'
+import { DateControls } from './dashboard/date-controls'
+import { TrafficFilters } from './dashboard/traffic-filters'
+import { Goals } from './dashboard/goals'
 
 interface DashboardClientProps {
   initialVitals?: VitalsData | null
@@ -118,6 +123,11 @@ const DashboardClient = ({ initialProjectId, initialProjects, initialVitals }: D
   const [dataFetched, setDataFetched] = useState(false)
   const [loading, setLoading] = useState(true)
   const [hasCopiedConfigId, setHasCopiedConfigId] = useState(false)
+  const [customRange, setCustomRange] = useState<CustomRange | null>(null)
+  const [compare, setCompare] = useState(true)
+  const reportDays = customRange ? Math.round((Date.parse(customRange.end) - Date.parse(customRange.start)) / 86400000) + 1 : days
+  const rangeQuery = customRange ? new URLSearchParams(customRange).toString() : `days=${days}`
+  const periodLabel = customRange ? `${customRange.start} to ${customRange.end} (UTC)` : undefined
 
   // Use Custom Hooks
   const {
@@ -171,15 +181,15 @@ const DashboardClient = ({ initialProjectId, initialProjects, initialVitals }: D
       }
 
       const [dailyData, countriesData, referrersData, pagesData, browsersData, devicesData, sourcesData, audienceData, overviewData] = await Promise.all([
-        fetchWithCheck(`/api/stats/project/${projectId}/daily?days=${days}`),
-        fetchWithCheck(`/api/stats/project/${projectId}/countries?days=${days}`),
-        fetchWithCheck(`/api/stats/project/${projectId}/referrers?days=${days}`),
-        fetchWithCheck(`/api/stats/project/${projectId}/pages?days=${days}`),
-        fetchWithCheck(`/api/stats/project/${projectId}/browsers?days=${days}`),
-        fetchWithCheck(`/api/stats/project/${projectId}/devices?days=${days}`),
-        fetchWithCheck(`/api/stats/project/${projectId}/sources?days=${days}`),
-        fetchWithCheck(`/api/stats/project/${projectId}/audience?days=${days}`),
-        fetchWithCheck(`/api/stats/project/${projectId}/overview?days=${days}`)
+        fetchWithCheck(`/api/stats/project/${projectId}/daily?${rangeQuery}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/countries?${rangeQuery}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/referrers?${rangeQuery}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/pages?${rangeQuery}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/browsers?${rangeQuery}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/devices?${rangeQuery}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/sources?${rangeQuery}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/audience?${rangeQuery}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/overview?${rangeQuery}`)
       ])
 
       if (signal.aborted) return
@@ -206,7 +216,7 @@ const DashboardClient = ({ initialProjectId, initialProjects, initialVitals }: D
       setDataFetched(true)
       setLoading(false)
     }
-  }, [projectId, days])
+  }, [projectId, rangeQuery])
 
   // Sync loading state
   useEffect(() => {
@@ -474,12 +484,10 @@ const DashboardClient = ({ initialProjectId, initialProjects, initialVitals }: D
           {activeTab === 'overview' && (
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-[#0c0a09] dark:text-white">Traffic overview</h2>
-              <label className="flex items-center gap-2 text-sm text-[#78716c] dark:text-zinc-400">
-                Date range
-                <select aria-label="Analytics date range" value={days} onChange={event => setDays(Number(event.target.value) as HistoryDays)} className="rounded-xl border border-[#e8e6e5] dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-[#0c0a09] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#3ba6f1]">
-                  {HISTORY_DAYS.map(value => <option key={value} value={value}>Last {value} days</option>)}
-                </select>
-              </label>
+              <div className="flex flex-wrap items-center gap-3">
+              <DateControls days={days} customRange={customRange} compare={compare} onPreset={value => { setCustomRange(null); setDays(value) }} onCustom={setCustomRange} onCompare={setCompare} />
+              <CsvExport key={projectId} projectId={projectId} days={days} rangeQuery={rangeQuery} />
+              </div>
             </div>
           )}
           {statsError && <p role="alert" className="mb-4 text-sm text-rose-600">{statsError} <button className="underline" onClick={() => void fetchStats(new AbortController().signal)}>Retry</button></p>}
@@ -491,9 +499,12 @@ const DashboardClient = ({ initialProjectId, initialProjects, initialVitals }: D
           )}
 
           {activeTab === 'overview' && (
-            <Dashboard 
+            <><Dashboard
               projectId={projectId}
-              days={days}
+              days={reportDays}
+              rangeQuery={rangeQuery}
+              periodLabel={periodLabel}
+              compare={compare}
               loading={loading}
               initialVitals={projectId === initialProjectId ? initialVitals : undefined}
               overviewMetrics={overviewMetrics}
@@ -507,6 +518,7 @@ const DashboardClient = ({ initialProjectId, initialProjects, initialVitals }: D
               deviceStats={deviceStats}
               audienceMix={audienceMix}
             />
+            {projectId && <Goals key={projectId} projectId={projectId} rangeQuery={rangeQuery} />}</>
           )}
 
           {activeTab === 'live' && (
@@ -660,6 +672,9 @@ const DashboardClient = ({ initialProjectId, initialProjects, initialVitals }: D
                   <span className="text-[#3ba6f1] font-medium">Settings & Setup</span>
                 </div>
               </div>
+
+              <TrackingHealth key={selectedProject.id} projectId={selectedProject.id} />
+              <TrafficFilters key={selectedProject.id} projectId={selectedProject.id} />
 
               <SnippetGenerator
                 projectId={selectedProject.id}

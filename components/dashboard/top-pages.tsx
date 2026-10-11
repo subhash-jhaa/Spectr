@@ -12,6 +12,7 @@ import {
 import { ChevronDownIcon, DocumentTextIcon } from "@heroicons/react/24/outline";
 
 export interface TopPagesProps {
+  periodLabel?: string;
   days?: number;
   data?: { pageUrl: string; visitors: number; pageViews: number }[];
   projectId?: string;
@@ -25,7 +26,7 @@ const getPagePath = (url: string) => {
   }
 };
 
-export function TopPages({ data = [], days = 7 }: TopPagesProps) {
+export function TopPages({ data = [], days = 7, periodLabel }: TopPagesProps) {
   const [expanded, setExpanded] = useState(false);
   const displayRows = expanded ? data : data.slice(0, 5);
 
@@ -41,7 +42,7 @@ export function TopPages({ data = [], days = 7 }: TopPagesProps) {
             <div>
               <CardTitle className="text-lg sm:text-xl font-bold font-roobert tracking-tight text-[#0c0a09] dark:text-white">Top Pages</CardTitle>
               <CardDescription className="text-xs sm:text-sm text-[#78716c] dark:text-zinc-400 mt-0.5">
-                Most visited URLs in the last {days} days
+                Most visited URLs {periodLabel || `in the last ${days} days`}
               </CardDescription>
             </div>
             <div className="text-xs font-mono font-medium text-[#78716c] dark:text-zinc-400 bg-[#f5f5f4] dark:bg-zinc-900/70 border border-[#e8e6e5] dark:border-zinc-800/60 px-2.5 py-0.5 rounded-lg">

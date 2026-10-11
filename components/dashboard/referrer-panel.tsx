@@ -26,6 +26,7 @@ interface BreakdownItem {
 }
 
 export interface ReferrerPanelProps {
+  rangeQuery?: string;
   days?: number;
   projectId?: string;
   initialData?: BreakdownItem[];
@@ -116,7 +117,7 @@ function getItemIcon(name: string) {
   return { icon: "🌐", color: "text-zinc-400" };
 }
 
-export function ReferrerPanel({ projectId, initialData = [], days = 7 }: ReferrerPanelProps) {
+export function ReferrerPanel({ projectId, initialData = [], days = 7, rangeQuery }: ReferrerPanelProps) {
   const [activeTab, setActiveTab] = useState<AttributionTab>("refs");
   const [searchQuery, setSearchQuery] = useState("");
   const [data, setData] = useState<BreakdownItem[]>(initialData);
@@ -130,7 +131,7 @@ export function ReferrerPanel({ projectId, initialData = [], days = 7 }: Referre
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/stats/project/${projectId}/referrer-breakdown?dimension=${tab}&days=${days}`, { signal });
+      const res = await fetch(`/api/stats/project/${projectId}/referrer-breakdown?dimension=${tab}&${rangeQuery || `days=${days}`}`, { signal });
       if (res.ok) {
         const json = await res.json();
         if (!signal.aborted) setData(Array.isArray(json) ? json : []);
@@ -145,7 +146,7 @@ export function ReferrerPanel({ projectId, initialData = [], days = 7 }: Referre
     } finally {
       if (!signal.aborted) setLoading(false);
     }
-  }, [projectId, days]);
+  }, [projectId, days, rangeQuery]);
 
   useEffect(() => {
     const controller = new AbortController();

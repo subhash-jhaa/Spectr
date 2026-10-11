@@ -6,8 +6,8 @@ const ts = require('typescript');
 const path = require('node:path');
 
 function load(file, mocks, env = {}) {
-  const context = { exports: {}, process: { env }, Buffer, Date, console: { error() {}, debug() {} }, URL,
-    require(name) { return name in mocks ? mocks[name] : require(name); } };
+  const context = { exports: {}, process: { env }, Buffer, Date, setTimeout, clearTimeout, console: { error() {}, debug() {} }, URL,
+    require(name) { if (name === '@/lib/traffic-filters' && !(name in mocks)) return { isKnownBot: () => false, botFilteringEnabled: async () => true }; return name in mocks ? mocks[name] : require(name); } };
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, context);
   return context.exports;
 }
@@ -21,6 +21,7 @@ function track(prisma) {
   return load('app/api/track/route.ts', {
     '@/lib/prisma': { prisma }, '@/lib/api-utils': helpers,
     '@/lib/broadcaster': { broadcastUpdate: async () => {} },
+    '@/lib/tracking-health': { recordTrackingReceipt: async () => {} },
     '@/lib/source-classifier': { classifySource: () => 'Direct' },
     '../../../queries': { ProjectQueries: { findById: async () => ({ success: true, data: { id: 'project-a' } }) } },
     '@/lib/request-limits': { checkRateLimit: async () => ({ status: 200 }), readJsonBody: r => r.json() },
@@ -59,12 +60,13 @@ test('heartbeat updates only lastSeenAt, preserving pageview history', async () 
 test('vitals updates reuse a sample without creating additional rows', async () => {
   let upserts = 0;
   const { POST } = load('app/api/vitals/route.ts', {
-    '@/lib/prisma': { prisma: { project: { findUnique: async () => ({ id: 'project-a' }) }, webVital: { upsert: async args => {
+    '@/lib/prisma': { prisma: { project: { findUnique: async () => ({ id: 'project-a' }) }, $executeRaw: async (sql, ...values) => {
       upserts++;
-      assert.equal(args.where.projectId_sampleId.sampleId, 'sample-a');
-      assert.equal(args.create.pageUrl, 'https://example.com/page');
-      assert.ok(!('createdAt' in args.update));
-    } } } },
+      assert.equal(values[2], 'sample-a');
+      assert.equal(values[7], 'https://example.com/page');
+      assert.match(sql.join(''), /ON CONFLICT/);
+      assert.doesNotMatch(sql.join('').split('DO UPDATE SET')[1], /createdAt/);
+    } } },
     '@/lib/api-utils': {}, '@/lib/web-vitals-analytics': {},
     '@/lib/request-limits': { checkRateLimit: async () => ({ status: 200 }), readJsonBody: r => r.json() },
   });
@@ -88,7 +90,7 @@ test('body reader rejects malformed, oversized, and non-object payloads', async 
   for (const body of ['not json', '[]', 'null', JSON.stringify({ question: 'x'.repeat(17000) })]) await assert.rejects(readJsonBody(new Request('https://spectr.example', { method: 'POST', body })));
 });
 
-test('tracker separates pageviews, reloads, heartbeats, and session expiry', () => {
+test('tracker separates pageviews, reloads, heartbeats, and session expiry', async () => {
   const stored = new Map();
   let now = 10000000;
   let sequence = 0;
@@ -104,13 +106,14 @@ test('tracker separates pageviews, reloads, heartbeats, and session expiry', () 
       sessionStorage: { getItem: key => stored.get(key), setItem: (key, value) => stored.set(key, value) },
       Date: { now: () => now }, Math, Intl, URL, URLSearchParams, crypto: { randomUUID: () => `random-${++sequence}` },
       history: { pushState() {}, replaceState() {} },
-      fetch: (url, args) => { sent.push(JSON.parse(args.body)); return Promise.resolve(); },
+      fetch: (url, args) => { sent.push(JSON.parse(args.body)); return Promise.resolve({ ok: true, status: 200 }); },
       setInterval: fn => intervals.push(fn), setTimeout: fn => timers.push(fn), console,
     };
     vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../public/track.js'), 'utf8'), context);
     return { sent, timers, intervals, context };
   }
   const first = run();
+  await new Promise(done => setImmediate(done));
   assert.equal(first.sent[0].type, 'pageview');
   const view = first.sent[0].pageViewId;
   const session = first.sent[0].sessionId;
