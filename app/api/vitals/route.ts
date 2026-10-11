@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getP75Vitals } from '@/lib/web-vitals-analytics';
-import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
+import { getAuthenticatedUser } from '@/lib/api-utils';
+import { checkRateLimit, readJsonBody } from '@/lib/request-limits';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,26 +10,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-// Rate limiting — mirrors /api/track pattern (60 req/min per IP, sliding window)
-const hasRedisConfig = !!(
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-);
-
-const redis = hasRedisConfig
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    })
-  : null;
-
-const ratelimit = redis
-  ? new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(60, '1 m'),
-      analytics: true,
-      prefix: 'spectr:vitals',
-    })
-  : null;
 
 function getClientIP(req: NextRequest): string {
   return (
@@ -49,36 +29,16 @@ export async function OPTIONS() {
 // POST — called by track.js via sendBeacon / fetch on page lifecycle events
 export async function POST(req: NextRequest) {
   try {
-    // Rate limit check (per IP, 60 requests per minute)
-    if (ratelimit) {
-      const ip = getClientIP(req);
-      const { success, reset } = await ratelimit.limit(ip);
-      if (!success) {
-        return NextResponse.json(
-          { error: 'Too many requests' },
-          {
-            status: 429,
-            headers: {
-              ...corsHeaders,
-              'Retry-After': String(Math.ceil((reset - Date.now()) / 1000)),
-            },
-          }
-        );
-      }
-    }
+    const limit = await checkRateLimit('vitals', getClientIP(req));
+    if (limit.status !== 200) return NextResponse.json({ error: limit.status === 429 ? 'Too many requests' : 'Vitals temporarily unavailable' }, { status: limit.status, headers: { ...corsHeaders, 'Retry-After': String(limit.retryAfter) } });
 
     let body;
-    try {
-      body = await req.json();
-    } catch {
-      // In case text/blob is sent via sendBeacon
-      const text = await req.text();
-      body = JSON.parse(text);
-    }
+    try { body = await readJsonBody(req); }
+    catch (error) { return NextResponse.json({ error: 'Invalid request body' }, { status: error instanceof Error && error.message === 'Request body too large' ? 413 : 400, headers: corsHeaders }); }
 
-    const { projectId, lcp, inp, cls, pageUrl, device } = body;
+    const { projectId, lcp, inp, cls, pageUrl, device, sampleId } = body;
 
-    if (!projectId || !pageUrl) {
+    if (typeof projectId !== 'string' || !projectId || projectId.length > 128 || typeof pageUrl !== 'string' || !pageUrl || pageUrl.length > 2000 || (sampleId !== undefined && (typeof sampleId !== 'string' || !/^[a-zA-Z0-9_\-.:]{6,128}$/.test(sampleId)))) {
       return NextResponse.json(
         { error: 'projectId and pageUrl required' },
         { status: 400, headers: corsHeaders }
@@ -98,16 +58,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await prisma.webVital.create({
-      data: {
+    let cleanPageUrl;
+    try { const url = new URL(pageUrl); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); cleanPageUrl = url.origin + url.pathname; }
+    catch { return NextResponse.json({ error: 'Invalid page URL' }, { status: 400, headers: corsHeaders }); }
+    const metric = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
+    const data = {
         projectId,
-        lcp: typeof lcp === 'number' && !isNaN(lcp) ? lcp : null,
-        inp: typeof inp === 'number' && !isNaN(inp) ? inp : null,
-        cls: typeof cls === 'number' && !isNaN(cls) ? cls : null,
-        pageUrl: String(pageUrl).slice(0, 500),
+        sampleId: typeof sampleId === 'string' ? sampleId : null,
+        lcp: metric(lcp),
+        inp: metric(inp),
+        cls: metric(cls),
+        pageUrl: cleanPageUrl,
         device: device ? String(device).slice(0, 50) : null,
-      },
-    });
+    };
+    if (typeof sampleId === 'string') {
+      await prisma.webVital.upsert({ where: { projectId_sampleId: { projectId, sampleId } }, create: data, update: { lcp: data.lcp, inp: data.inp, cls: data.cls } });
+    } else await prisma.webVital.create({ data });
 
     return NextResponse.json({ ok: true }, { headers: corsHeaders });
   } catch (err) {
@@ -121,17 +87,36 @@ export async function POST(req: NextRequest) {
 
 // GET — called by the dashboard (web-vitals.tsx) to read live P75 scores
 export async function GET(req: NextRequest) {
-  const projectId = req.nextUrl.searchParams.get('projectId');
-  const daysParam = req.nextUrl.searchParams.get('days');
-  const days = daysParam ? parseInt(daysParam, 10) : 28;
+  const headers = { 'Cache-Control': 'private, no-store' };
+  try {
+    const user = await getAuthenticatedUser();
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers });
+    }
 
-  if (!projectId) {
-    return NextResponse.json(
-      { error: 'projectId required' },
-      { status: 400, headers: corsHeaders }
-    );
+    const projectId = req.nextUrl.searchParams.get('projectId');
+    const daysParam = req.nextUrl.searchParams.get('days');
+    const days = daysParam ? parseInt(daysParam, 10) : 28;
+
+    if (!projectId) {
+      return NextResponse.json(
+        { error: 'projectId required' },
+        { status: 400, headers }
+      );
+    }
+
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, userId: user.id },
+      select: { id: true },
+    });
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404, headers });
+    }
+
+    const data = await getP75Vitals(projectId, isNaN(days) ? 28 : days);
+    return NextResponse.json(data, { headers });
+  } catch (error) {
+    console.error('Vitals read error:', error);
+    return NextResponse.json({ error: 'Failed to read vitals' }, { status: 500, headers });
   }
-
-  const data = await getP75Vitals(projectId, isNaN(days) ? 28 : days);
-  return NextResponse.json(data, { headers: corsHeaders });
 }

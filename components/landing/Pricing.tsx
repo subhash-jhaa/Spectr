@@ -54,7 +54,7 @@ export function Pricing() {
         'All future updates'
       ],
       limitations: [],
-      buttonText: 'Get Lifetime Access Now',
+      buttonText: 'Coming soon',
       popular: true,
       badge: 'BUSY CREATORS\' CHOICE',
       plan: 'PRO' as const
@@ -77,7 +77,7 @@ export function Pricing() {
         'Team collaboration features',
         'All future updates guarantee'
       ],
-      buttonText: 'Get Annual Access',
+      buttonText: 'Coming soon',
       popular: false,
       badge: '',
       plan: 'PRO' as const
@@ -85,6 +85,7 @@ export function Pricing() {
   ];
 
   const handlePlanSelect = async (cardName: string, plan: 'FREE' | 'PRO') => {
+    if (plan === 'PRO') return;
     if (!session) {
       router.push('/auth');
       return;
@@ -167,7 +168,7 @@ export function Pricing() {
             Choose Your Plan
           </h2>
           <p className="max-w-md text-sm sm:text-base text-[#78716c] dark:text-zinc-400 mx-auto mt-4 leading-relaxed">
-            Track visitor flows, live dashboards, and api access. Pay once for lifetime, or start with basic usage.
+            Track visitor flows, live dashboards, and api access. Start with free access. Paid plans are coming soon.
           </p>
         </div>
 
@@ -223,7 +224,7 @@ export function Pricing() {
                 <div className="mt-auto">
                   <button
                     onClick={() => handlePlanSelect(p.name, p.plan)}
-                    disabled={activeCardLoading === p.name}
+                    disabled={p.plan === 'PRO' || activeCardLoading === p.name}
                     className={cn(
                       "w-full py-3 px-4 rounded-full text-sm font-semibold relative transition-all duration-300 flex items-center justify-center cursor-pointer overflow-hidden",
                       buttonNotice?.cardName === p.name

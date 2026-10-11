@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { unstable_cache } from 'next/cache';
 
 export type Rating = 'good' | 'needs-improvement' | 'poor';
 
@@ -17,7 +18,7 @@ export function rate(metric: keyof typeof THRESHOLDS, value: number | null): Rat
   return 'poor';
 }
 
-export async function getP75Vitals(projectId: string, days = 28) {
+async function queryP75Vitals(projectId: string, days = 28) {
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
   try {
@@ -55,16 +56,9 @@ export async function getP75Vitals(projectId: string, days = 28) {
     };
   } catch (error) {
     console.error('Failed to get P75 vitals:', error);
-    return {
-      lcp: null,
-      inp: null,
-      cls: null,
-      totalSamples: 0,
-      ratings: {
-        lcp: null,
-        inp: null,
-        cls: null,
-      },
-    };
+    throw error;
   }
 }
+
+// Callers must verify ownership before reading this project-scoped cache.
+export const getP75Vitals = unstable_cache(queryP75Vitals, ['project-vitals-v1'], { revalidate: 30 });

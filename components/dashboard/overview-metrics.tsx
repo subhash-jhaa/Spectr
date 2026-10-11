@@ -9,14 +9,16 @@ import { OverviewMetrics as OverviewMetricsType } from '@/interfaces/database';
 export type OverviewMetricKey = 'visitors' | 'pageViews' | 'bounceRate';
 
 export interface OverviewMetricsProps {
+  days?: number;
   data?: OverviewMetricsType;
   loading?: boolean;
   activeMetric?: OverviewMetricKey;
   onSelectMetric?: (metric: OverviewMetricKey) => void;
 }
 
-export function OverviewMetrics({ 
-  data, 
+export function OverviewMetrics({
+  days = 7,
+  data,
   loading,
   activeMetric = 'visitors',
   onSelectMetric
@@ -93,7 +95,7 @@ export function OverviewMetrics({
           </div>
         </div>
         <p className="text-[11px] text-[#a8a29e] dark:text-zinc-500 font-sans mt-2.5">
-          Unique visitors in the last 7 days
+          Unique visitors in the last {days} days
         </p>
       </div>
 

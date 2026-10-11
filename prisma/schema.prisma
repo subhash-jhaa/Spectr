@@ -42,10 +42,12 @@ model WebVital {
   cls       Float?
   pageUrl   String
   device    String?
+  sampleId  String?
   createdAt DateTime @default(now())
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId, createdAt])
+  @@unique([projectId, sampleId])
 }
 
 model Event {
@@ -64,10 +66,14 @@ model Event {
   country     String
   city        String
   timestamp   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  pageViewId  String?
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId, timestamp])
   @@index([projectId, source])
+  @@index([projectId, lastSeenAt])
+  @@unique([projectId, pageViewId])
 }
 
 model Account {

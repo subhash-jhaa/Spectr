@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/api-utils";
 import { ProjectQueries } from "@/queries";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, readJsonBody } from '@/lib/request-limits';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,11 +16,15 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Read site_id and question from the request body
-    const body = await req.json().catch(() => null);
-    let siteId = body?.site_id || body?.projectId;
+    const limit = await checkRateLimit('ask', user.id, 10);
+    if (limit.status !== 200) return NextResponse.json({ error: limit.status === 429 ? 'Too many requests' : 'AI temporarily unavailable' }, { status: limit.status, headers: { 'Retry-After': String(limit.retryAfter) } });
+    let body;
+    try { body = await readJsonBody(req); }
+    catch (error) { return NextResponse.json({ error: 'Invalid request body' }, { status: error instanceof Error && error.message === 'Request body too large' ? 413 : 400 }); }
+    let siteId = typeof body.site_id === 'string' ? body.site_id : typeof body.projectId === 'string' ? body.projectId : '';
     const question = body?.question;
 
-    if (!question || typeof question !== "string" || !question.trim()) {
+    if (!question || typeof question !== "string" || !question.trim() || question.length > 2000) {
       return NextResponse.json(
         { error: "question parameter is required and cannot be empty." },
         { status: 400 }
@@ -57,7 +62,8 @@ export async function POST(req: NextRequest) {
       serviceUrl = `${serviceUrl.replace(/\/+$/, "")}/ask`;
     }
 
-    const internalSecret = process.env.INTERNAL_SHARED_SECRET || "";
+    const internalSecret = process.env.INTERNAL_SHARED_SECRET;
+    if (!internalSecret) return NextResponse.json({ error: 'AI service is not configured' }, { status: 503 });
 
     const controller = new AbortController();
     // 30-second timeout to accommodate LLM generation latency
@@ -81,7 +87,7 @@ export async function POST(req: NextRequest) {
 
       // 5. Fire-and-forget audit log — never blocks or breaks the response
       if (data !== null && response.ok) {
-        void (async () => {
+        await (async () => {
           try {
             await prisma.askQueryLog.create({
               data: {

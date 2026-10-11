@@ -52,9 +52,9 @@ export async function sendStats(projectId: string, controller: ReadableStreamDef
     const realtimeEvents = await prisma.event.findMany({
       where: {
         projectId,
-        timestamp: { gte: liveWindow },
+        lastSeenAt: { gte: liveWindow },
       },
-      orderBy: { timestamp: 'desc' },
+      orderBy: { lastSeenAt: 'desc' },
       take: 100,
     });
 
@@ -73,7 +73,7 @@ export async function sendStats(projectId: string, controller: ReadableStreamDef
           country: event.country,
           city: event.city,
           userAgent: event.userAgent,
-          timestamp: event.timestamp,
+          timestamp: event.lastSeenAt,
           sessionId: event.sessionId,
         });
       }

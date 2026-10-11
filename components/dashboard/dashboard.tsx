@@ -10,10 +10,14 @@ import { TopSources } from "@/components/dashboard/top-sources";
 import { ReferrerPanel } from "@/components/dashboard/referrer-panel";
 import { VisitorsChart } from "@/components/dashboard/visitors-chart";
 import { WebVitals } from "@/components/dashboard/web-vitals";
+import type { VitalsData } from "@/components/dashboard/web-vitals";
 import { OverviewMetrics, OverviewMetricKey } from "@/components/dashboard/overview-metrics";
 import { OverviewMetrics as OverviewMetricsType } from "@/interfaces/database";
 
 export interface DashboardProps {
+  days?: number;
+  loading?: boolean;
+  initialVitals?: VitalsData | null;
 	projectId?: string;
 	overviewMetrics?: OverviewMetricsType;
 	dailyStats?: { date: string; visitors: number; pageViews: number; bounceRate?: number }[];
@@ -28,7 +32,10 @@ export interface DashboardProps {
 }
 
 export function Dashboard({
+  days = 7,
+  loading,
 	projectId,
+	initialVitals,
 	overviewMetrics,
 	dailyStats,
 	realtimeStats,
@@ -44,25 +51,28 @@ export function Dashboard({
 	return (
 		<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 			<OverviewMetrics 
-				data={overviewMetrics} 
+				data={overviewMetrics}
+				days={days}
+				loading={loading}
 				activeMetric={activeMetric}
 				onSelectMetric={setActiveMetric}
 			/>
 			<VisitorsChart 
-				data={dailyStats} 
+				data={dailyStats}
+				days={days}
 				activeMetric={activeMetric}
 				overviewMetrics={overviewMetrics}
 				delta={overviewMetrics?.visitors.delta} 
 				isNew={overviewMetrics?.visitors.isNew} 
 			/>
 			<OnlineNow count={realtimeStats?.count} visitors={realtimeStats?.visitors} deviceStats={deviceStats} />
-			<TopPages data={pageStats} />
+			<TopPages days={days} data={pageStats} />
 			<TopCountries data={countryStats} />
 			<TopSources data={sourceStats} />
-			<ReferrerPanel projectId={projectId} />
-			<AudienceMix data={audienceMix} />
+			<ReferrerPanel key={`${projectId}:${days}`} days={days} projectId={projectId} />
+			<AudienceMix days={days} data={audienceMix} />
 			<BrowserShare data={browserStats} />
-			<WebVitals projectId={projectId} />
+			<WebVitals key={projectId} projectId={projectId} initialData={initialVitals} />
 		</div>
 	);
 }

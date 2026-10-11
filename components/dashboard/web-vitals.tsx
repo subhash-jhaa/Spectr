@@ -12,7 +12,7 @@ import {
 	SparklesIcon
 } from "@heroicons/react/24/outline";
 
-interface VitalsData {
+export interface VitalsData {
 	lcp: number | null;
 	inp: number | null;
 	cls: number | null;
@@ -24,34 +24,46 @@ interface VitalsData {
 	};
 }
 
-export function WebVitals({ projectId }: { projectId?: string }) {
-	const [data, setData] = useState<VitalsData | null>(null);
-	const [loading, setLoading] = useState(false);
+export function WebVitals({ projectId, initialData }: { projectId?: string; initialData?: VitalsData | null }) {
+	const [data, setData] = useState<VitalsData | null>(initialData ?? null);
+	const [loading, setLoading] = useState(!initialData);
+	const [error, setError] = useState<string | null>(null);
+	const [retry, setRetry] = useState(0);
 
 	useEffect(() => {
 		if (!projectId) return;
 
 		let isMounted = true;
-		setLoading(true);
-
-		fetch(`/api/vitals?projectId=${encodeURIComponent(projectId)}&days=28`)
-			.then((res) => (res.ok ? res.json() : null))
-			.then((resData: VitalsData) => {
-				if (isMounted && resData) {
-					setData(resData);
-				}
-			})
-			.catch((err) => {
-				console.error("Failed to load web vitals:", err);
-			})
-			.finally(() => {
+		let controller: AbortController | null = null;
+		const refresh = async () => {
+			if (controller || document.hidden) return;
+			controller = new AbortController();
+			const timeout = setTimeout(() => controller?.abort(), 8000);
+			try {
+				const response = await fetch(`/api/vitals?projectId=${encodeURIComponent(projectId)}&days=28`, { signal: controller.signal });
+				if (!response.ok) throw new Error(`HTTP ${response.status}`);
+				const result: VitalsData = await response.json();
+				if (isMounted) { setData(result); setError(null); }
+			} catch {
+				if (isMounted) setError("Unable to refresh vitals. Please try again.");
+			} finally {
+				clearTimeout(timeout);
+				controller = null;
 				if (isMounted) setLoading(false);
-			});
+			}
+		};
+		if (!initialData || retry > 0) { setLoading(!initialData); void refresh(); }
+		const interval = setInterval(() => void refresh(), 30000);
+		const onVisible = () => { if (!document.hidden) void refresh(); };
+		document.addEventListener('visibilitychange', onVisible);
 
 		return () => {
 			isMounted = false;
+			controller?.abort();
+			clearInterval(interval);
+			document.removeEventListener('visibilitychange', onVisible);
 		};
-	}, [projectId]);
+	}, [projectId, initialData, retry]);
 
 	const formatLcp = (ms: number | null) => {
 		if (ms === null || ms === undefined) return null;
@@ -90,7 +102,7 @@ export function WebVitals({ projectId }: { projectId?: string }) {
 				};
 			default:
 				return {
-					label: "Collecting...",
+					label: error ? "Unavailable" : loading ? "Loading..." : "No samples",
 					badgeColor: "text-zinc-500 dark:text-zinc-400 bg-zinc-500/10 border-zinc-500/20",
 					icon: CheckCircleIcon,
 				};
@@ -163,7 +175,7 @@ export function WebVitals({ projectId }: { projectId?: string }) {
 								</div>
 								<p className="text-xs text-[#78716c] dark:text-zinc-400 mt-0.5">
 									{data?.totalSamples && data.totalSamples > 0 
-										? `P75 aggregation across ${data.totalSamples} real visitor sessions` 
+										? `P75 aggregation across ${data.totalSamples} page-load samples`
 										: "Live 75th percentile (P75) Real User Measurement (RUM)"}
 								</p>
 							</div>
@@ -171,9 +183,10 @@ export function WebVitals({ projectId }: { projectId?: string }) {
 
 						<div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-mono font-medium w-fit">
 							<span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
-							Live Telemetry
+							{error ? "Refresh failed" : loading ? "Loading" : "Updates every 30s"}
 						</div>
 					</div>
+					{error && <p role="alert" className="mb-3 text-xs text-rose-600">{error} <button onClick={() => setRetry(value => value + 1)} className="underline">Retry</button></p>}
 
 					{/* 3 Metrics Cards Grid */}
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mb-3.5">
@@ -215,7 +228,7 @@ export function WebVitals({ projectId }: { projectId?: string }) {
 												</div>
 											) : (
 												<div className="text-xs font-mono text-[#78716c] dark:text-zinc-500 italic">
-													{loading ? "Calculating..." : "Awaiting traffic..."}
+													{loading ? "Loading..." : error ? "Unavailable" : m.id === 'inp' ? "No interaction samples yet" : "No page-load samples yet"}
 												</div>
 											)}
 										</div>

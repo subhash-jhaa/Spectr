@@ -5,7 +5,7 @@ import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
 import { signOut } from 'next-auth/react'
 import type { Session } from 'next-auth'
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   ChartBarIcon,
   EyeIcon,
@@ -23,6 +23,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { LogoMark } from './landing/Logo'
 import { Dashboard } from '@/components/dashboard/dashboard'
+import { HISTORY_DAYS, type HistoryDays } from '@/lib/history-range'
+import type { VitalsData } from '@/components/dashboard/web-vitals'
 import { getCountryCode, getCountryName, getCountryCoordinates } from '@/lib/geo-utils'
 import { GlobeAnalytics, type AnalyticsMarker } from '@/components/ui/cobe-globe-analytics'
 import { useTheme } from 'next-themes'
@@ -37,6 +39,7 @@ import { DeleteProjectModal } from './DeleteProjectModal'
 import { SnippetGenerator } from './dashboard/snippet-generator'
 
 interface DashboardClientProps {
+  initialVitals?: VitalsData | null
   session?: Session
   initialProjectId?: string
   initialProjects?: Array<{ id: string; name: string; createdAt: string }>
@@ -90,9 +93,12 @@ interface AudienceMixStats {
   returningShare: number
 }
 
-const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientProps) => {
+const DashboardClient = ({ initialProjectId, initialProjects, initialVitals }: DashboardClientProps) => {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
+  const [days, setDays] = useState<HistoryDays>(7)
+  const [statsError, setStatsError] = useState<string | null>(null)
+  const historyRequest = useRef<AbortController | null>(null)
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([])
   const [countryStats, setCountryStats] = useState<CountryStats[]>([])
   const [referrerStats, setReferrerStats] = useState<ReferrerStats[]>([])
@@ -136,15 +142,24 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
     retryConnection
   } = useRealtimeStats(projectId)
 
-  const fetchStats = useCallback(async () => {
+  const fetchStats = useCallback(async (externalSignal: AbortSignal) => {
     if (!projectId) return
+    historyRequest.current?.abort()
+    const requestController = new AbortController()
+    historyRequest.current = requestController
+    const signal = AbortSignal.any([externalSignal, requestController.signal])
     setDataFetched(false)
+    setLoading(true)
+    setStatsError(null)
+    setDailyStats([]); setCountryStats([]); setReferrerStats([]); setPageStats([])
+    setBrowserStats([]); setDeviceStats([]); setSourceStats([]); setOverviewMetrics(undefined)
+    setAudienceMix({ newVisitors: 0, returningVisitors: 0, newShare: 0, returningShare: 0 })
     try {
       const fetchWithCheck = async (url: string) => {
         const controller = new AbortController()
         const timer = setTimeout(() => controller.abort(), 10_000)
         try {
-          const res = await fetch(url, { signal: controller.signal })
+          const res = await fetch(url, { signal: AbortSignal.any([signal, controller.signal]) })
           if (!res.ok) {
             const errorData = await res.json().catch(() => ({ error: 'Unknown error' }))
             throw new Error(errorData.error || `HTTP ${res.status}`)
@@ -156,22 +171,18 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
       }
 
       const [dailyData, countriesData, referrersData, pagesData, browsersData, devicesData, sourcesData, audienceData, overviewData] = await Promise.all([
-        fetchWithCheck(`/api/stats/project/${projectId}/7days`),
-        fetchWithCheck(`/api/stats/project/${projectId}/countries`),
-        fetchWithCheck(`/api/stats/project/${projectId}/referrers`),
-        fetchWithCheck(`/api/stats/project/${projectId}/pages`),
-        fetchWithCheck(`/api/stats/project/${projectId}/browsers`),
-        fetchWithCheck(`/api/stats/project/${projectId}/devices`),
-        fetchWithCheck(`/api/stats/project/${projectId}/sources`),
-        fetchWithCheck(`/api/stats/project/${projectId}/audience`).catch(() => ({
-          newVisitors: 0,
-          returningVisitors: 0,
-          newShare: 0,
-          returningShare: 0
-        })),
-        fetchWithCheck(`/api/stats/project/${projectId}/overview`).catch(() => undefined)
+        fetchWithCheck(`/api/stats/project/${projectId}/daily?days=${days}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/countries?days=${days}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/referrers?days=${days}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/pages?days=${days}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/browsers?days=${days}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/devices?days=${days}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/sources?days=${days}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/audience?days=${days}`),
+        fetchWithCheck(`/api/stats/project/${projectId}/overview?days=${days}`)
       ])
 
+      if (signal.aborted) return
       setDailyStats(dailyData)
       setCountryStats(countriesData)
       setReferrerStats(referrersData)
@@ -184,6 +195,9 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
       setDataFetched(true)
       setLoading(false)
     } catch (error) {
+      if (signal.aborted) return
+      requestController.abort()
+      setStatsError("Unable to load this date range. Please retry.")
       if (error instanceof Error && error.name === 'AbortError') {
         console.warn('Stats fetch timed out, will retry on next project selection.')
       } else {
@@ -192,7 +206,7 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
       setDataFetched(true)
       setLoading(false)
     }
-  }, [projectId])
+  }, [projectId, days])
 
   // Sync loading state
   useEffect(() => {
@@ -204,9 +218,9 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
   }, [projectsLoading, projects.length, dataFetched])
 
   useEffect(() => {
-    if (projectId) {
-      fetchStats()
-    }
+    const controller = new AbortController()
+    if (projectId) void fetchStats(controller.signal)
+    return () => { controller.abort(); historyRequest.current?.abort() }
   }, [projectId, fetchStats])
 
   const handleDeleteProject = async (confirmName: string) => {
@@ -457,6 +471,18 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
 
         {/* Content Area - Smooth scrollable middle tracking area */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+          {activeTab === 'overview' && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-[#0c0a09] dark:text-white">Traffic overview</h2>
+              <label className="flex items-center gap-2 text-sm text-[#78716c] dark:text-zinc-400">
+                Date range
+                <select aria-label="Analytics date range" value={days} onChange={event => setDays(Number(event.target.value) as HistoryDays)} className="rounded-xl border border-[#e8e6e5] dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2 text-[#0c0a09] dark:text-white focus:outline-none focus:ring-2 focus:ring-[#3ba6f1]">
+                  {HISTORY_DAYS.map(value => <option key={value} value={value}>Last {value} days</option>)}
+                </select>
+              </label>
+            </div>
+          )}
+          {statsError && <p role="alert" className="mb-4 text-sm text-rose-600">{statsError} <button className="underline" onClick={() => void fetchStats(new AbortController().signal)}>Retry</button></p>}
           {loading && (
             <div className="flex items-center gap-2.5 mb-6 p-3 bg-white dark:bg-zinc-950/80 border border-[#e8e6e5] dark:border-zinc-800/80 rounded-xl w-fit mx-auto shadow-sm backdrop-blur-md">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#3ba6f1] border-t-transparent"></div>
@@ -467,6 +493,9 @@ const DashboardClient = ({ initialProjectId, initialProjects }: DashboardClientP
           {activeTab === 'overview' && (
             <Dashboard 
               projectId={projectId}
+              days={days}
+              loading={loading}
+              initialVitals={projectId === initialProjectId ? initialVitals : undefined}
               overviewMetrics={overviewMetrics}
               dailyStats={dailyStats} 
               realtimeStats={realtimeStats} 

@@ -17,6 +17,7 @@ import {
 } from "@/components/dashboard/share-bar-list";
 
 export interface AudienceMixProps {
+  days?: number;
 	data?: {
 		newVisitors: number;
 		returningVisitors: number;
@@ -25,11 +26,11 @@ export interface AudienceMixProps {
 	};
 }
 
-export function AudienceMix({ data }: AudienceMixProps) {
+export function AudienceMix({ data, days = 7 }: AudienceMixProps) {
 	const total = (data?.newVisitors || 0) + (data?.returningVisitors || 0);
 	const segments = total > 0 ? [
-		{ label: `New (${data?.newVisitors || 0})`, share: data?.newShare ?? 0 },
-		{ label: `Returning (${data?.returningVisitors || 0})`, share: data?.returningShare ?? 0 },
+		{ label: `Single-page (${data?.newVisitors || 0})`, share: data?.newShare ?? 0 },
+		{ label: `Multi-page (${data?.returningVisitors || 0})`, share: data?.returningShare ?? 0 },
 	] : [];
 
 	return (
@@ -40,11 +41,11 @@ export function AudienceMix({ data }: AudienceMixProps) {
 						<div>
 							<CardTitle className="text-lg sm:text-xl font-bold font-roobert tracking-tight text-[#0c0a09] dark:text-white">Audience Mix</CardTitle>
 							<CardDescription className="text-xs sm:text-sm text-[#78716c] dark:text-zinc-400 mt-0.5">
-								New vs returning visitor distribution
+								Sessions by number of pageviews
 							</CardDescription>
 						</div>
 						<div className="text-xs font-mono font-medium text-[#78716c] dark:text-zinc-400 bg-[#f5f5f4] dark:bg-zinc-900/70 border border-[#e8e6e5] dark:border-zinc-800/60 px-2.5 py-0.5 rounded-lg">
-							Last 30d
+							Last {days}d
 						</div>
 					</div>
 				</CardHeader>

@@ -37,6 +37,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export interface VisitorsChartProps {
+  days?: number;
 	data?: DailyStats[];
 	activeMetric?: OverviewMetricKey;
 	overviewMetrics?: OverviewMetricsType;
@@ -44,12 +45,13 @@ export interface VisitorsChartProps {
 	isNew?: boolean;
 }
 
-export function VisitorsChart({ 
-	data, 
+export function VisitorsChart({
+  days = 7,
+	data,
 	activeMetric = 'visitors',
 	overviewMetrics,
-	delta = 0, 
-	isNew = false 
+	delta = 0,
+	isNew = false
 }: VisitorsChartProps) {
 	const gradientId = `metric-area-gradient-${activeMetric}`;
 
@@ -64,7 +66,7 @@ export function VisitorsChart({
     }
     const result = [];
     const now = new Date();
-    for (let i = 6; i >= 0; i--) {
+    for (let i = days - 1; i >= 0; i--) {
       const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - i));
       result.push({
         month: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
@@ -74,7 +76,7 @@ export function VisitorsChart({
       });
     }
     return result;
-  }, [data]);
+  }, [data, days]);
 
   // Compute display values
   const currentOverviewItem = overviewMetrics?.[activeMetric];
@@ -83,21 +85,21 @@ export function VisitorsChart({
 
   const totalVisitors = chartDataFormatted.reduce((sum, row) => sum + row.visitors, 0);
   const totalPageViews = chartDataFormatted.reduce((sum, row) => sum + row.pageViews, 0);
-  const avgBounceRate = currentOverviewItem 
-    ? currentOverviewItem.current 
+  const avgBounceRate = currentOverviewItem
+    ? currentOverviewItem.current
     : Math.round(chartDataFormatted.reduce((sum, row) => sum + row.bounceRate, 0) / Math.max(chartDataFormatted.length, 1));
 
   let displayTitle = "Unique Visitors";
-  let displayDescription = "Total visitors in the last 7 days";
+  let displayDescription = `Total visitors in the last ${days} days`;
   let displayValue = currentOverviewItem ? formatInteger(currentOverviewItem.current) : formatInteger(totalVisitors);
 
   if (activeMetric === 'pageViews') {
     displayTitle = "Total Page Views";
-    displayDescription = "Total page views in the last 7 days";
+    displayDescription = `Total page views in the last ${days} days`;
     displayValue = currentOverviewItem ? formatInteger(currentOverviewItem.current) : formatInteger(totalPageViews);
   } else if (activeMetric === 'bounceRate') {
     displayTitle = "Average Bounce Rate";
-    displayDescription = "Average single-page session ratio in the last 7 days";
+    displayDescription = `Average single-page session ratio in the last ${days} days`;
     displayValue = `${avgBounceRate}%`;
   }
 
@@ -174,8 +176,8 @@ export function VisitorsChart({
 						/>
 						<ChartTooltip
 							content={
-								<ChartTooltipContent 
-									indicator="line" 
+								<ChartTooltipContent
+									indicator="line"
 									formatter={(val) => activeMetric === 'bounceRate' ? `${val}%` : formatInteger(Number(val))}
 								/>
 							}

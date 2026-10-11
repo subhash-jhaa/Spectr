@@ -26,6 +26,7 @@ interface BreakdownItem {
 }
 
 export interface ReferrerPanelProps {
+  days?: number;
   projectId?: string;
   initialData?: BreakdownItem[];
 }
@@ -115,38 +116,43 @@ function getItemIcon(name: string) {
   return { icon: "🌐", color: "text-zinc-400" };
 }
 
-export function ReferrerPanel({ projectId, initialData = [] }: ReferrerPanelProps) {
+export function ReferrerPanel({ projectId, initialData = [], days = 7 }: ReferrerPanelProps) {
   const [activeTab, setActiveTab] = useState<AttributionTab>("refs");
   const [searchQuery, setSearchQuery] = useState("");
   const [data, setData] = useState<BreakdownItem[]>(initialData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [retryAttempt, setRetryAttempt] = useState(0);
 
-  const fetchBreakdown = useCallback(async (tab: AttributionTab) => {
+  const fetchBreakdown = useCallback(async (tab: AttributionTab, signal: AbortSignal) => {
     if (!projectId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/stats/project/${projectId}/referrer-breakdown?dimension=${tab}&days=7`);
+      const res = await fetch(`/api/stats/project/${projectId}/referrer-breakdown?dimension=${tab}&days=${days}`, { signal });
       if (res.ok) {
         const json = await res.json();
-        setData(Array.isArray(json) ? json : []);
+        if (!signal.aborted) setData(Array.isArray(json) ? json : []);
       } else {
         const errJson = await res.json().catch(() => ({}));
-        setError(errJson.error || "Failed to load attribution data");
+        if (!signal.aborted) setError(errJson.error || "Failed to load attribution data");
       }
     } catch (err) {
+      if (signal.aborted) return;
       console.error("Failed to fetch referrer breakdown:", err);
       setError("Network error fetching attribution data");
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, days]);
 
   useEffect(() => {
-    fetchBreakdown(activeTab);
-  }, [activeTab, fetchBreakdown]);
+    const controller = new AbortController();
+    setData([]);
+    void fetchBreakdown(activeTab, controller.signal);
+    return () => controller.abort();
+  }, [activeTab, fetchBreakdown, retryAttempt]);
 
   const activeTabConfig = useMemo(() => {
     return TABS.find((t) => t.key === activeTab) || TABS[0];
@@ -282,7 +288,7 @@ export function ReferrerPanel({ projectId, initialData = [] }: ReferrerPanelProp
                     <TableCell colSpan={3} className="text-center py-10 font-mono text-xs">
                       <div className="text-red-500 mb-2">{error}</div>
                       <button
-                        onClick={() => fetchBreakdown(activeTab)}
+                        onClick={() => setRetryAttempt(value => value + 1)}
                         className="px-3 py-1 bg-[#f5f5f4] dark:bg-zinc-900 border border-[#e8e6e5] dark:border-zinc-800 text-[#0c0a09] dark:text-zinc-300 rounded text-xs transition cursor-pointer"
                       >
                         Retry

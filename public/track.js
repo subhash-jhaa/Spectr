@@ -35,17 +35,18 @@
   // 3. Safe Storage Helpers (protects against incognito/iframe restrictions)
   const SESSION_KEY = `spectr_session_${siteId}`;
   const LAST_TRACK_KEY = `spectr_last_track_${siteId}`;
-  const LAST_PAGE_KEY = `spectr_last_page_${siteId}`;
 
+  const memoryStorage = {};
   function safeGetItem(key) {
     try {
-      return sessionStorage.getItem(key);
+      return sessionStorage.getItem(key) || memoryStorage[key] || null;
     } catch (e) {
-      return null;
+      return memoryStorage[key] || null;
     }
   }
 
   function safeSetItem(key, val) {
+    memoryStorage[key] = val;
     try {
       sessionStorage.setItem(key, val);
     } catch (e) {}
@@ -64,34 +65,25 @@
     return sessionId;
   }
 
+  const makeId = () => typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  let trackedPage = '';
+  let pageViewId = makeId();
+
   // Check whether we should track (rate limiting & page change detection)
   function shouldTrackVisit(isHeartbeat) {
     const now = Date.now();
     const currentPage = window.location.href;
-    const lastPage = safeGetItem(LAST_PAGE_KEY);
+    const previousSession = safeGetItem(SESSION_KEY);
+    const nowSession = getOrCreateSessionId(now);
+    const sessionChanged = previousSession !== nowSession;
+    const pageChanged = currentPage !== trackedPage;
     const lastTrack = Number(safeGetItem(LAST_TRACK_KEY)) || 0;
-
-    const pageChanged = lastPage !== currentPage;
-    const isNewSessionOrExpired = !safeGetItem(SESSION_KEY) || (now - lastTrack) > 30 * 60 * 1000;
-    
-    // Heartbeat pings every 30s; minimum 20s gap ensures we stay within the 3-min active window
-    if (isHeartbeat) {
-      if (now - lastTrack >= 20 * 1000) {
-        safeSetItem(LAST_TRACK_KEY, now.toString());
-        return true;
-      }
-      return false;
-    }
-
-    // Normal pageview or page changed
-    if (pageChanged || isNewSessionOrExpired || (now - lastTrack) > 30 * 1000) {
-      safeSetItem(LAST_PAGE_KEY, currentPage);
-      safeSetItem(LAST_TRACK_KEY, now.toString());
-      getOrCreateSessionId(now);
-      return true;
-    }
-
-    return false;
+    if (isHeartbeat && !pageChanged && !sessionChanged && now - lastTrack < 20000) return false;
+    if (!isHeartbeat && !pageChanged && !sessionChanged) return false;
+    if (pageChanged || sessionChanged) { pageViewId = makeId(); trackedPage = currentPage; }
+    safeSetItem(SESSION_KEY, nowSession);
+    safeSetItem(LAST_TRACK_KEY, now.toString());
+    return true;
   }
 
   // Parse UTM parameters from current URL
@@ -110,7 +102,9 @@
 
   // Send tracking beacon
   function track(isHeartbeat) {
+    const previousView = pageViewId;
     if (!shouldTrackVisit(isHeartbeat)) return;
+    isHeartbeat = isHeartbeat && previousView === pageViewId;
 
     var timezone = '';
     try {
@@ -122,6 +116,8 @@
 
     var payload = {
       projectId: siteId,
+      type: isHeartbeat ? 'heartbeat' : 'pageview',
+      pageViewId: pageViewId,
       pageUrl: window.location.href,
       referrer: document.referrer || '',
       userAgent: navigator.userAgent || '',
@@ -163,7 +159,7 @@
   // Visibility tracking (when user returns to tab)
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
-      track(false);
+      track(true);
     }
   });
 
@@ -273,21 +269,24 @@
       return window.innerWidth < 768 ? 'Mobile' : 'Desktop';
     }
 
+    const sampleId = makeId();
+    const measuredPageUrl = window.location.href;
     let lastSentPayload = '';
 
-    function sendVitals(force) {
+    function sendVitals() {
       if (vitals.lcp === null && vitals.inp === null && !vitals.cls) return;
 
       const payload = JSON.stringify({
         projectId: siteId,
-        pageUrl: window.location.href,
+        sampleId: sampleId,
+        pageUrl: measuredPageUrl,
         lcp: vitals.lcp,
         inp: vitals.inp,
         cls: vitals.cls,
         device: getDeviceType(),
       });
 
-      if (payload === lastSentPayload && !force) return;
+      if (payload === lastSentPayload) return;
       lastSentPayload = payload;
 
       if (navigator.sendBeacon) {
@@ -309,18 +308,18 @@
 
     // 1. Initial dispatch after 4 seconds of page load (captures fast LCP/CLS)
     setTimeout(function() {
-      sendVitals(false);
+      sendVitals();
     }, 4000);
 
     // 2. Final dispatch when user switches tabs or navigates away
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'hidden') {
-        sendVitals(true);
+        sendVitals();
       }
     });
 
     window.addEventListener('pagehide', function() {
-      sendVitals(true);
+      sendVitals();
     });
   })();
-})(); 
+})();

@@ -59,7 +59,9 @@ export const useProjects = (initialProjectId?: string, initialProjects?: Project
         body: JSON.stringify({ name })
       })
 
+      if (!response.ok) throw new Error((await response.json().catch(() => null))?.error || 'Failed to create project')
       const newProject = await response.json()
+      if (!newProject?.id || !newProject?.name) throw new Error('Invalid project response')
       setProjects((prev) => [newProject, ...prev])
       setSelectedProject(newProject)
       return newProject
@@ -79,7 +81,8 @@ export const useProjects = (initialProjectId?: string, initialProjects?: Project
 
     setIsDeletingProject(true)
     try {
-      await fetch(`/api/project/${selectedProject.id}`, { method: 'DELETE' })
+      const response = await fetch(`/api/project/${selectedProject.id}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error((await response.json().catch(() => null))?.error || 'Failed to delete project')
       setSelectedProject(null)
       await fetchProjects()
       return true
@@ -100,7 +103,8 @@ export const useProjects = (initialProjectId?: string, initialProjects?: Project
 
     setIsDeletingProject(true)
     try {
-      await fetch(`/api/project/${projectId}`, { method: 'DELETE' })
+      const response = await fetch(`/api/project/${projectId}`, { method: 'DELETE' })
+      if (!response.ok) throw new Error((await response.json().catch(() => null))?.error || 'Failed to delete project')
       if (selectedProject?.id === projectId) {
         setSelectedProject(null)
       }

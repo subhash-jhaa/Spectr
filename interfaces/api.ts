@@ -80,6 +80,8 @@ export interface Event {
 }
 
 export interface TrackingRequest {
+  type?: 'pageview' | 'heartbeat';
+  pageViewId?: string;
   projectId: string;
   pageUrl: string;
   referrer?: string;

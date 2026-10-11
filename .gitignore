@@ -11,6 +11,7 @@ prisma/*.db-journal
 .vscode
 # Next.js
 .next/
+.next-verify/
 out/
 next-env.d.ts
 

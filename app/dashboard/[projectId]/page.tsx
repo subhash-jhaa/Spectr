@@ -4,6 +4,7 @@ import DashboardClient from '@/components/DashboardClient'
 import { ProjectQueries } from '@/queries'
 import React from 'react'
 import type { Session } from 'next-auth'
+import { getP75Vitals } from '@/lib/web-vitals-analytics'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +28,10 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
   }
 
   // Fetch all user projects for the project switcher sidebar
-  const userProjectsResult = await ProjectQueries.findByUserId(user.id)
+  const [userProjectsResult, initialVitals] = await Promise.all([
+    ProjectQueries.findByUserId(user.id),
+    getP75Vitals(projectId, 28).catch(() => null),
+  ])
   const initialProjects = (userProjectsResult.success && userProjectsResult.data ? userProjectsResult.data : []).map(p => ({
     id: p.id,
     name: p.name,
@@ -44,6 +48,7 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
       session={session as unknown as Session}
       initialProjectId={projectId}
       initialProjects={initialProjects}
+      initialVitals={initialVitals}
     />
   )
 }

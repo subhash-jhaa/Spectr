@@ -1,15 +1,16 @@
+import { historyStart } from '@/lib/history-range';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { classifySource } from '@/lib/source-classifier';
 import { classifyChannel } from '@/lib/channel-classifier';
-import { 
-  DatabaseEvent, 
-  EventFilters, 
-  QueryOptions, 
-  CreateResult, 
-  UpdateResult, 
-  DeleteResult, 
+import {
+  DatabaseEvent,
+  EventFilters,
+  QueryOptions,
+  CreateResult,
+  UpdateResult,
+  DeleteResult,
   QueryResult,
   RealtimeVisitor,
   RealtimeStats,
@@ -51,12 +52,12 @@ export class EventQueries {
    * Find events with filters
    */
   static async findMany(
-    filters: EventFilters = {}, 
+    filters: EventFilters = {},
     options: QueryOptions = {}
   ): Promise<QueryResult<DatabaseEvent[]>> {
     try {
       const where: Prisma.EventWhereInput = {};
-      
+
       if (filters.id) where.id = filters.id;
       if (filters.projectId) where.projectId = filters.projectId;
       if (filters.sessionId) where.sessionId = filters.sessionId;
@@ -121,12 +122,12 @@ export class EventQueries {
   static async findRecentEvents(projectId: string, minutesAgo: number): Promise<QueryResult<DatabaseEvent[]>> {
     try {
       const timeThreshold = new Date(Date.now() - minutesAgo * 60 * 1000);
-      
+
       try {
         const events = await prisma.event.findMany({
           where: {
             projectId,
-            timestamp: {
+            lastSeenAt: {
               gte: timeThreshold
             }
           },
@@ -143,7 +144,7 @@ export class EventQueries {
             sessionId: true,
             ip: true
           },
-          orderBy: { timestamp: 'desc' },
+          orderBy: { lastSeenAt: 'desc' },
           take: 100
         });
 
@@ -154,12 +155,12 @@ export class EventQueries {
         };
       } catch (prismaErr) {
         console.warn('[Schema Fallback Triggered] findRecentEvents with source column failed, falling back to core columns:', prismaErr);
-        
+
         try {
           const coreEvents = await prisma.event.findMany({
             where: {
               projectId,
-              timestamp: {
+              lastSeenAt: {
                 gte: timeThreshold
               }
             },
@@ -175,7 +176,7 @@ export class EventQueries {
               sessionId: true,
               ip: true
             },
-            orderBy: { timestamp: 'desc' },
+            orderBy: { lastSeenAt: 'desc' },
             take: 100
           });
 
@@ -192,8 +193,8 @@ export class EventQueries {
                    "userAgent", "ip", "country", "city", "timestamp"
             FROM "Event"
             WHERE "projectId" = ${projectId}
-              AND "timestamp" >= ${timeThreshold}
-            ORDER BY "timestamp" DESC
+              AND "lastSeenAt" >= ${timeThreshold}
+            ORDER BY "lastSeenAt" DESC
             LIMIT 100
           `;
           return {
@@ -216,8 +217,8 @@ export class EventQueries {
    * Find events in time range
    */
   static async findInTimeRange(
-    projectId: string, 
-    startDate: Date, 
+    projectId: string,
+    startDate: Date,
     endDate: Date
   ): Promise<QueryResult<DatabaseEvent[]>> {
     try {
@@ -250,13 +251,13 @@ export class EventQueries {
    * Find recent event by session
    */
   static async findRecentBySession(
-    projectId: string, 
-    sessionId: string, 
+    projectId: string,
+    sessionId: string,
     minutesAgo: number
   ): Promise<QueryResult<DatabaseEvent>> {
     try {
       const timeThreshold = new Date(Date.now() - minutesAgo * 60 * 1000);
-      
+
       const event = await prisma.event.findFirst({
         where: {
           projectId,
@@ -353,7 +354,7 @@ export class EventQueries {
    * Update an event
    */
   static async update(
-    id: string, 
+    id: string,
     eventData: Partial<DatabaseEvent>
   ): Promise<UpdateResult<DatabaseEvent>> {
     try {
@@ -436,7 +437,7 @@ export class EventQueries {
 
       result.data.forEach(event => {
         const visitorKey = event.sessionId || event.ip;
-        
+
         if (!uniqueVisitors.has(visitorKey)) {
           uniqueVisitors.add(visitorKey);
           visitorDetails.push({
@@ -475,27 +476,27 @@ export class EventQueries {
    */
   static async getDailyStats(projectId: string, days: number = 7): Promise<QueryResult<DailyStats[]>> {
     try {
-      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-      
+      const startDate = historyStart(days);
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const stats = await prisma.$queryRaw<any[]>`
         WITH session_activity AS (
-          SELECT 
+          SELECT
             "sessionId",
             COUNT(*) as cnt
           FROM "Event"
           WHERE "projectId" = ${projectId} AND "timestamp" >= ${startDate} AND "sessionId" IS NOT NULL
           GROUP BY "sessionId"
         )
-        SELECT 
+        SELECT
           TO_CHAR(DATE_TRUNC('day', e."timestamp"), 'YYYY-MM-DD') AS "date",
           COUNT(DISTINCT COALESCE(e."sessionId", e."ip"))::integer AS "visitors",
           COUNT(*)::integer AS "pageViews",
           COALESCE(
             ROUND(
-              (COUNT(DISTINCT CASE WHEN s.cnt = 1 THEN e."sessionId" END)::numeric / 
+              (COUNT(DISTINCT CASE WHEN s.cnt = 1 THEN e."sessionId" END)::numeric /
                NULLIF(COUNT(DISTINCT e."sessionId"), 0)::numeric) * 100
-            )::integer, 
+            )::integer,
             0
           ) AS "bounceRate"
         FROM "Event" e
@@ -509,7 +510,7 @@ export class EventQueries {
       const dailyStatsMap: { [key: string]: DailyStats } = {};
       for (let i = days - 1; i >= 0; i--) {
         const date = new Date();
-        date.setDate(date.getDate() - i);
+        date.setUTCDate(date.getUTCDate() - i);
         const dateKey = date.toISOString().split('T')[0];
         dailyStatsMap[dateKey] = {
           date: dateKey,
@@ -526,13 +527,6 @@ export class EventQueries {
           dailyStatsMap[row.date].visitors = Number(row.visitors || 0);
           dailyStatsMap[row.date].pageViews = Number(row.pageViews || 0);
           dailyStatsMap[row.date].bounceRate = Number(row.bounceRate || 0);
-        } else {
-          dailyStatsMap[row.date] = {
-            date: row.date,
-            visitors: Number(row.visitors || 0),
-            pageViews: Number(row.pageViews || 0),
-            bounceRate: Number(row.bounceRate || 0)
-          };
         }
       });
 
@@ -556,8 +550,8 @@ export class EventQueries {
    */
   static async getCountryStats(projectId: string, days: number = 30): Promise<QueryResult<CountryStats[]>> {
     try {
-      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-      
+      const startDate = historyStart(days);
+
       const rows = await prisma.$queryRaw<Array<{ country: string | null; visitors: number | bigint }>>`
         SELECT
           COALESCE(NULLIF("country", ''), 'Unknown') AS country,
@@ -571,7 +565,7 @@ export class EventQueries {
       `;
 
       const totalVisitors = rows.reduce((sum, r) => sum + Number(r.visitors || 0), 0);
-      
+
       const chartData: CountryStats[] = rows.map(r => ({
         country: r.country || 'Unknown',
         visitors: Number(r.visitors || 0),
@@ -596,8 +590,8 @@ export class EventQueries {
    */
   static async getReferrerStats(projectId: string, days: number = 30): Promise<QueryResult<ReferrerStats[]>> {
     try {
-      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-      
+      const startDate = historyStart(days);
+
       const rows = await prisma.$queryRaw<Array<{ referrer: string | null; visitors: number | bigint }>>`
         SELECT
           COALESCE("referrer", '') AS referrer,
@@ -660,7 +654,7 @@ export class EventQueries {
     days: number = 30
   ): Promise<QueryResult<PageStats[]>> {
     try {
-      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const startDate = historyStart(days);
 
       const rows = await prisma.$queryRaw<
         { pageUrl: string; pageViews: bigint | number; visitors: bigint | number }[]
@@ -715,7 +709,7 @@ export class EventQueries {
     days: number = 30
   ): Promise<QueryResult<{ browsers: BrowserStats[]; devices: DeviceStats[] }>> {
     try {
-      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const startDate = historyStart(days);
       const rows = await this.getUserAgentCounts(projectId, startDate);
 
       const getBrowser = (ua: string): string => {
@@ -802,7 +796,7 @@ export class EventQueries {
   static async count(filters: EventFilters = {}): Promise<number> {
     try {
       const where: Prisma.EventWhereInput = {};
-      
+
       if (filters.id) where.id = filters.id;
       if (filters.projectId) where.projectId = filters.projectId;
       if (filters.sessionId) where.sessionId = filters.sessionId;
@@ -839,7 +833,7 @@ export class EventQueries {
   static async getSourceStats(projectId: string, days: number = 30): Promise<QueryResult<SourceStats[]>> {
     try {
       const endDate = new Date();
-      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const startDate = historyStart(days);
 
       // Strategy 1: Raw SQL with unique visitor count
       try {
@@ -921,11 +915,12 @@ export class EventQueries {
   }
 
   /**
-   * Get Audience Mix (New vs Returning visitors from historical session data)
+   * Session engagement. Legacy response keys are retained for client compatibility;
+   * these counts describe single-page and multi-page sessions, not returning people.
    */
   static async getAudienceMix(projectId: string, days: number = 30): Promise<QueryResult<AudienceMixStats>> {
     try {
-      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const startDate = historyStart(days);
 
       const rows = await prisma.$queryRaw<Array<{
         total_visitors: bigint | number;
@@ -1001,7 +996,7 @@ export class EventQueries {
   ): Promise<QueryResult<Array<{ name: string; views: number; sessions: number }>>> {
     try {
       const endDate = new Date();
-      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      const startDate = historyStart(days);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let events: any[] = [];
@@ -1162,10 +1157,10 @@ export class EventQueries {
   static async getOverviewMetrics(projectId: string, days: number = 7): Promise<QueryResult<OverviewMetrics>> {
     try {
       const now = new Date();
-      const currentStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-      const priorStart = new Date(now.getTime() - 2 * days * 24 * 60 * 60 * 1000);
+      const currentStart = historyStart(days, now);
+      const priorStart = new Date(currentStart.getTime() - days * 24 * 60 * 60 * 1000);
 
-      const rows = await prisma.$queryRaw<any[]>`
+      const rows = await prisma.$queryRaw<Record<string, number>[]>`
         WITH current_period AS (
           SELECT COALESCE("sessionId", "ip") AS vid, "sessionId"
           FROM "Event"
@@ -1227,8 +1222,8 @@ export class EventQueries {
 
       const visitorsDelta = calcDelta(currVisitors, priorVisitors);
       const pageviewsDelta = calcDelta(currPageviews, priorPageviews);
-      
-      const bounceDelta = priorTotalSessions === 0 && currTotalSessions > 0 
+
+      const bounceDelta = priorTotalSessions === 0 && currTotalSessions > 0
         ? { delta: currBounceRate, isNew: true }
         : { delta: currBounceRate - priorBounceRate, isNew: false };
 
@@ -1263,4 +1258,4 @@ export class EventQueries {
       };
     }
   }
-} 
+}

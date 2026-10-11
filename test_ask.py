@@ -32,7 +32,7 @@ BASE_URL = os.getenv("SPECTR_AI_URL", "http://127.0.0.1:8000")
 if BASE_URL.endswith("/ask"):
     BASE_URL = BASE_URL[:-4]
 
-SHARED_SECRET = os.getenv("INTERNAL_SHARED_SECRET", "uMu3O1z9bNUIagYLjZO5W5nRCg95A_S9TVlrUztBDN0")
+SHARED_SECRET = os.environ["INTERNAL_SHARED_SECRET"]
 SITE_ID = os.getenv("TEST_SITE_ID", "0d565d46-0721-489e-a89e-f96cb4e891ab")
 
 test_cases = [

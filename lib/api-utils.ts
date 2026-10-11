@@ -4,6 +4,7 @@ import { SessionUser, ApiErrorResponse, CorsHeaders } from '../interfaces/api';
 import { ProjectQueries } from '../queries';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { parseHistoryDays, type HistoryDays } from '@/lib/history-range';
 
 // Authenticated API rate limiter (generous: 60 req/min per user)
 const hasRedisConfig = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
@@ -266,6 +267,16 @@ export async function handleCorsPreflight(): Promise<NextResponse> {
 }
 
 // Unified stats route handler helper to reduce duplication
+export async function handleHistoricalStatsRoute<T>(
+  request: NextRequest,
+  params: Promise<{ id: string }>,
+  fetchData: (projectId: string, days: HistoryDays) => Promise<{ success: boolean; data?: T; error?: string }>
+) {
+  const days = parseHistoryDays(request.nextUrl.searchParams.get('days'));
+  if (days === null) return createErrorResponse('days must be 7, 15, or 30', 400);
+  return handleStatsRoute(params, projectId => fetchData(projectId, days));
+}
+
 export async function handleStatsRoute<T>(
   params: Promise<{ id: string }>,
   fetchData: (projectId: string) => Promise<{ success: boolean; data?: T; error?: string }>
@@ -302,4 +313,4 @@ export async function handleStatsRoute<T>(
     }
     return createErrorResponse('Internal server error', 500);
   }
-} 
+}

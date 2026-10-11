@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { broadcastUpdate } from '@/lib/broadcaster';
-import { 
-  createErrorResponse, 
+import {
+  createErrorResponse,
   createSuccessResponse,
   validateProjectId,
   getClientIP,
@@ -12,18 +12,17 @@ import {
   handleCorsPreflight
 } from '@/lib/api-utils';
 import { classifySource } from '@/lib/source-classifier';
-import { 
-  TrackingRequest, 
+import {
+  TrackingRequest,
   TrackingResponse,
-  LocationData 
+  LocationData
 } from '../../../interfaces/api';
-import { DatabaseEvent } from '../../../interfaces/database';
-import { ProjectQueries, EventQueries } from '../../../queries';
-import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
-import { createHash } from 'crypto';
+import { prisma } from '@/lib/prisma';
+import { checkRateLimit, readJsonBody } from '@/lib/request-limits';
+import { ProjectQueries } from '../../../queries';
+import { randomUUID } from 'crypto';
 
-function resolveSessionId(clientSessionId: string | undefined, projectId: string, ip: string, userAgent: string): string {
+function resolveSessionId(clientSessionId: string | undefined): string {
   if (
     clientSessionId &&
     typeof clientSessionId === 'string' &&
@@ -33,35 +32,8 @@ function resolveSessionId(clientSessionId: string | undefined, projectId: string
   ) {
     return clientSessionId;
   }
-  // Server-side deterministic session fallback (30-minute time bucket per IP + UA + project)
-  const bucket = Math.floor(Date.now() / (30 * 60 * 1000));
-  const hash = createHash('sha256').update(`${projectId}:${ip}:${userAgent || ''}:${bucket}`).digest('hex').slice(0, 20);
-  return `srv_${hash}`;
+  return randomUUID();
 }
-
-const hasRedisConfig = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
-
-if (!hasRedisConfig && process.env.NODE_ENV === 'development') {
-  console.warn(
-    '[WARN] Upstash Redis credentials not configured. IP-based rate limiting is disabled.'
-  );
-}
-
-const redis = hasRedisConfig
-  ? new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-    })
-  : null;
-
-const ratelimit = redis
-  ? new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(60, '1 m'),
-      analytics: true,
-      prefix: '@upstash/ratelimit',
-    })
-  : null;
 
 // Handle OPTIONS preflight requests for CORS
 export async function OPTIONS() {
@@ -70,14 +42,24 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest): Promise<TrackingResponse> {
   try {
-    const body: TrackingRequest = await request.json();
+    const limit = await checkRateLimit('track', getClientIP(request));
+    if (limit.status !== 200) return createErrorResponse(limit.status === 429 ? 'Too many requests' : 'Tracking temporarily unavailable', limit.status, { 'Retry-After': String(limit.retryAfter) });
+    let body: TrackingRequest;
+    try { body = await readJsonBody(request) as unknown as TrackingRequest; }
+    catch (error) { return createErrorResponse('Invalid request body', error instanceof Error && error.message === 'Request body too large' ? 413 : 400); }
+    for (const key of ['projectId', 'pageUrl', 'referrer', 'userAgent', 'sessionId', 'timezone', 'locale', 'pageViewId'] as const) {
+      const value = body[key];
+      if (value !== undefined && (typeof value !== 'string' || value.length > (key === 'pageUrl' || key === 'referrer' ? 2000 : 512))) return createErrorResponse('Invalid tracking fields', 400);
+    }
+    if (body.type !== undefined && !['pageview', 'heartbeat'].includes(body.type)) return createErrorResponse('Invalid event type', 400);
     const { projectId, pageUrl, referrer, userAgent, sessionId, timezone, locale } = body;
 
     // Extract UTM parameters from client payload
-    const utmMedium   = body.utm?.utm_medium   || null;
-    const utmCampaign = body.utm?.utm_campaign || null;
-    const utmTerm     = body.utm?.utm_term     || null;
-    const utmContent  = body.utm?.utm_content  || null;
+    const utmValue = (value: unknown) => typeof value === 'string' ? value.slice(0, 200) : null;
+    const utmMedium   = utmValue(body.utm?.utm_medium);
+    const utmCampaign = utmValue(body.utm?.utm_campaign);
+    const utmTerm     = utmValue(body.utm?.utm_term);
+    const utmContent  = utmValue(body.utm?.utm_content);
 
     // Validate required fields
     if (!body.projectId || !body.pageUrl) {
@@ -103,18 +85,6 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
 
     // Get the client IP early for rate limiting and geolocation
     const ip = getClientIP(request);
-
-    // Rate Limiting
-    if (ratelimit) {
-      const identifier = `${ip}:${resolvedProjectId}`;
-      const { success, reset } = await ratelimit.limit(identifier);
-
-      if (!success) {
-        return createErrorResponse('Too many requests', 429, {
-          'Retry-After': String(Math.ceil((reset - Date.now()) / 1000)),
-        });
-      }
-    }
 
     // Detect location from headers, timezone, and locale
     let country = getCountry(request, timezone, locale);
@@ -149,7 +119,7 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       if (location.city !== 'Unknown') {
         city = location.city;
       }
-      
+
       debugLog('IP Geolocation Result:', { ip, location });
     }
 
@@ -157,98 +127,43 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
     const source = classifySource(referrer, pageUrl);
 
     // Resolve trustworthy session ID
-    const resolvedSessionId = resolveSessionId(sessionId, resolvedProjectId, ip, userAgent || '');
+    const resolvedSessionId = resolveSessionId(sessionId);
 
-    // Check for recent events from the same session
-    const existingEventResult = await EventQueries.findRecentBySession(resolvedProjectId, resolvedSessionId, 3);
-
-    if (existingEventResult.success && existingEventResult.data) {
-      const existingEvent = existingEventResult.data as DatabaseEvent;
-      
-      // Check if this is a page change (different URL)
-      if (existingEvent.pageUrl === pageUrl) {
-        // Same page, update the existing event
-        const updateResult = await EventQueries.update(existingEvent.id, {
-          referrer: referrer || '',
-          source,
-          userAgent: userAgent || '',
-          ip: ip || 'Unknown',
-          timestamp: new Date(), // Update timestamp to show recent activity
-        });
-
-        if (!updateResult.success || !updateResult.data) {
-          return createErrorResponse('Failed to update event', 500);
-        }
-
-        // Broadcast update for real-time updates
-        try {
-          await broadcastUpdate(resolvedProjectId);
-        } catch (error) {
-          console.debug('Failed to broadcast update:', error);
-        }
-
-        return createSuccessResponse({ 
-          success: true, 
-          eventId: (updateResult.data as DatabaseEvent).id, 
-          updated: true 
-        });
-      } else {
-        // Different page, create a new event to show navigation
-        const createResult = await EventQueries.create({
-          projectId: resolvedProjectId,
-          sessionId: resolvedSessionId,
-          pageUrl,
-          referrer: referrer || '',
-          source,
-          utmMedium,
-          utmCampaign,
-          utmTerm,
-          utmContent,
-          userAgent: userAgent || '',
-          ip: ip || 'Unknown',
-          country: country,
-          city: city,
-        });
-
-        if (!createResult.success || !createResult.data) {
-          return createErrorResponse('Failed to create event', 500);
-        }
-
-        // Broadcast update for real-time updates
-        try {
-          await broadcastUpdate(resolvedProjectId);
-        } catch (error) {
-          console.debug('Failed to broadcast update:', error);
-        }
-
-        return createSuccessResponse({ 
-          success: true, 
-          eventId: (createResult.data as DatabaseEvent).id, 
-          updated: false, 
-          pageChange: true 
-        });
-      }
+    const pageViewId = body.pageViewId && /^[a-zA-Z0-9_\-.:]{6,128}$/.test(body.pageViewId) ? body.pageViewId : null;
+    if (body.type === 'heartbeat') {
+      const event = await prisma.event.findFirst({ where: { projectId: resolvedProjectId, sessionId: resolvedSessionId, ...(pageViewId ? { pageViewId } : { pageUrl }) }, orderBy: { timestamp: 'desc' }, select: { id: true } });
+      if (event) await prisma.event.update({ where: { id: event.id }, data: { lastSeenAt: new Date() } });
+      return createSuccessResponse({ success: true, eventId: event?.id || 'heartbeat', updated: true });
     }
+    let cleanPageUrl: string;
+    let cleanReferrer = '';
+    try { const url = new URL(pageUrl); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); cleanPageUrl = url.origin + url.pathname; }
+    catch { return createErrorResponse('Invalid page URL', 400); }
+    try { const url = new URL(referrer || ''); if (['http:', 'https:'].includes(url.protocol)) cleanReferrer = url.origin + url.pathname; } catch {}
 
     // Create new event (first visit or new session)
-    const createResult = await EventQueries.create({
+    const eventData = {
       projectId: resolvedProjectId,
       sessionId: resolvedSessionId,
-      pageUrl,
-      referrer: referrer || '',
+      pageViewId,
+      lastSeenAt: new Date(),
+      pageUrl: cleanPageUrl,
+      referrer: cleanReferrer || '',
       source,
       utmMedium,
       utmCampaign,
       utmTerm,
       utmContent,
       userAgent: userAgent || '',
-      ip: ip || 'Unknown',
+      ip: 'Unknown',
       country: country,
       city: city,
-    });
+    };
+    const event = pageViewId ? await prisma.event.upsert({ where: { projectId_pageViewId: { projectId: resolvedProjectId, pageViewId } }, create: eventData, update: {} }) : await prisma.event.create({ data: eventData });
+    const createResult = { success: true, data: event };
 
     if (!createResult.success || !createResult.data) {
-      return createErrorResponse(createResult.error || 'Failed to create event', 500);
+      return createErrorResponse('Failed to create event', 500);
     }
 
     // Broadcast update for real-time updates
@@ -258,13 +173,13 @@ export async function POST(request: NextRequest): Promise<TrackingResponse> {
       console.debug('Failed to broadcast update:', error);
     }
 
-    return createSuccessResponse({ 
-      success: true, 
-      eventId: (createResult.data as DatabaseEvent).id, 
-      updated: false 
+    return createSuccessResponse({
+      success: true,
+      eventId: createResult.data.id,
+      updated: false
     });
   } catch (error) {
     console.error('Tracking error:', error);
     return createErrorResponse('Internal server error', 500);
   }
-} 
+}
